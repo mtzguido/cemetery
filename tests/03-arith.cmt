@@ -1,0 +1,5 @@
+fun f (x : int) : int {
+	declare y;
+	y = x + 3;
+	y = y * 2;
+}

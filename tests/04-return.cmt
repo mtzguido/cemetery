@@ -1,0 +1,5 @@
+fun zero (x : int) : int {
+	declare y;
+	x = y + 1;
+	return x;
+}

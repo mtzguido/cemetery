@@ -1,0 +1,14 @@
+fun crap (x : int) : int {
+	return x;
+}
+
+--line comment
+
+{- block
+comment -}
+
+{- {- nested block comments -} -}
+
+fun crap2 (y : int) : int {
+	return y;
+}
