@@ -10,13 +10,14 @@ import AST
 import Parser
 import Lexer
 
-data Opts = StopParse | Verbose deriving (Eq, Show)
+data Opts = StopLexer | StopParse | Verbose deriving (Eq, Show)
 
 -- Monadic type for the program logic
 type App = ReaderT ([Opts], String) IO
 
 options = [
  Option [] ["parse", "ast"] (NoArg StopParse) "stop at parsing stage",
+ Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop at lexing stage",
  Option ['V'] ["verbose"] (NoArg Verbose) "be more verbose"
  ]
 
@@ -63,6 +64,8 @@ work = do (opts, basename) <- ask
           let toks = alexScanTokens source
           dbg "Tokens:"
           dbgLn $ show toks
+
+          breakIf StopLexer
 
           let p = parse cmtProg "" source
 

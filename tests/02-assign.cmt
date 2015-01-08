@@ -1,3 +1,2 @@
-fun var_assign(x y : int) : int {
-	x = y;
-}
+fun var_assign(x y : int) : int
+	x = y

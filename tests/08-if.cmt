@@ -1,22 +1,19 @@
-fun f (x : int) : int {
-	if(0) {
-		return 1;
-	} else {
-		return 1;
-	}
-}
+fun f (x : int) : int
+	if(0)
+		return 1
+	else
+		return 1
 
-fun g (x : int) : int {
-	if(0) return 1;
-	else return 1;
-}
+fun g (x : int) : int
+	if(0) return 1
+	else return 1
 
-fun h (x : int) : int {
-	if(0) { return 1; }
-	else return 1;
-}
+fun h (x : int) : int
+	if(0)
+		return 1
+	else return 1
 
-fun i (x : int) : int {
-	if(0) return 1;
-	else { return 1; }
-}
+fun i (x : int) : int
+	if(0) return 1
+	else
+		return 1

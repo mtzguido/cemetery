@@ -15,56 +15,59 @@ tokens :-
   $white+		;
   "--".*		;
 
-  fun			{ \p s -> Fun p }
-  var			{ \p s -> Var p }
-  const			{ \p s -> Const p }
-  external		{ \p s -> External p }
-  struct		{ \p s -> Struct p }
+  fun			{ pos $ \s -> Fun }
+  var			{ pos $ \s -> Var }
+  const			{ pos $ \s -> Const }
+  external		{ pos $ \s -> External }
+  struct		{ pos $ \s -> Struct }
 
-  "("			{ \p s -> OpenParen p }
-  ")"			{ \p s -> CloseParen p }
+  "("			{ pos $ \s -> OpenParen }
+  ")"			{ pos $ \s -> CloseParen }
 
-  "+"			{ \p s -> Plus p }
-  "-"			{ \p s -> Dash p }
-  "*"			{ \p s -> Asterisk p }
-  "/"			{ \p s -> Slash p }
-  "^"			{ \p s -> Circ p }
-  ","			{ \p s -> Comma p }
-  "="			{ \p s -> Eq p }
-  "=="			{ \p s -> Eq2 p }
-  ":"			{ \p s -> Colon p }
+  "+"			{ pos $ \s -> Plus }
+  "-"			{ pos $ \s -> Dash }
+  "*"			{ pos $ \s -> Asterisk }
+  "/"			{ pos $ \s -> Slash }
+  "^"			{ pos $ \s -> Circ }
+  ","			{ pos $ \s -> Comma }
+  "="			{ pos $ \s -> Eq }
+  "=="			{ pos $ \s -> Eq2 }
+  ":"			{ pos $ \s -> Colon }
 
   -- This needs to be extended to multiline strings
-  \"[^\"]*\"		{ \p s -> StringLit p (init $ tail $ s) }
+  \"[^\"]*\"		{ pos $ \s -> StringLit (init $ tail $ s) }
 
-  $digit+		{ \p s -> IntLit p (read s) }
-  @ident		{ \p s -> ident_or_type s p }
-  .			{ \p s -> error $ "unexpected: " ++ s }
+  $digit+		{ pos $ \s -> IntLit (read s) }
+  @ident		{ pos $ \s -> ident_or_type s }
+  .			{ pos $ \s -> error $ "unexpected: " ++ s }
 
 {
 
-type PP = AlexPosn
+data Token = Tok Sym AlexPosn
+  deriving (Show)
 
-data Token =
-  Fun PP | Var PP | Const PP |
-  External PP | Struct PP |
+pos f = \p -> \s -> Tok (f s) p
 
-  Int PP | Bool PP | Float PP | Bytes PP |
-  Ident PP String |
+data Sym =
+  Fun | Var | Const |
+  External | Struct |
 
-  Plus PP | Dash PP | Asterisk PP | Slash PP | Circ PP |
-  Eq PP | Eq2 PP |
+  Int | Bool | Float | Bytes |
+  Ident String |
 
-  Type PP AST.Type |
+  Plus | Dash | Asterisk | Slash | Circ |
+  Eq | Eq2 |
 
-  OpenParen PP | CloseParen PP |
-  Comma PP | Colon PP |
+  Type AST.Type |
 
-  IntLit PP Int | StringLit PP String
- deriving (Show)
+  OpenParen | CloseParen |
+  Comma | Colon |
 
-ident_or_type s p = case lookup s AST.cmtTypeTable of
-		      Just t -> Type p t
-		      Nothing -> Ident p s
+  IntLit Int | StringLit String
+  deriving (Show)
+
+ident_or_type s = case lookup s AST.cmtTypeTable of
+		    Just t -> Type t
+		    Nothing -> Ident s
 
 }

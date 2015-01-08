@@ -1,3 +1,2 @@
-fun neg (x : int) : int {
-	return (-x);
-}
+fun neg (x : int) : int
+	return (-x)

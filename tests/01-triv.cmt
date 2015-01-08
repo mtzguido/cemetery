@@ -1,3 +1,2 @@
 fun succ(x : int) : int
-	lit = "lalala"
 	x = 3
