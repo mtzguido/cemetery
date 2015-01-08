@@ -15,12 +15,6 @@ tokens :-
   $white+		;
   "--".*		;
 
-  fun			{ pos $ \s -> Fun }
-  var			{ pos $ \s -> Var }
-  const			{ pos $ \s -> Const }
-  external		{ pos $ \s -> External }
-  struct		{ pos $ \s -> Struct }
-
   "("			{ pos $ \s -> OpenParen }
   ")"			{ pos $ \s -> CloseParen }
 
@@ -35,10 +29,10 @@ tokens :-
   ":"			{ pos $ \s -> Colon }
 
   -- This needs to be extended to multiline strings
-  \"[^\"]*\"		{ pos $ \s -> StringLit (init $ tail $ s) }
+  \"[^\"]*\"		{ pos $ \s -> StringLit (qstrip $ s) }
 
   $digit+		{ pos $ \s -> IntLit (read s) }
-  @ident		{ pos $ \s -> ident_or_type s }
+  @ident		{ pos $ \s -> ident_or_keyword s }
   .			{ pos $ \s -> error $ "unexpected: " ++ s }
 
 {
@@ -65,6 +59,19 @@ data Sym =
 
   IntLit Int | StringLit String
   deriving (Show)
+
+qstrip = tail . init
+
+keywords = [ ("fun", Fun),
+	     ("var", Var),
+	     ("const", Const),
+	     ("external", External),
+	     ("struct", Struct)
+	   ]
+
+ident_or_keyword s = case lookup s keywords of
+		       Just t -> t
+		       Nothing -> ident_or_type s
 
 ident_or_type s = case lookup s AST.cmtTypeTable of
 		    Just t -> Type t
