@@ -1,10 +1,10 @@
 {
-module Lexer (Token(..), alexScanTokens) where
+module Lexer (Token(..), Sym(..), alexMonadScan, runAlex) where
 
 import qualified AST
 }
 
-%wrapper "posn"
+%wrapper "monad"
 
 $digit = 0-9
 $alpha = [a-zA-Z]
@@ -15,32 +15,37 @@ tokens :-
   $white+		;
   "--".*		;
 
-  "("			{ pos $ \s -> OpenParen }
-  ")"			{ pos $ \s -> CloseParen }
+  "("			{ simple OpenParen }
+  ")"			{ simple CloseParen }
 
-  "+"			{ pos $ \s -> Plus }
-  "-"			{ pos $ \s -> Dash }
-  "*"			{ pos $ \s -> Asterisk }
-  "/"			{ pos $ \s -> Slash }
-  "^"			{ pos $ \s -> Circ }
-  ","			{ pos $ \s -> Comma }
-  "="			{ pos $ \s -> Eq }
-  "=="			{ pos $ \s -> Eq2 }
-  ":"			{ pos $ \s -> Colon }
+  "+"			{ simple Plus }
+  "-"			{ simple Dash }
+  "*"			{ simple Asterisk }
+  "/"			{ simple Slash }
+  "^"			{ simple Circ }
+  ","			{ simple Comma }
+  "="			{ simple Eq }
+  "=="			{ simple Eq2 }
+  ":"			{ simple Colon }
 
   -- This needs to be extended to multiline strings
-  \"[^\"]*\"		{ pos $ \s -> StringLit (qstrip $ s) }
+  \"[^\"]*\"		{ stringLit }
 
-  $digit+		{ pos $ \s -> IntLit (read s) }
-  @ident		{ pos $ \s -> ident_or_keyword s }
-  .			{ pos $ \s -> error $ "unexpected: " ++ s }
+  $digit+		{ intLit }
+  @ident		{ ident_or_keyword' }
+  .			{ \(_,_,_,s) -> error $ "unexpected: " ++ s }
 
 {
 
-data Token = Tok Sym AlexPosn
+alexEOF = return EOF
+
+data Token = Tok Sym AlexPosn | EOF
   deriving (Show)
 
-pos f = \p -> \s -> Tok (f s) p
+simple v = \(p,_,_,s) -> \i -> return $ Tok v p
+
+stringLit (p,_,_,s) l = return $ Tok (StringLit (qstrip (take l s))) p
+intLit (p,_,_,s) l = return $ Tok (IntLit (read (take l s) :: Int)) p
 
 data Sym =
   Fun | Var | Const |
@@ -69,6 +74,8 @@ keywords = [ ("fun", Fun),
 	     ("struct", Struct)
 	   ]
 
+ident_or_keyword' (p,_,_,s) l = return $ Tok (ident_or_keyword (take l s)) p
+
 ident_or_keyword s = case lookup s keywords of
 		       Just t -> t
 		       Nothing -> ident_or_type s
@@ -76,5 +83,4 @@ ident_or_keyword s = case lookup s keywords of
 ident_or_type s = case lookup s AST.cmtTypeTable of
 		    Just t -> Type t
 		    Nothing -> Ident s
-
 }

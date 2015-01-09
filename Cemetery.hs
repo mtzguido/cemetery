@@ -53,6 +53,12 @@ base s = if drop (length s - 4) s == ".cmt"
          then take (length s - 4) s
          else error "unrecognized file type"
 
+get_toks = do c <- alexMonadScan
+              case c of
+                EOF -> return []
+                _ -> do cs <- get_toks
+                        return (c:cs)
+
 work :: App ()
 work = do (opts, basename) <- ask
           let inp  = basename ++ ".cmt"
@@ -61,7 +67,12 @@ work = do (opts, basename) <- ask
 
           source <- lift $ readFile inp
 
-          let toks = alexScanTokens source
+          let res = runAlex source get_toks
+
+          let toks = case res of
+                       Left e -> error e
+                       Right t -> t
+
           dbg "Tokens:"
           dbgLn $ show toks
 
