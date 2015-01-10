@@ -54,10 +54,10 @@ base s = if drop (length s - 4) s == ".cmt"
          else error "unrecognized file type"
 
 get_toks = do c <- alexMonadScan
-              case c of
-                EOF -> return []
+              case last c of
+                EOF -> return c
                 _ -> do cs <- get_toks
-                        return (c:cs)
+                        return (c ++ cs)
 
 work :: App ()
 work = do (opts, basename) <- ask
@@ -74,7 +74,7 @@ work = do (opts, basename) <- ask
                        Right t -> t
 
           dbg "Tokens:"
-          dbgLn $ show toks
+          dbgLn $ concat $ map ((\s -> s ++ "\n").show) toks
 
           breakIf StopLexer
 
