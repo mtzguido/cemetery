@@ -90,6 +90,8 @@ data Sym =
   Fun | Var | Const |
   External | Struct |
 
+  Return | If |
+
   Int | Bool | Float | Bytes |
   Ident String |
 
@@ -111,7 +113,9 @@ keywords = [ ("fun", Fun),
              ("var", Var),
              ("const", Const),
              ("external", External),
-             ("struct", Struct)
+             ("struct", Struct),
+             ("return", Return),
+             ("if", If)
            ]
 
 ident_or_keyword' (p,_,_,s) l = return $ Tok (ident_or_keyword (take l s)) p

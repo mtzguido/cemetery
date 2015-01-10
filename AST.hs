@@ -8,10 +8,11 @@ type VarName = String
 
 data Type = Int
           | Bool
+          | String
           | Fun [Type] Type
           deriving (Eq, Show)
 
-cmtTypeTable = [("int", Int), ("bool", Bool)]
+cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String)]
 
 data BinOp = Plus | Minus | Div | Prod | Eq
           deriving (Eq, Show)
