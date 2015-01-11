@@ -10,16 +10,21 @@ import Debug.Trace
 $digit = 0-9
 $alpha = [a-zA-Z]
 $alnum_ = [$alpha '_' $digit]
+$backslash = \
 @ident = $alpha $alnum_*
 
 tokens :-
   $white+		;
   "--".*		;
+  $backslash $		{ backslash }
 
   "("			{ simple Paren }
   ")"			{ simple Unparen }
   "{"			{ simple Brace }
   "}"			{ simple Unbrace }
+  "["			{ simple Square }
+  "]"			{ simple Unsquare }
+
 
   "+"			{ simple Plus }
   "-"			{ simple Dash }
@@ -86,6 +91,10 @@ ind m ai@(p,_,_,s) l = do t <- m ai l
                                           ++ (replicate npop (fake Unbrace))
                                           ++ [t]
 
+backslash (p,_,_,_) _ = do (inds, ll) <- alexGetUserState
+                           alexSetUserState (inds, ll+1)
+                           return []
+
 data Token = Tok Sym AlexPosn | EOF | NoTok
   deriving (Show)
 
@@ -109,7 +118,10 @@ data Sym =
 
   Type AST.Type |
 
+  Backslash |
+
   Paren | Unparen |
+  Square | Unsquare |
   Brace | Unbrace | Break |
   Comma | Colon |
 

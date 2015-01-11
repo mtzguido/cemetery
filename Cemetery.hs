@@ -54,8 +54,9 @@ base s = if drop (length s - 4) s == ".cmt"
          else error "unrecognized file type"
 
 get_toks = do c <- alexMonadScan
-              case last c of
-                EOF -> return c
+              case (c, last c) of
+                ([],_) -> get_toks
+                (_, EOF) -> return c
                 _ -> do cs <- get_toks
                         return (c ++ cs)
 
