@@ -26,11 +26,14 @@ tokens :-
   "*"			{ ind $ simple Asterisk }
   "/"			{ ind $ simple Slash }
   "^"			{ ind $ simple Circ }
+  "%"			{ ind $ simple Perc }
+
   ","			{ ind $ simple Comma }
   "="			{ ind $ simple Eq }
   "=="			{ ind $ simple Eq2 }
   ":"			{ ind $ simple Colon }
   ";"			{ ind $ simple Break }
+  "."			{ ind $ simple Dot }
 
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
@@ -100,8 +103,8 @@ data Sym =
   Int | Bool | Float | Bytes |
   Ident String |
 
-  Plus | Dash | Asterisk | Slash | Circ |
-  Eq | Eq2 |
+  Plus | Dash | Asterisk | Slash | Circ | Perc |
+  Eq | Eq2 | Dot |
 
   Type AST.Type |
 
