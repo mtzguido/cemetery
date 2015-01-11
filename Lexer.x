@@ -16,24 +16,24 @@ tokens :-
   $white+		;
   "--".*		;
 
-  "("			{ ind $ simple Paren }
-  ")"			{ ind $ simple Unparen }
-  "{"			{ ind $ simple Brace }
-  "}"			{ ind $ simple Unbrace }
+  "("			{ simple Paren }
+  ")"			{ simple Unparen }
+  "{"			{ simple Brace }
+  "}"			{ simple Unbrace }
 
-  "+"			{ ind $ simple Plus }
-  "-"			{ ind $ simple Dash }
-  "*"			{ ind $ simple Asterisk }
-  "/"			{ ind $ simple Slash }
-  "^"			{ ind $ simple Circ }
-  "%"			{ ind $ simple Perc }
+  "+"			{ simple Plus }
+  "-"			{ simple Dash }
+  "*"			{ simple Asterisk }
+  "/"			{ simple Slash }
+  "^"			{ simple Circ }
+  "%"			{ simple Perc }
 
-  ","			{ ind $ simple Comma }
-  "="			{ ind $ simple Eq }
-  "=="			{ ind $ simple Eq2 }
-  ":"			{ ind $ simple Colon }
-  ";"			{ ind $ simple Break }
-  "."			{ ind $ simple Dot }
+  ","			{ simple Comma }
+  "="			{ simple Eq }
+  "=="			{ simple Eq2 }
+  ":"			{ simple Colon }
+  ";"			{ simple Break }
+  "."			{ simple Dot }
 
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
@@ -89,7 +89,8 @@ ind m ai@(p,_,_,s) l = do t <- m ai l
 data Token = Tok Sym AlexPosn | EOF | NoTok
   deriving (Show)
 
-simple v (p,_,_,s) i = do return $ Tok v p
+simple = ind.simple'
+simple' v (p,_,_,s) i = do return $ Tok v p
 
 stringLit (p,_,_,s) l = return $ Tok (StringLit (qstrip (take l s))) p
 intLit (p,_,_,s) l = return $ Tok (IntLit (read (take l s) :: Int)) p
