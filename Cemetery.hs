@@ -5,9 +5,7 @@ import Data.Either
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
-import Text.ParserCombinators.Parsec
 import AST
-import Parser
 import Lexer
 
 data Opts = StopLexer | StopParse | Verbose deriving (Eq, Show)
@@ -78,14 +76,5 @@ work = do (opts, basename) <- ask
           dbgLn $ concat $ map ((\s -> s ++ "\n").show) toks
 
           breakIf StopLexer
-
-          let p = parse cmtProg "" source
-
-          let ast = case p of
-                      Left e -> error (show e)
-                      Right x -> x
-
-          dbg "Cemetery AST:"
-          dbgLn $ show ast
 
           return ()
