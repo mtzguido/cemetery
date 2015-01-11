@@ -46,9 +46,14 @@ fakePos = AlexPn 0 0 0
 type AlexUserState = ([Int], Int)
 alexInitUserState = ([1], 1)
 
-alexEOF = do (inds, _) <- alexGetUserState
-             return $ (replicate (length inds - 1) (fake Unbrace))
-                   ++ [EOF]
+alexEOF = do (inds, ll) <- alexGetUserState
+             if 1 == head inds then
+               do return [fake Break, EOF]
+             else
+               do let (npop, newinds) = nlevels 1 inds
+                  return $ [fake Break]
+                        ++ (replicate npop (fake Unbrace))
+                        ++ [EOF]
 
 nlevels c inds = let (l,r) = break (<=c) inds
                  in (length l, r)
