@@ -15,7 +15,7 @@ automods=Lexer.hs Parser.hs
 
 $(TARGET): $(wildcard *.hs) $(automods)
 	$(Q)$(SAY) "  GHC	$@"
-	$(Q)$(CC) --make $(SOURCE) $(CFLAGS) -o $(TARGET)
+	$(Q)$(CC) $(SOURCE) $(CFLAGS) -o $(TARGET)
 
 all: $(TARGET)
 
