@@ -9,21 +9,19 @@ type VarName = String
 data Type = Int
           | Bool
           | String
+          | Bytes
           | Fun [Type] Type
           deriving (Eq, Show)
 
-cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String)]
+cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
+                ("bytes", Bytes)]
 
-data BinOp = Plus | Minus | Div | Prod | Eq
+data BinOp = Plus | Minus | Div | Prod | Eq | Mod
+           | Xor
           deriving (Eq, Show)
-
-cmtBinOpTable = [("+", Plus), ("-", Minus), ("*", Prod),
-                 ("/", Div), ("==", Eq)]
 
 data UnOp = NegateNum
           deriving (Eq, Show)
-
-cmtUnOpTable = [("-", NegateNum)]
 
 data Expr = ConstInt Int
           | BinOp BinOp Expr Expr
@@ -38,8 +36,16 @@ data Stmt = Skip
           | If Expr Stmt Stmt
           | Seq Stmt Stmt
           | Return Expr
-          | DeclareAuto String
+          | Decl Decl
+          deriving (Eq, Show)
+
+data Decl = DeclareAuto String
           | Declare String Expr
+          | DeclareAutoT String Type
+          | DeclareT String Expr Type
+          | Const String Expr
+          | External String Type
+          | Struct
           deriving (Eq, Show)
 
 data FunDecl = FunDecl {
@@ -49,6 +55,6 @@ data FunDecl = FunDecl {
     body :: Stmt
 } deriving (Eq, Show)
 
-type Prog = [FunDecl]
+type Prog = ([Decl], [FunDecl])
 
 type NameEnv = M.Map VarName Type

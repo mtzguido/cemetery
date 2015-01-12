@@ -40,6 +40,12 @@ tokens :-
   ";"			{ simple Break }
   "."			{ simple Dot }
 
+  "+="			{ simple PlusAssign }
+  "-="			{ simple MinusAssign }
+  "*="			{ simple ProdAssign }
+  "/="			{ simple DivAssign }
+  "^="			{ simple XorAssign }
+
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
 
@@ -55,24 +61,30 @@ type AlexUserState = ([Int], Int)
 alexInitUserState = ([1], 1)
 
 alexEOF = do (inds, ll) <- alexGetUserState
+             break <- fake Break
+             unbrace <- fake Unbrace
              if 1 == head inds then
-               do return [fake Break, EOF]
+               do return [break, EOF]
              else
                do let (npop, newinds) = nlevels 1 inds
-                  return $ [fake Break]
-                        ++ (replicate npop (fake Unbrace))
+                  return $ [break]
+                        ++ (replicate npop unbrace)
                         ++ [EOF]
 
 nlevels c inds = let (l,r) = break (<=c) inds
                  in (length l, r)
 
-fake :: Sym -> Token
-fake t = Tok t fakePos
+fake :: Sym -> Alex Token
+fake t = do (p,_,_,_) <- alexGetInput
+            return $ Tok t p
 
 ind :: (AlexInput -> Int -> Alex Token) -> AlexInput -> Int -> Alex [Token]
 ind m ai@(p,_,_,s) l = do t <- m ai l
                           let AlexPn _ l c = p
                           (inds, ll) <- alexGetUserState
+                          break <- fake Break
+                          brace <- fake Brace
+                          unbrace <- fake Unbrace
                           if l < ll then
                             error "internal error 1"
                           else if l == ll || inds == [] then
@@ -81,14 +93,14 @@ ind m ai@(p,_,_,s) l = do t <- m ai l
                             do alexSetUserState (inds, l) -- Update the line
                                if c > head inds then
                                  do alexSetUserState (c:inds, l)
-                                    return [fake Brace, t]
+                                    return [brace, t]
                                else if c == head inds then
-                                 do return [fake Break, t]
+                                 do return [break, t]
                                else
                                  do let (npop, newinds) = nlevels c inds
                                     alexSetUserState (newinds, l)
-                                    return $ [fake Break]
-                                          ++ (replicate npop (fake Unbrace))
+                                    return $ [break]
+                                          ++ (replicate npop unbrace)
                                           ++ [t]
 
 backslash (p,_,_,_) _ = do (inds, ll) <- alexGetUserState
@@ -124,6 +136,10 @@ data Sym =
   Square | Unsquare |
   Brace | Unbrace | Break |
   Comma | Colon |
+
+  PlusAssign | MinusAssign |
+  ProdAssign | DivAssign |
+  XorAssign |
 
   IntLit Int | StringLit String
   deriving (Show)
