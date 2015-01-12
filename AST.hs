@@ -30,6 +30,7 @@ data Expr = ConstInt Int
           | UnOp UnOp Expr
           | Call VarName [Expr]
           | Var VarName
+          | ConstStr String
           deriving (Eq, Show)
 
 data Stmt = Skip
@@ -37,7 +38,8 @@ data Stmt = Skip
           | If Expr Stmt Stmt
           | Seq Stmt Stmt
           | Return Expr
-          | Declare String
+          | DeclareAuto String
+          | Declare String Expr
           deriving (Eq, Show)
 
 data FunDecl = FunDecl {

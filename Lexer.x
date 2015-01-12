@@ -107,7 +107,6 @@ intLit (p,_,_,s) l = return $ Tok (IntLit (read (take l s) :: Int)) p
 data Sym =
   Fun | Var | Const |
   External | Struct |
-  Declare |
 
   Return | If | Else |
 
@@ -138,8 +137,7 @@ keywords = [ ("fun", Fun),
              ("struct", Struct),
              ("return", Return),
              ("if", If),
-             ("else", Else),
-             ("declare", Declare)
+             ("else", Else)
            ]
 
 ident_or_keyword' (p,_,_,s) l = return $ Tok (ident_or_keyword (take l s)) p

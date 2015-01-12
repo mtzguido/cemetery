@@ -2,7 +2,7 @@ fun f (x : int) : int
 	return x+1
 
 fun g (x : int) : int
-	declare y
+	var y
 	y = f(x)
 
 	return 2 * y

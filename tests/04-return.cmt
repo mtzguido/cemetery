@@ -1,4 +1,4 @@
 fun zero (x : int) : int
-	declare y
+	var y
 	x = y + 1
 	return x
