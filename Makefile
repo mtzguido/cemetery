@@ -11,7 +11,7 @@ else
 	Q=@
 endif
 
-automods=Lexer.hs
+automods=Lexer.hs Parser.hs
 
 $(TARGET): $(wildcard *.hs) $(automods)
 	$(Q)$(SAY) "  GHC	$@"
@@ -22,6 +22,10 @@ all: $(TARGET)
 Lexer.hs: Lexer.x
 	$(Q)$(SAY) " ALEX	$<"
 	$(Q)alex $< -o $@
+
+Parser.hs: Parser.y
+	$(Q)$(SAY) " HAPPY	$<"
+	$(Q)happy $< -o $@
 
 clean:
 	$(Q)$(SAY) "CLEAN"

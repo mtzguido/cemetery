@@ -4,3 +4,4 @@
 .deps
 cmt
 Lexer.hs
+Parser.hs

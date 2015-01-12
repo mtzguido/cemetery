@@ -7,6 +7,7 @@ import System.Environment
 import System.Exit
 import AST
 import Lexer
+import Parser
 
 data Opts = StopLexer | StopParse | Verbose deriving (Eq, Show)
 
@@ -72,9 +73,14 @@ work = do (opts, basename) <- ask
                        Left e -> error e
                        Right t -> t
 
-          dbg "Tokens:"
+          dbg "Tokens: "
           dbgLn $ concat $ map ((\s -> s ++ "\n").show) toks
 
           breakIf StopLexer
+
+          let ast = cmtParse toks
+
+          dbg "AST: "
+          dbgLn $ show ast
 
           return ()
