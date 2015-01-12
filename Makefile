@@ -34,7 +34,7 @@ clean:
 	$(Q)rm -f $(automods)
 	$(Q)rm -f $(patsubst %,%.hi, $(mods))
 
-test: test-lexer
+test: test-parse
 
 test-%: $(TARGET)
 	./scripts/$@.sh

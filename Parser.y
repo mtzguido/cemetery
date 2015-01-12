@@ -7,7 +7,7 @@ import qualified AST as A
 
 %name cmtParse
 %tokentype { L.Token }
-%error { \_ -> error "wat" }
+%error { \s -> error $ "Parse error near token: " ++ show (head s) }
 
 %token
 	FUN		{ L.Tok L.Fun _ }
@@ -20,8 +20,17 @@ import qualified AST as A
 	BRACE		{ L.Tok L.Brace _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	EQ		{ L.Tok L.Eq _ }
+	EQ2		{ L.Tok L.Eq2 _ }
 	INT		{ L.Tok (L.IntLit n) _ }
 	COMMA		{ L.Tok L.Comma _ }
+	PLUS		{ L.Tok L.Plus _ }
+	DASH		{ L.Tok L.Dash _ }
+	SLASH		{ L.Tok L.Slash _ }
+	ASTERISK	{ L.Tok L.Asterisk _ }
+	DECLARE		{ L.Tok L.Declare _ }
+	RETURN		{ L.Tok L.Return _ }
+	IF		{ L.Tok L.If _ }
+	ELSE		{ L.Tok L.Else _ }
 	EOF		{ L.EOF }
 
 %%
@@ -51,12 +60,37 @@ arg : idents COLON type		{ zip $1 (repeat $3) }
 idents : id			{ $1 : [] }
        | id idents		{ $1 : $2 }
 
-stmts : 			{ A.Skip }
-      | stmt stmts		{ A.Seq $1 $2 }
+stmts : {- empty -}		{ A.Skip }
+      | stmt stmts		{ sseq $1 $2 }
 
-stmt : id EQ intlit BREAK	{ A.Assign $1 (A.ConstInt $3) }
+stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
+     | DECLARE id BREAK		{ A.Declare $2 }
+     | RETURN expr BREAK	{ A.Return $2 }
+     | BREAK			{ A.Skip }
+     | BRACE stmts UNBRACE	{ $2 }
+     | IF expr stmts		{ A.If $2 $3 A.Skip }
+     | IF expr stmts ELSE stmts	{ A.If $2 $3 $5 }
 
+expr : intlit			{ A.ConstInt $1 }
+     | id			{ A.Var $1 }
+     | expr binop expr		{ A.BinOp $2 $1 $3 }
+     | id PAREN argv UNPAREN	{ A.Call $1 $3 }
+     | PAREN expr UNPAREN	{ $2 }
+
+argv : {- empty -}		{ [] }
+     | expr			{ [$1] }
+     | expr COMMA argv		{ $1 : $3 }
+
+binop : PLUS		{ A.Plus }
+      | DASH		{ A.Minus }
+      | SLASH		{ A.Div }
+      | ASTERISK	{ A.Prod }
+      | EQ2		{ A.Eq }
 {
+
+sseq A.Skip s = s
+sseq s A.Skip = s
+sseq s t = A.Seq s t
 
 readIdent (L.Tok (L.Ident s) _) = s
 readType (L.Tok (L.Type t) _) = t
