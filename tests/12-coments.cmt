@@ -1,0 +1,5 @@
+{- uno {- dos {- ul {- tra -} vio -} len -} to -}
+{- la -}
+
+fun la () : int
+	return 0

@@ -56,17 +56,20 @@ gdecls : {- empty -}	{ [] }
 funs : fun		{ $1 : [] }
      | fun funs		{ $1 : $2 }
 
+ig_br : {- empty -}		{ () }
+      | BREAK ig_br		{ () }
+
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }
 intlit : INT { readInt $1 }
 strlit : STRING { readStr $1 }
 
-fun : FUN id PAREN args UNPAREN COLON type
+fun : ig_br FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {
-				    A.name = $2,
-				    A.ret = $7,
-				    A.args = $4,
-				    A.body = $9 } }
+				    A.name = $3,
+				    A.ret = $8,
+				    A.args = $5,
+				    A.body = $10 } }
 
 args : {- empty -}		{ [] }
      | arg			{ $1 }

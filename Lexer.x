@@ -3,6 +3,7 @@ module Lexer (Token(..), Sym(..), alexMonadScan, runAlex, alexEOF) where
 
 import qualified AST
 import Debug.Trace
+import Control.Monad
 }
 
 %wrapper "monadUserState"
@@ -14,9 +15,16 @@ $backslash = \
 @ident = $alpha $alnum_*
 
 tokens :-
+<comm>		"-}"	{ popComm }
+<comm>		"{-"	{ pushComm }
+<comm>		.	;
+
+<0> {
   $white+		;
   "--".*		;
   $backslash $		{ backslash }
+
+  "{-"			{ pushComm }
 
   "("			{ simple Paren }
   ")"			{ simple Unparen }
@@ -52,15 +60,51 @@ tokens :-
   $digit+		{ ind $ intLit }
   @ident		{ ind $ ident_or_keyword' }
   .			{ ind $ \(_,_,_,s) -> error $ "unexpected: " ++ s }
+}
 
 {
 
+pushComm :: AlexAction [Token]
+pushComm p i = do incrCommLevel
+                  begin comm p i
+
+popComm :: AlexAction [Token]
+popComm p i = do decrCommLevel
+                 n <- getCommLevel
+                 if n < 0 then alexError "parens" else return ()
+                 if n == 0
+                   then begin 0 p i
+                   else return []
+
 fakePos = AlexPn 0 0 0
 
-type AlexUserState = ([Int], Int)
-alexInitUserState = ([1], 1)
+data AlexUserState = CmtState { levels :: [Int], curr :: Int,
+                                commentLevel :: Int } deriving Show
 
-alexEOF = do (inds, ll) <- alexGetUserState
+incrCommLevel:: Alex ()
+incrCommLevel = do s <- alexGetUserState
+                   let ss = s { commentLevel = commentLevel s + 1 }
+                   alexSetUserState ss
+
+decrCommLevel:: Alex ()
+decrCommLevel = do s <- alexGetUserState
+                   let ss = s { commentLevel = commentLevel s - 1 }
+                   alexSetUserState ss
+
+getCommLevel:: Alex Int
+getCommLevel = do s <- alexGetUserState
+                  return (commentLevel s)
+
+alexInitUserState = CmtState { levels = [1], curr = 1, commentLevel = 0 }
+
+getIndentInfo = do s <- alexGetUserState
+                   return (levels s, curr s)
+
+setIndentInfo i = do s <- alexGetUserState
+                     alexSetUserState $ s { levels = fst i, curr = snd i }
+
+-- Revisit.
+alexEOF = do (inds, ll) <- getIndentInfo
              break <- fake Break
              unbrace <- fake Unbrace
              if 1 == head inds then
@@ -78,10 +122,10 @@ fake :: Sym -> Alex Token
 fake t = do (p,_,_,_) <- alexGetInput
             return $ Tok t p
 
-ind :: (AlexInput -> Int -> Alex Token) -> AlexInput -> Int -> Alex [Token]
+ind :: AlexAction Token -> AlexAction [Token]
 ind m ai@(p,_,_,s) l = do t <- m ai l
                           let AlexPn _ l c = p
-                          (inds, ll) <- alexGetUserState
+                          (inds, ll) <- getIndentInfo
                           break <- fake Break
                           brace <- fake Brace
                           unbrace <- fake Unbrace
@@ -90,21 +134,21 @@ ind m ai@(p,_,_,s) l = do t <- m ai l
                           else if l == ll || inds == [] then
                             return [t]
                           else -- l > ll
-                            do alexSetUserState (inds, l) -- Update the line
+                            do setIndentInfo (inds, l) -- Update the line
                                if c > head inds then
-                                 do alexSetUserState (c:inds, l)
+                                 do setIndentInfo (c:inds, l)
                                     return [brace, t]
                                else if c == head inds then
                                  do return [break, t]
                                else
                                  do let (npop, newinds) = nlevels c inds
-                                    alexSetUserState (newinds, l)
+                                    setIndentInfo (newinds, l)
                                     return $ [break]
                                           ++ (replicate npop unbrace)
                                           ++ [t]
 
-backslash (p,_,_,_) _ = do (inds, ll) <- alexGetUserState
-                           alexSetUserState (inds, ll+1)
+backslash (p,_,_,_) _ = do (inds, ll) <- getIndentInfo
+                           setIndentInfo (inds, ll+1)
                            return []
 
 data Token = Tok Sym AlexPosn | EOF | NoTok
