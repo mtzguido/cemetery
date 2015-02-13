@@ -10,11 +10,12 @@ data Type = Int
           | Bool
           | String
           | Bytes
+          | Void
           | Fun [Type] Type
           deriving (Eq, Show)
 
 cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
-                ("bytes", Bytes)]
+                ("bytes", Bytes), ("void", Void)]
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod
            | Xor
@@ -29,6 +30,7 @@ data Expr = ConstInt Int
           | Call VarName [Expr]
           | Var VarName
           | ConstStr String
+          | BinLit B.ByteString
           deriving (Eq, Show)
 
 data Stmt = Skip

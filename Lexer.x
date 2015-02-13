@@ -10,6 +10,7 @@ import Control.Monad
 
 $digit = 0-9
 $alpha = [a-zA-Z]
+$hex = [$digit a-fA-F]
 $alnum_ = [$alpha '_' $digit]
 $backslash = \
 @ident = $alpha $alnum_*
@@ -32,6 +33,8 @@ tokens :-
   "}"			{ simple Unbrace }
   "["			{ simple Square }
   "]"			{ simple Unsquare }
+  "<"			{ simple Langle }
+  ">"			{ simple Rangle }
 
 
   "+"			{ simple Plus }
@@ -58,6 +61,8 @@ tokens :-
   \"[^\"]*\"		{ ind $ stringLit }
 
   $digit+		{ ind $ intLit }
+  0x($hex*)		{ ind $ intLit }
+
   @ident		{ ind $ ident_or_keyword' }
   .			{ ind $ \(_,_,_,s) -> error $ "unexpected: " ++ s }
 }
@@ -179,6 +184,7 @@ data Sym =
   Paren | Unparen |
   Square | Unsquare |
   Brace | Unbrace | Break |
+  Langle | Rangle |
   Comma | Colon |
 
   PlusAssign | MinusAssign |

@@ -1,6 +1,7 @@
 {
 module Parser where
 
+import qualified Data.ByteString as B
 import qualified Lexer as L
 import qualified AST as A
 }
@@ -26,9 +27,11 @@ import qualified AST as A
 	ID		{ L.Tok (L.Ident _) _ }
 	IF		{ L.Tok L.If _ }
 	INT		{ L.Tok (L.IntLit _) _ }
+	LANGLE		{ L.Tok L.Langle _ }
 	PAREN		{ L.Tok L.Paren _ }
 	PERC		{ L.Tok L.Perc _ }
 	PLUS		{ L.Tok L.Plus _ }
+	RANGLE		{ L.Tok L.Rangle _ }
 	RETURN		{ L.Tok L.Return _ }
 	SLASH		{ L.Tok L.Slash _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
@@ -114,8 +117,14 @@ fields : field			{ $1 : [] }
 
 field : id COLON type BREAK	{ 1 }
 
+binlit : LANGLE bytes RANGLE	{ $2 }
+
+bytes : intlit bytes		{ $1 : $2 }
+      | {- empty -}		{ [] }
+
 expr : intlit			{ A.ConstInt $1 }
      | id			{ A.Var $1 }
+     | binlit			{ A.BinLit $ B.pack $ map fromIntegral $1 }
      | expr binop expr		{ A.BinOp $2 $1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
