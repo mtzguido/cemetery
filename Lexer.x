@@ -60,6 +60,7 @@ tokens :-
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
 
+  $digit+ \. $digit+	{ ind $ floatLit }
   $digit+		{ ind $ intLit }
   0x($hex*)		{ ind $ intLit }
 
@@ -163,7 +164,8 @@ simple = ind.simple'
 simple' v (p,_,_,s) i = do return $ Tok v p
 
 stringLit (p,_,_,s) l = return $ Tok (StringLit (qstrip (take l s))) p
-intLit (p,_,_,s) l = return $ Tok (IntLit (read (take l s) :: Int)) p
+intLit    (p,_,_,s) l = return $ Tok (IntLit (read (take l s) :: Int)) p
+floatLit  (p,_,_,s) l = return $ Tok (FloatLit (read (take l s) :: Double)) p
 
 data Sym =
   Fun | Var | Const |
@@ -191,7 +193,7 @@ data Sym =
   ProdAssign | DivAssign |
   XorAssign |
 
-  IntLit Int | StringLit String
+  IntLit Int | StringLit String | FloatLit Double
   deriving (Show)
 
 qstrip = tail . init

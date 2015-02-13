@@ -61,10 +61,10 @@ fun literals() : void
 	var c = 25	-- Int
 	var d = 2.0	-- Double (no float for now)
 
-	var p = (2,5)	-- Should we have pairs?
-	var l = p.1
-	var r = p.2
+	--var p = (2,5)	-- Should we have pairs?
+	--var l = p.1
+	--var r = p.2
 
-	var A = [1,2,3,4,5]	-- [Int] (Int array) Bound checked or not? Offer both?
-	var x = A[0]
-	var y = A[1]
+	--var A = [1,2,3,4,5]	-- [Int] (Int array) Bound checked or not? Offer both?
+	--var x = A[0]
+	--var y = A[1]

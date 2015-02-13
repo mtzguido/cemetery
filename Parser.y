@@ -25,6 +25,7 @@ import qualified AST as A
 	EXTERNAL	{ L.Tok L.External _ }
 	FUN		{ L.Tok L.Fun _ }
 	ID		{ L.Tok (L.Ident _) _ }
+	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	IF		{ L.Tok L.If _ }
 	INT		{ L.Tok (L.IntLit _) _ }
 	LANGLE		{ L.Tok L.Langle _ }
@@ -65,6 +66,7 @@ ig_br : {- empty -}		{ () }
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }
 intlit : INT { readInt $1 }
+floatlit : FLOAT { readFloat $1 }
 strlit : STRING { readStr $1 }
 
 fun : ig_br FUN id PAREN args UNPAREN COLON type
@@ -123,6 +125,7 @@ bytes : intlit bytes		{ $1 : $2 }
       | {- empty -}		{ [] }
 
 expr : intlit			{ A.ConstInt $1 }
+     | floatlit			{ A.ConstFloat $1 }
      | id			{ A.Var $1 }
      | binlit			{ A.BinLit $ B.pack $ map fromIntegral $1 }
      | expr binop expr		{ A.BinOp $2 $1 $3 }
@@ -154,6 +157,7 @@ sseq s t = A.Seq s t
 readIdent	(L.Tok (L.Ident s) _) = s
 readType	(L.Tok (L.Type t) _) = t
 readInt		(L.Tok (L.IntLit i) _) = i
+readFloat	(L.Tok (L.FloatLit d) _) = d
 readStr		(L.Tok (L.StringLit s) _) = s
 
 }

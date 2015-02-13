@@ -11,11 +11,12 @@ data Type = Int
           | String
           | Bytes
           | Void
+          | Double
           | Fun [Type] Type
           deriving (Eq, Show)
 
 cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
-                ("bytes", Bytes), ("void", Void)]
+                ("bytes", Bytes), ("void", Void), ("double", Double)]
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod
            | Xor
@@ -25,6 +26,7 @@ data UnOp = NegateNum
           deriving (Eq, Show)
 
 data Expr = ConstInt Int
+          | ConstFloat Double
           | BinOp BinOp Expr Expr
           | UnOp UnOp Expr
           | Call VarName [Expr]
