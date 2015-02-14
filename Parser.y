@@ -50,18 +50,22 @@ import qualified AST as A
 
 	EOF		{ L.EOF }
 
+%left PLUS DASH
+%left ASTERISK SLASH
+%left EQ2 PERC CIRC
+%left ELSE
+%left NEG
 %%
 
 Prog : gdecls funs EOF	{ ($1, $2) }
 
 gdecls : {- empty -}	{ [] }
        | decl gdecls	{ $1 : $2 }
+       | BREAK gdecls	{ $2 }
 
 funs : fun		{ $1 : [] }
      | fun funs		{ $1 : $2 }
-
-ig_br : {- empty -}		{ () }
-      | BREAK ig_br		{ () }
+     | BREAK funs	{ $2 }
 
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }
@@ -69,12 +73,12 @@ intlit : INT { readInt $1 }
 floatlit : FLOAT { readFloat $1 }
 strlit : STRING { readStr $1 }
 
-fun : ig_br FUN id PAREN args UNPAREN COLON type
+fun : FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {
-				    A.name = $3,
-				    A.ret = $8,
-				    A.args = $5,
-				    A.body = $10 } }
+				    A.name = $2,
+				    A.ret = $7,
+				    A.args = $4,
+				    A.body = $9 } }
 
 args : {- empty -}		{ [] }
      | arg			{ $1 }
@@ -88,14 +92,21 @@ idents : id			{ $1 : [] }
 stmts : {- empty -}		{ A.Skip }
       | stmt stmts		{ sseq $1 $2 }
 
+stmt_group : BRACE stmts UNBRACE	{ $2 }
+
 stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
-     | decl			{ A.Decl $1 }
+     | decl BREAK		{ A.Decl $1 }
      | BRACE stmts UNBRACE	{ $2 }
-     | IF expr stmts		{ A.If $2 $3 A.Skip }
-     | IF expr stmts ELSE stmts	{ A.If $2 $3 $5 }
-     | id abbrev_op expr	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
+     | if			{ $1 }
+     | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
+
+
+if : IF expr stmt_group	{ A.If $2 $3 A.Skip }
+   | IF expr stmt_group ELSE stmt_group
+				{ A.If $2 $3 $5 }
+   | IF expr stmt_group ELSE if	{ A.If $2 $3 $5 }
 
 abbrev_op : PLUSASSIGN		{ A.Plus }
           | MINUSASSIGN		{ A.Minus }
@@ -103,16 +114,13 @@ abbrev_op : PLUSASSIGN		{ A.Plus }
           | DIVASSIGN		{ A.Div }
           | XORASSIGN		{ A.Xor }
 
-decl : VAR id BREAK		{ A.DeclareAuto $2 }
-     | VAR id EQ expr BREAK	{ A.Declare $2 $4 }
-     | VAR id COLON type BREAK	{ A.DeclareAutoT $2 $4 }
-     | VAR id COLON type
-         EQ expr BREAK		{ A.DeclareT $2 $6 $4 }
-     | EXTERNAL id COLON
-         type BREAK		{ A.External $2 $4 }
-     | CONST id EQ expr BREAK	{ A.Const $2 $4 }
-     | STRUCT id
-         BRACE fields UNBRACE	{ A.Struct }
+decl : VAR id				{ A.DeclareAuto $2 }
+     | VAR id EQ expr			{ A.Declare $2 $4 }
+     | VAR id COLON type		{ A.DeclareAutoT $2 $4 }
+     | VAR id COLON type EQ expr	{ A.DeclareT $2 $6 $4 }
+     | EXTERNAL id COLON type		{ A.External $2 $4 }
+     | CONST id EQ expr			{ A.Const $2 $4 }
+     | STRUCT id BRACE fields UNBRACE	{ A.Struct }
 
 fields : field			{ $1 : [] }
        | field fields		{ $1 : $2 }
@@ -128,7 +136,13 @@ expr : intlit			{ A.ConstInt $1 }
      | floatlit			{ A.ConstFloat $1 }
      | id			{ A.Var $1 }
      | binlit			{ A.BinLit $ B.pack $ map fromIntegral $1 }
-     | expr binop expr		{ A.BinOp $2 $1 $3 }
+     | expr PLUS expr		{ A.BinOp A.Plus $1 $3 }
+     | expr DASH expr		{ A.BinOp A.Minus $1 $3 }
+     | expr SLASH expr		{ A.BinOp A.Div $1 $3 }
+     | expr ASTERISK expr	{ A.BinOp A.Prod $1 $3 }
+     | expr EQ2 expr		{ A.BinOp A.Eq $1 $3 }
+     | expr PERC expr		{ A.BinOp A.Mod $1 $3 }
+     | expr CIRC expr		{ A.BinOp A.Xor $1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | unop expr		{ A.UnOp $1 $2 }
@@ -138,15 +152,7 @@ argv : {- empty -}		{ [] }
      | expr			{ [$1] }
      | expr COMMA argv		{ $1 : $3 }
 
-binop : PLUS		{ A.Plus }
-      | DASH		{ A.Minus }
-      | SLASH		{ A.Div }
-      | ASTERISK	{ A.Prod }
-      | EQ2		{ A.Eq }
-      | PERC		{ A.Mod }
-      | CIRC		{ A.Xor }
-
-unop : DASH		{ A.NegateNum }
+unop : DASH %prec NEG	{ A.NegateNum }
 
 {
 
