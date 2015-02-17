@@ -59,13 +59,11 @@ import qualified AST as A
 
 Prog : gdecls funs EOF	{ ($1, $2) }
 
-gdecls : {- empty -}	{ [] }
-       | decl gdecls	{ $1 : $2 }
-       | BREAK gdecls	{ $2 }
+gdecls : {- empty -}		{ [] }
+       | decl gdecls		{ $1 : $2 }
 
 funs : fun		{ $1 : [] }
      | fun funs		{ $1 : $2 }
-     | BREAK funs	{ $2 }
 
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }
@@ -97,7 +95,7 @@ stmt_group : BRACE stmts UNBRACE	{ $2 }
 stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
-     | decl BREAK		{ A.Decl $1 }
+     | decl			{ A.Decl $1 }
      | BRACE stmts UNBRACE	{ $2 }
      | if			{ $1 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
@@ -114,12 +112,12 @@ abbrev_op : PLUSASSIGN		{ A.Plus }
           | DIVASSIGN		{ A.Div }
           | XORASSIGN		{ A.Xor }
 
-decl : VAR id				{ A.DeclareAuto $2 }
-     | VAR id EQ expr			{ A.Declare $2 $4 }
-     | VAR id COLON type		{ A.DeclareAutoT $2 $4 }
-     | VAR id COLON type EQ expr	{ A.DeclareT $2 $6 $4 }
-     | EXTERNAL id COLON type		{ A.External $2 $4 }
-     | CONST id EQ expr			{ A.Const $2 $4 }
+decl : VAR id BREAK			{ A.DeclareAuto $2 }
+     | VAR id EQ expr BREAK		{ A.Declare $2 $4 }
+     | VAR id COLON type BREAK		{ A.DeclareAutoT $2 $4 }
+     | VAR id COLON type EQ expr BREAK	{ A.DeclareT $2 $6 $4 }
+     | EXTERNAL id COLON type BREAK	{ A.External $2 $4 }
+     | CONST id EQ expr BREAK		{ A.Const $2 $4 }
      | STRUCT id BRACE fields UNBRACE	{ A.Struct }
 
 fields : field			{ $1 : [] }

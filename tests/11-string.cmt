@@ -1,3 +1,4 @@
+
 fun crap() : string
 	var s = "hola"
 	return s

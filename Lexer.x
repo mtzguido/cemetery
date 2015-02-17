@@ -101,7 +101,7 @@ getCommLevel:: Alex Int
 getCommLevel = do s <- alexGetUserState
                   return (commentLevel s)
 
-alexInitUserState = CmtState { levels = [1], curr = 1, commentLevel = 0 }
+alexInitUserState = CmtState { levels = [1], curr = -1, commentLevel = 0 }
 
 getIndentInfo = do s <- alexGetUserState
                    return (levels s, curr s)
@@ -141,7 +141,9 @@ ind m ai@(p,_,_,s) l = do t <- m ai l
                             return [t]
                           else -- l > ll
                             do setIndentInfo (inds, l) -- Update the line
-                               if c > head inds then
+                               if ll == -1 then
+                                 return [t]
+                               else if c > head inds then
                                  do setIndentInfo (c:inds, l)
                                     return [brace, t]
                                else if c == head inds then
