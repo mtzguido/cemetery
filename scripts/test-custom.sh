@@ -9,7 +9,7 @@ if ! [ -x ./cmt ]; then
 	exit 1
 fi
 
-echo -n "Running tests with <$FLAGS>: "
+printf "%-30s" "Running tests with <$FLAGS>:"
 
 for i in tests/*.cmt; do
 	if ! ./cmt $FLAGS "$i" >/dev/null ; then
