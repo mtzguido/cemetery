@@ -143,14 +143,12 @@ expr : intlit			{ A.ConstInt $1 }
      | expr CIRC expr		{ A.BinOp A.Xor $1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
-     | unop expr		{ A.UnOp $1 $2 }
+     | DASH expr %prec NEG	{ A.UnOp A.NegateNum $2 }
      | strlit			{ A.ConstStr $1 }
 
 argv : {- empty -}		{ [] }
      | expr			{ [$1] }
      | expr COMMA argv		{ $1 : $3 }
-
-unop : DASH %prec NEG	{ A.NegateNum }
 
 {
 
