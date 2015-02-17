@@ -5,3 +5,4 @@
 cmt
 Lexer.hs
 Parser.hs
+Parser.info

@@ -25,7 +25,7 @@ Lexer.hs: Lexer.x
 
 Parser.hs: Parser.y
 	$(Q)$(SAY) " HAPPY	$<"
-	$(Q)happy $< -o $@
+	$(Q)happy -i $< -o $@
 
 clean:
 	$(Q)$(SAY) "CLEAN"
