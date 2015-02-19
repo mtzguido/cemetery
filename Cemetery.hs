@@ -90,7 +90,7 @@ work = do (opts, basename) <- ask
 
           breakIf StopParse
 
-          let cast = translate ast
+          let cast = semanticT ast
           dbg "C AST: "
           dbgLn $ show cast
 
