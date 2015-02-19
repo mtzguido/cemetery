@@ -8,15 +8,18 @@ import System.Exit
 import AST
 import Lexer
 import Parser
+import Translate
 
-data Opts = StopLexer | StopParse | Verbose deriving (Eq, Show)
+data Opts = StopLexer | StopParse | StopTranslate
+          | Verbose deriving (Eq, Show)
 
 -- Monadic type for the program logic
 type App = ReaderT ([Opts], String) IO
 
 options = [
- Option [] ["parse", "ast"] (NoArg StopParse) "stop at parsing stage",
- Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop at lexing stage",
+ Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
+ Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
+ Option [] ["translate", "trans"] (NoArg StopLexer) "stop after translation",
  Option ['V'] ["verbose"] (NoArg Verbose) "be more verbose"
  ]
 
@@ -36,7 +39,9 @@ main = do args <- getArgs
                exitFailure
           else return ()
 
-          mapM (\f -> runReaderT work (flags, f)) (map base nonOpts)
+          mapM (do1Work flags) (map base nonOpts)
+
+do1Work flags file = runReaderT work (flags, file)
 
 breakIf f = do (opts, _) <- ask
                if elem f opts then
@@ -82,5 +87,13 @@ work = do (opts, basename) <- ask
 
           dbg "AST: "
           dbgLn $ show ast
+
+          breakIf StopParse
+
+          let cast = translate ast
+          dbg "C AST: "
+          dbgLn $ show cast
+
+          breakIf StopTranslate
 
           return ()
