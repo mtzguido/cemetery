@@ -57,13 +57,9 @@ import qualified AST as A
 %left NEG
 %%
 
-Prog : gdecls funs EOF	{ ($1, $2) }
-
-gdecls : {- empty -}		{ [] }
-       | decl gdecls		{ $1 : $2 }
-
-funs : fun		{ $1 : [] }
-     | fun funs		{ $1 : $2 }
+Prog : EOF		{ [] }
+     | fun Prog		{ $1 : $2 }
+     | decl Prog	{ $1 : $2 }
 
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }

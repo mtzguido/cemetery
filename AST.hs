@@ -46,16 +46,11 @@ data Stmt = Skip
 data Decl = VarDecl String (Maybe Type) (Maybe Expr)
           | Const String Expr
           | External String Type
+          | FunDecl { name :: String,
+                      ret :: Type,
+                      args :: [(String, Type)],
+                      body :: Stmt }
           | Struct
           deriving (Eq, Show)
 
-data FunDecl = FunDecl {
-    name :: String,
-    ret :: Type,
-    args :: [(String, Type)],
-    body :: Stmt
-} deriving (Eq, Show)
-
-type Prog = ([Decl], [FunDecl])
-
-type NameEnv = M.Map VarName Type
+type Prog = [Decl]
