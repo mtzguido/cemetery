@@ -112,10 +112,10 @@ abbrev_op : PLUSASSIGN		{ A.Plus }
           | DIVASSIGN		{ A.Div }
           | XORASSIGN		{ A.Xor }
 
-decl : VAR id BREAK			{ A.DeclareAuto $2 }
-     | VAR id EQ expr BREAK		{ A.Declare $2 $4 }
-     | VAR id COLON type BREAK		{ A.DeclareAutoT $2 $4 }
-     | VAR id COLON type EQ expr BREAK	{ A.DeclareT $2 $6 $4 }
+decl : VAR id BREAK			{ A.VarDecl $2 Nothing Nothing }
+     | VAR id EQ expr BREAK		{ A.VarDecl $2 Nothing (Just $4) }
+     | VAR id COLON type BREAK		{ A.VarDecl $2 (Just $4) Nothing }
+     | VAR id COLON type EQ expr BREAK	{ A.VarDecl $2 (Just $4) (Just $6) }
      | EXTERNAL id COLON type BREAK	{ A.External $2 $4 }
      | CONST id EQ expr BREAK		{ A.Const $2 $4 }
      | STRUCT id BRACE fields UNBRACE	{ A.Struct }

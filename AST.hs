@@ -43,10 +43,7 @@ data Stmt = Skip
           | Decl Decl
           deriving (Eq, Show)
 
-data Decl = DeclareAuto String
-          | Declare String Expr
-          | DeclareAutoT String Type
-          | DeclareT String Expr Type
+data Decl = VarDecl String (Maybe Type) (Maybe Expr)
           | Const String Expr
           | External String Type
           | Struct
