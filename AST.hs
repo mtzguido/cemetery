@@ -31,6 +31,7 @@ data Expr = ConstInt Int
           | UnOp UnOp Expr
           | Call VarName [Expr]
           | Var VarName
+          | TFalse | TTrue
           | ConstStr String
           | BinLit B.ByteString
           deriving (Eq, Show)

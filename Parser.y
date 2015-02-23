@@ -23,9 +23,10 @@ import qualified AST as A
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
 	EXTERNAL	{ L.Tok L.External _ }
+	FALSE		{ L.Tok L.TFalse _ }
+	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	FUN		{ L.Tok L.Fun _ }
 	ID		{ L.Tok (L.Ident _) _ }
-	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	IF		{ L.Tok L.If _ }
 	INT		{ L.Tok (L.IntLit _) _ }
 	LANGLE		{ L.Tok L.Langle _ }
@@ -37,6 +38,7 @@ import qualified AST as A
 	SLASH		{ L.Tok L.Slash _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
 	STRUCT		{ L.Tok L.Struct _ }
+	TRUE		{ L.Tok L.TTrue _ }
 	TYPE		{ L.Tok (L.Type _) _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
@@ -141,6 +143,8 @@ expr : intlit			{ A.ConstInt $1 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.NegateNum $2 }
      | strlit			{ A.ConstStr $1 }
+     | FALSE			{ A.TFalse }
+     | TRUE			{ A.TTrue }
 
 argv : {- empty -}		{ [] }
      | expr			{ [$1] }

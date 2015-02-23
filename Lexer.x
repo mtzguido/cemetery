@@ -57,6 +57,9 @@ tokens :-
   "/="			{ simple DivAssign }
   "^="			{ simple XorAssign }
 
+  "false"		{ simple TFalse }
+  "true"		{ simple TTrue }
+
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
 
@@ -177,6 +180,8 @@ data Sym =
 
   Int | Bool | Float | Bytes |
   Ident String |
+
+  TFalse | TTrue |
 
   Plus | Dash | Asterisk | Slash | Circ | Perc |
   Eq | Eq2 | Dot |
