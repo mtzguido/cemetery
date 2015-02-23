@@ -91,8 +91,11 @@ work = do (opts, basename) <- ask
           breakIf StopParse
 
           let cast = semanticT ast
-          dbg "C AST: "
-          dbgLn $ show cast
+          case cast of
+            Left e -> do dbg $ "ERROR: " ++ show e
+                         lift exitFailure
+            Right t -> do dbg "C AST: "
+                          dbgLn $ show t
 
           breakIf StopTranslate
 

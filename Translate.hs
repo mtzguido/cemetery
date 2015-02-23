@@ -4,7 +4,9 @@ import CLang as C
 import AST as A
 import Control.Monad.Identity
 import Control.Monad.State
+import Control.Monad.Error
 import Data.Map.Strict as M
+import Common
 
 type NameEnv = M.Map VarName A.Type
 
@@ -28,7 +30,11 @@ popEnv :: TM ()
 popEnv = do e <- getEnvs
             setEnvs (tail e)
 
-type TranslateMonad = StateT TransState Identity
+type TranslateMonad = ErrorT CmtError (
+                       StateT TransState (
+                        Identity
+                      ))
+
 type TM = TranslateMonad -- Only for brevity
 
 add_builtins :: TM ()
@@ -41,14 +47,16 @@ translate decls = do pushEnv -- global environment
                      return $ concat dd
 
 translate1 :: A.Decl -> TM [C.Unit]
-translate1 (A.VarDecl n t e) = do return [C.VarDecl n C.Int []]
-
+translate1 (A.VarDecl n typ Nothing) = do return [C.VarDecl n C.Int []]
 translate1 d = do return [UnitStub]
 
-runTranslate :: TM a -> a
-runTranslate m = let a = runStateT m initState
-                     (a', s) = runIdentity a
-                  in a'
+runTranslate :: TM a -> Either CmtError a
+runTranslate m = let a = runErrorT m
+                     b = runStateT a initState
+                     (c, _s) = runIdentity b
+                  in case c of
+                         Left e -> Left e
+                         Right a' -> Right a'
 
-semanticT :: A.Prog -> C.Prog
+semanticT :: A.Prog -> Either CmtError C.Prog
 semanticT = runTranslate.translate
