@@ -38,5 +38,5 @@ data BinOp = Plus | Minus | Div | Prod
 data UnOp = NegateNum
   deriving (Eq, Show)
 
-data Type = Int | Void | Double
+data Type = Int | Void | Double | Bool | String
   deriving (Eq, Show)
