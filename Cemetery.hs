@@ -19,7 +19,7 @@ type App = ReaderT ([Opts], String) IO
 options = [
  Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
  Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
- Option [] ["translate", "trans"] (NoArg StopLexer) "stop after translation",
+ Option [] ["translate", "trans"] (NoArg StopTranslate) "stop after translation",
  Option ['V'] ["verbose"] (NoArg Verbose) "be more verbose"
  ]
 
