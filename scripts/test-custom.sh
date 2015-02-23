@@ -12,7 +12,7 @@ fi
 printf "%-30s" "Running tests with <$FLAGS>:"
 
 for i in tests/*.cmt; do
-	if ! ./cmt $FLAGS "$i" >/dev/null ; then
+	if ! ./cmt $FLAGS "$i" &>/dev/null ; then
 		echo
 		echo "TEST $i FAILED!"
 		echo "Command was: ./cmt \"$FLAGS\" \"$i\""
