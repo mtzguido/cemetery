@@ -41,3 +41,7 @@ data UnOp = NegateNum
 data Type = Int | Void | Double | Bool | String
           | Ptr Type
   deriving (Eq, Show)
+
+sseq Skip s = s
+sseq s Skip = s
+sseq s t = Seq s t

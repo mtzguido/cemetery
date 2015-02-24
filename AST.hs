@@ -55,3 +55,7 @@ data Decl = VarDecl String (Maybe Type) (Maybe Expr)
           deriving (Eq, Show)
 
 type Prog = [Decl]
+
+sseq Skip s = s
+sseq s Skip = s
+sseq s t = Seq s t

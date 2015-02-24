@@ -86,7 +86,7 @@ idents : id			{ $1 : [] }
        | id idents		{ $1 : $2 }
 
 stmts : {- empty -}		{ A.Skip }
-      | stmt stmts		{ sseq $1 $2 }
+      | stmt stmts		{ A.sseq $1 $2 }
 
 stmt_group : BRACE stmts UNBRACE	{ $2 }
 
@@ -151,10 +151,6 @@ argv : {- empty -}		{ [] }
      | expr COMMA argv		{ $1 : $3 }
 
 {
-
-sseq A.Skip s = s
-sseq s A.Skip = s
-sseq s t = A.Seq s t
 
 readIdent	(L.Tok (L.Ident s) _) = s
 readType	(L.Tok (L.Type t) _) = t
