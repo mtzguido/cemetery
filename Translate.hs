@@ -116,15 +116,35 @@ tr1 (A.Struct) =
 
 tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
     do rc <- tmap r
-       bc <- trstm b
        let ata = lmap snd a
        atc <- mapM tmap ata
        let argsc = zip (lmap fst a) atc
        addToEnv n (A.Fun ata r)
+       pushEnv
+       bc <- trstm b
+       popEnv
        return [FunDef (Funtype { C.name = n, C.args = argsc,
                                  C.ret = rc }) bc]
 
+trexp :: A.Expr -> TM C.Expr
+trexp _ = do return $ C.Var "crap"
+
 trstm :: A.Stmt -> TM C.Stmt
+trstm A.Skip = do return C.Skip
+
+trstm (A.Assign n e) =
+    do ee <- trexp e
+       return $ C.Assign n ee
+
+trstm (A.Seq l r) =
+    do ll <- trstm l
+       rr <- trstm r
+       return $ C.sseq ll rr
+
+trstm (A.Return e) =
+    do ee <- trexp e
+       return $ C.Return ee
+
 trstm _ = do return C.Skip
 
 runTranslate :: TM a -> (TransState, Either CmtError a)
