@@ -90,7 +90,9 @@ work = do (opts, basename) <- ask
 
           breakIf StopParse
 
-          let cast = semanticT ast
+          let (st, cast) = semanticT ast
+          dbg $ "Translation final state: " ++ show st
+
           case cast of
             Left e -> do dbg $ "ERROR: " ++ show e
                          lift exitFailure

@@ -127,13 +127,13 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
 trstm :: A.Stmt -> TM C.Stmt
 trstm _ = do return C.Skip
 
-runTranslate :: TM a -> Either CmtError a
+runTranslate :: TM a -> (TransState, Either CmtError a)
 runTranslate m = let a = runErrorT m
                      b = runStateT a initState
                      (c, s) = runIdentity b
                   in case c of
-                       Left e -> Left e
-                       Right a' -> Right a'
+                       Left e -> (s, Left e)
+                       Right a' -> (s, Right a')
 
-semanticT :: A.Prog -> Either CmtError C.Prog
+semanticT :: A.Prog -> (TransState, Either CmtError C.Prog)
 semanticT = runTranslate.translate
