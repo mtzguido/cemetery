@@ -13,6 +13,10 @@ type NameEnv = M.Map VarName A.Type
 data TransState = TSt { envs :: [NameEnv] }
   deriving Show
 
+-- lists' map, since the Data.Map one
+-- might hide it
+lmap = Prelude.map
+
 initState = TSt { envs = [] }
 
 getEnvs :: TM [NameEnv]
@@ -48,7 +52,7 @@ add_builtins = do return ()
 translate :: A.Prog -> TM C.Prog
 translate decls = do pushEnv -- global environment
                      add_builtins -- add builtins to the environment
-                     dd <- mapM translate1 decls
+                     dd <- mapM tr1 decls
                      return $ concat dd
 
 infer :: A.Expr -> TM A.Type
@@ -64,25 +68,26 @@ tmap A.Bool     = do return C.Bool
 tmap A.String   = do return C.String
 tmap A.Void     = do return C.Void
 tmap A.Double   = do return C.Double
+tmap A.Bytes    = do return (C.Ptr C.Void)
 
-translate1 :: A.Decl -> TM [C.Unit]
-translate1 (A.VarDecl n Nothing Nothing) =
+tr1 :: A.Decl -> TM [C.Unit]
+tr1 (A.VarDecl n Nothing Nothing) =
     -- When there's no type nor expression, assume it's an int.
     -- Later, we'll try to infer the type.
-    translate1 (A.VarDecl n (Just A.Int) Nothing)
+    tr1 (A.VarDecl n (Just A.Int) Nothing)
 
-translate1 (A.VarDecl n (Just typ) Nothing) =
+tr1 (A.VarDecl n (Just typ) Nothing) =
     do tt <- tmap typ
        addToEnv n typ
        return [C.VarDecl n tt []]
 
-translate1 (A.VarDecl n Nothing (Just expr)) =
+tr1 (A.VarDecl n Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
        addToEnv n ta
        return [C.VarDecl n typ []]
 
-translate1 (A.VarDecl n (Just ta) (Just expr)) =
+tr1 (A.VarDecl n (Just ta) (Just expr)) =
     do ta' <- infer expr
        if ta' /= ta
          then throwError CmtErr
@@ -95,19 +100,32 @@ translate1 (A.VarDecl n (Just ta) (Just expr)) =
 -- it makes no sense to split the logic for externs/consts
 -- we should allow multiple modifiers like C. This is to be done
 -- when possible
-translate1 (A.External name typ) =
+tr1 (A.External name typ) =
     do tc <- tmap typ
        addToEnv name typ
        return [C.VarDecl name tc [C.Extern]]
 
-translate1 (A.Const name expr) =
+tr1 (A.Const name expr) =
     do ta <- infer expr
        tc <- tmap ta
        addToEnv name ta
        return [C.VarDecl name tc [C.Const]]
 
-translate1 _ =
+tr1 (A.Struct) =
     do return []
+
+tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
+    do rc <- tmap r
+       bc <- trstm b
+       let ata = lmap snd a
+       atc <- mapM tmap ata
+       let argsc = zip (lmap fst a) atc
+       addToEnv n (A.Fun ata r)
+       return [FunDef (Funtype { C.name = n, C.args = argsc,
+                                 C.ret = rc }) bc]
+
+trstm :: A.Stmt -> TM C.Stmt
+trstm _ = do return C.Skip
 
 runTranslate :: TM a -> Either CmtError a
 runTranslate m = let a = runErrorT m
