@@ -87,17 +87,20 @@ work = do (opts, basename) <- ask
 
           dbg "AST: "
           dbgLn $ show ast
+          dbgLn ""
 
           breakIf StopParse
 
           let (st, cast) = semanticT ast
-          dbg $ "Translation final state: " ++ show st
+          dbgLn $ "Translation final state: " ++ show st
+          dbgLn ""
 
           case cast of
             Left e -> do dbg $ "ERROR: " ++ show e
                          lift exitFailure
             Right t -> do dbg "C AST: "
                           dbgLn $ show t
+          dbgLn ""
 
           breakIf StopTranslate
 
