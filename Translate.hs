@@ -79,13 +79,13 @@ tr1 (A.VarDecl n Nothing Nothing) =
 tr1 (A.VarDecl n (Just typ) Nothing) =
     do tt <- tmap typ
        addToEnv n typ
-       return [C.VarDecl n tt []]
+       return [C.Decl $ C.VarDecl n tt []]
 
 tr1 (A.VarDecl n Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
        addToEnv n ta
-       return [C.VarDecl n typ []]
+       return [C.Decl $ C.VarDecl n typ []]
 
 tr1 (A.VarDecl n (Just ta) (Just expr)) =
     do ta' <- infer expr
@@ -95,7 +95,7 @@ tr1 (A.VarDecl n (Just ta) (Just expr)) =
 
        typ <- tmap ta
        addToEnv n ta
-       return [C.VarDecl n typ []]
+       return [C.Decl $ C.VarDecl n typ []]
 
 -- it makes no sense to split the logic for externs/consts
 -- we should allow multiple modifiers like C. This is to be done
@@ -103,13 +103,13 @@ tr1 (A.VarDecl n (Just ta) (Just expr)) =
 tr1 (A.External name typ) =
     do tc <- tmap typ
        addToEnv name typ
-       return [C.VarDecl name tc [C.Extern]]
+       return [C.Decl $ C.VarDecl name tc [C.Extern]]
 
 tr1 (A.Const name expr) =
     do ta <- infer expr
        tc <- tmap ta
        addToEnv name ta
-       return [C.VarDecl name tc [C.Const]]
+       return [C.Decl $ C.VarDecl name tc [C.Const]]
 
 tr1 (A.Struct) =
     do return []
@@ -121,13 +121,17 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
        let argsc = zip (lmap fst a) atc
        addToEnv n (A.Fun ata r)
        pushEnv
-       bc <- trstm b
+       body <- trbody b
        popEnv
        return [FunDef (Funtype { C.name = n, C.args = argsc,
-                                 C.ret = rc }) bc]
+                                 C.ret = rc }) body]
 
 trexp :: A.Expr -> TM C.Expr
 trexp _ = do return $ C.Var "crap"
+
+trbody :: A.Stmt -> TM C.Block
+trbody s = do st <- trstm s
+              return ([], st)
 
 trstm :: A.Stmt -> TM C.Stmt
 trstm A.Skip = do return C.Skip

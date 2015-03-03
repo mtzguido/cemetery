@@ -5,10 +5,15 @@ type Prog = [Unit]
 data VarModifiers = Extern | Const
   deriving (Eq, Show)
 
-data Unit = VarDecl String Type [VarModifiers]
+data Unit = Decl Decl
           | FunDecl Funtype
-          | FunDef Funtype Stmt
+          | FunDef Funtype Block
           | UnitStub
+  deriving (Eq, Show)
+
+type Block = ([Decl], Stmt)
+
+data Decl = VarDecl String Type [VarModifiers]
   deriving (Eq, Show)
 
 data Funtype = Funtype { name :: String,
@@ -17,7 +22,7 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data Stmt = Assign String Expr
-          | If Expr Stmt Stmt
+          | If Expr Block Block
           | Seq Stmt Stmt
           | Return Expr
           | Skip
