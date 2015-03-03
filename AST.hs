@@ -44,9 +44,10 @@ data Stmt = Skip
           | Decl Decl
           deriving (Eq, Show)
 
-data Decl = VarDecl String (Maybe Type) (Maybe Expr)
-          | Const String Expr
-          | External String Type
+data VarModifiers = Const | Extern
+    deriving (Eq, Show)
+
+data Decl = VarDecl String [VarModifiers] (Maybe Type) (Maybe Expr)
           | FunDecl { name :: String,
                       ret :: Type,
                       args :: [(String, Type)],

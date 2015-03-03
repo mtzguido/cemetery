@@ -22,7 +22,7 @@ import qualified AST as A
 	ELSE		{ L.Tok L.Else _ }
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
-	EXTERNAL	{ L.Tok L.External _ }
+	EXTERN		{ L.Tok L.Extern _ }
 	FALSE		{ L.Tok L.TFalse _ }
 	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	FUN		{ L.Tok L.Fun _ }
@@ -110,12 +110,17 @@ abbrev_op : PLUSASSIGN		{ A.Plus }
           | DIVASSIGN		{ A.Div }
           | XORASSIGN		{ A.Xor }
 
-decl : VAR id BREAK			{ A.VarDecl $2 Nothing Nothing }
-     | VAR id EQ expr BREAK		{ A.VarDecl $2 Nothing (Just $4) }
-     | VAR id COLON type BREAK		{ A.VarDecl $2 (Just $4) Nothing }
-     | VAR id COLON type EQ expr BREAK	{ A.VarDecl $2 (Just $4) (Just $6) }
-     | EXTERNAL id COLON type BREAK	{ A.External $2 $4 }
-     | CONST id EQ expr BREAK		{ A.Const $2 $4 }
+mods : VAR			{ [] }
+     | CONST mods		{ A.Const : $2 }
+     | EXTERN mods		{ A.Extern : $2 }
+
+var_init : {- empty -}		{ Nothing }
+         | EQ expr		{ Just $2 }
+
+var_typ : {- empty -}		{ Nothing }
+        | COLON type		{ Just $2 }
+
+decl : mods id var_typ var_init BREAK	{ A.VarDecl $2 $1 $3 $4 }
      | STRUCT id BRACE fields UNBRACE	{ A.Struct }
 
 fields : field			{ $1 : [] }

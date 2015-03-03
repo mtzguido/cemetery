@@ -71,23 +71,23 @@ tmap A.Double   = do return C.Double
 tmap A.Bytes    = do return (C.Ptr C.Void)
 
 tr1 :: A.Decl -> TM [C.Unit]
-tr1 (A.VarDecl n Nothing Nothing) =
+tr1 (A.VarDecl mods n Nothing Nothing) =
     -- When there's no type nor expression, assume it's an int.
     -- Later, we'll try to infer the type.
-    tr1 (A.VarDecl n (Just A.Int) Nothing)
+    tr1 (A.VarDecl mods n (Just A.Int) Nothing)
 
-tr1 (A.VarDecl n (Just typ) Nothing) =
+tr1 (A.VarDecl n mods (Just typ) Nothing) =
     do tt <- tmap typ
        addToEnv n typ
        return [C.Decl $ C.VarDecl n tt []]
 
-tr1 (A.VarDecl n Nothing (Just expr)) =
+tr1 (A.VarDecl n mods Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
        addToEnv n ta
        return [C.Decl $ C.VarDecl n typ []]
 
-tr1 (A.VarDecl n (Just ta) (Just expr)) =
+tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
     do ta' <- infer expr
        if ta' /= ta
          then throwError CmtErr
@@ -96,20 +96,6 @@ tr1 (A.VarDecl n (Just ta) (Just expr)) =
        typ <- tmap ta
        addToEnv n ta
        return [C.Decl $ C.VarDecl n typ []]
-
--- it makes no sense to split the logic for externs/consts
--- we should allow multiple modifiers like C. This is to be done
--- when possible
-tr1 (A.External name typ) =
-    do tc <- tmap typ
-       addToEnv name typ
-       return [C.Decl $ C.VarDecl name tc [C.Extern]]
-
-tr1 (A.Const name expr) =
-    do ta <- infer expr
-       tc <- tmap ta
-       addToEnv name ta
-       return [C.Decl $ C.VarDecl name tc [C.Const]]
 
 tr1 (A.Struct) =
     do return []

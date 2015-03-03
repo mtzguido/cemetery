@@ -1,11 +1,11 @@
-const important_value = 25 -- Type inferred? At least for constants that
+const var important_value = 25 -- Type inferred? At least for constants that
 			   -- might be doable/easy
 
 var counter : int
 var use_something : bool
 var use_something_else = false
 
-external prog_name : string
+external var prog_name : string
 
 struct cbc_status
 	offset : int
