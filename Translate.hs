@@ -133,7 +133,7 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
                                  C.ret = rc }) body]
 
 -- Statement and expression translations
--- Abandon all hope ye who enter blow this line
+-- Abandon all hope ye who enter below this line
 
 trbody :: A.Stmt -> TM C.Block
 trbody s = do st <- trstm s
