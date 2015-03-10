@@ -55,9 +55,10 @@ pushLevel :: TM ()
 pushLevel = do e <- getData
                setData (blank_level : e)
 
-popLevel :: TM ()
+popLevel :: TM LevelState
 popLevel = do e <- getData
               setData (tail e)
+              return (head e)
 
 addToEnv :: VarName -> (A.Type, VarName, C.Type) -> TM ()
 addToEnv n t = do e:es <- getData
