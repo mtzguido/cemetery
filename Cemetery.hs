@@ -9,6 +9,7 @@ import AST
 import Lexer
 import Parser
 import Translate
+import CGen
 
 data Opts = StopLexer | StopParse | StopTranslate
           | Verbose deriving (Eq, Show)
@@ -100,8 +101,13 @@ work = do (opts, basename) <- ask
                          lift exitFailure
             Right t -> do dbg "C AST: "
                           dbgLn $ show t
+
+          let Right t = cast
           dbgLn ""
 
           breakIf StopTranslate
+
+          let ctext = cgenT t
+          dbgLn $ "ctext = " ++ ctext
 
           return ()
