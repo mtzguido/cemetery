@@ -84,6 +84,8 @@ infer (A.ConstInt _)    = do return A.Int
 infer (A.ConstFloat _)  = do return A.Double
 infer (A.TFalse)        = do return A.Bool
 infer (A.TTrue)         = do return A.Bool
+infer (A.BinLit _)      = do return A.Bytes
+infer e = do trace ("e = " ++ show e) (error "")
 
 tmap :: A.Type -> TM C.Type
 tmap A.Int      = do return C.Int
