@@ -132,17 +132,17 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
        let argsc = zip (lmap fst a) atc
        let funt = Funtype { C.name = n, C.args = argsc, C.ret = rc }
        addToEnv n (A.Fun ata r, n, C.Fun funt)
-       pushLevel
        body <- trbody b
-       popLevel
        return [FunDef funt body]
 
 -- Statement and expression translations
 -- Abandon all hope ye who enter below this line
 
 trbody :: A.Stmt -> TM C.Block
-trbody s = do st <- trstm s
-              return ([], st)
+trbody s = do pushLevel
+              st <- trstm s
+              (env, ds) <- popLevel
+              return (reverse ds, st)
 
 trstm :: A.Stmt -> TM C.Stmt
 trstm A.Skip = do return C.Skip
