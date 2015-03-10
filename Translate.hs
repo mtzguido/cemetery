@@ -10,12 +10,15 @@ import Common
 
 -- Monad definition
 
-type NameEnv = M.Map VarName A.Type
+type LevelState = (M.Map VarName (A.Type, VarName, C.Type), [C.Decl])
 
-data TransState = TSt { envs :: [NameEnv] }
+blank_level :: LevelState
+blank_level = (empty, [])
+
+data TransState = TSt { level_data :: [LevelState] }
   deriving Show
 
-initState = TSt { envs = [] }
+initState = TSt { level_data = [] }
 
 type TranslateMonad = ErrorT CmtError (
                        StateT TransState (
@@ -40,25 +43,26 @@ lmap = Prelude.map
 
 -- Environment handling functions
 
-getEnvs :: TM [NameEnv]
-getEnvs = do s <- get
-             return $ envs s
+getData :: TM [LevelState]
+getData = do s <- get
+             return $ level_data s
 
-setEnvs :: [NameEnv] -> TM ()
-setEnvs es = do s <- get
-                put $ s { envs = es }
+setData :: [LevelState] -> TM ()
+setData es = do s <- get
+                put $ s { level_data = es }
 
-pushEnv :: TM ()
-pushEnv = do e <- getEnvs
-             setEnvs (empty : e)
+pushLevel :: TM ()
+pushLevel = do e <- getData
+               setData (blank_level : e)
 
-popEnv :: TM ()
-popEnv = do e <- getEnvs
-            setEnvs (tail e)
+popLevel :: TM ()
+popLevel = do e <- getData
+              setData (tail e)
 
-addToEnv :: VarName -> A.Type -> TM ()
-addToEnv n t = do e:es <- getEnvs
-                  setEnvs $ (insert n t e) : es
+addToEnv :: VarName -> (A.Type, VarName, C.Type) -> TM ()
+addToEnv n t = do e:es <- getData
+                  let (m, d) = e
+                  setData $ (insert n t m, d) : es
 
 add_builtins :: TM ()
 add_builtins = do return ()
@@ -66,7 +70,7 @@ add_builtins = do return ()
 -- Main translation procedure
 
 translate :: A.Prog -> TM C.Prog
-translate decls = do pushEnv -- global environment
+translate decls = do pushLevel -- global environment
                      add_builtins -- add builtins to the environment
                      dd <- mapM tr1 decls
                      return $ concat dd
@@ -98,13 +102,13 @@ tr1 (A.VarDecl mods n Nothing Nothing) =
 
 tr1 (A.VarDecl n mods (Just typ) Nothing) =
     do tt <- tmap typ
-       addToEnv n typ
+       addToEnv n (typ, n, tt)
        return [C.Decl $ C.VarDecl n tt []]
 
 tr1 (A.VarDecl n mods Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
-       addToEnv n ta
+       addToEnv n (ta, n, typ)
        return [C.Decl $ C.VarDecl n typ []]
 
 tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
@@ -114,7 +118,7 @@ tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
          else return ()
 
        typ <- tmap ta
-       addToEnv n ta
+       addToEnv n (ta, n, typ)
        return [C.Decl $ C.VarDecl n typ []]
 
 tr1 (A.Struct) =
@@ -125,12 +129,12 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
        let ata = lmap snd a
        atc <- mapM tmap ata
        let argsc = zip (lmap fst a) atc
-       addToEnv n (A.Fun ata r)
-       pushEnv
+       let funt = Funtype { C.name = n, C.args = argsc, C.ret = rc }
+       addToEnv n (A.Fun ata r, n, C.Fun funt)
+       pushLevel
        body <- trbody b
-       popEnv
-       return [FunDef (Funtype { C.name = n, C.args = argsc,
-                                 C.ret = rc }) body]
+       popLevel
+       return [FunDef funt body]
 
 -- Statement and expression translations
 -- Abandon all hope ye who enter below this line
