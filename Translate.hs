@@ -7,6 +7,8 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.Map.Strict as M
 import Common
+import Debug.Trace
+import Control.Exception
 
 -- Monad definition
 
@@ -64,6 +66,11 @@ addToEnv :: VarName -> (A.Type, VarName, C.Type) -> TM ()
 addToEnv n t = do e:es <- getData
                   let (m, d) = e
                   setData $ (insert n t m, d) : es
+
+addDecl :: C.Decl -> TM ()
+addDecl d = do l:ls <- getData
+               let l' = (\(a,b) -> (a, d:b)) l
+               setData (l':ls)
 
 add_builtins :: TM ()
 add_builtins = do return ()
@@ -144,7 +151,12 @@ trbody :: A.Stmt -> TM C.Block
 trbody s = do pushLevel
               st <- trstm s
               (env, ds) <- popLevel
+              trace ("ds = " ++ show ds) (return ())
               return (reverse ds, st)
+
+fromCDecl :: C.Unit -> C.Decl
+fromCDecl (C.Decl d) = d
+fromCDecl _ = assert False (error "")
 
 trstm :: A.Stmt -> TM C.Stmt
 trstm A.Skip = do return C.Skip
@@ -161,6 +173,11 @@ trstm (A.Seq l r) =
 trstm (A.Return e) =
     do ee <- trexp e
        return $ C.Return ee
+
+trstm (A.Decl d) =
+    do cds <- tr1 d
+       mapM addDecl (lmap fromCDecl cds)
+       return C.Skip
 
 trstm _ = do return C.Skip
 
