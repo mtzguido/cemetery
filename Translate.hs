@@ -156,6 +156,11 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
        let argsc = zip (lmap fst a) atc
        let funt = Funtype { C.name = n, C.args = argsc, C.ret = rc }
        addToEnv n (A.Fun ata r, n, C.Fun funt)
+
+       let add1 ((n, ta), tc) = do addToEnv n (ta, n, tc)
+
+       mapM add1 (zip a atc)
+
        body <- trbody b
        return [FunDef funt body]
 
