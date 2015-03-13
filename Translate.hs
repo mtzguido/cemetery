@@ -179,7 +179,11 @@ trstm (A.Decl d) =
        mapM addDecl (lmap fromCDecl cds)
        return C.Skip
 
-trstm _ = do return C.Skip
+trstm (A.If c t e) =
+    do cc <- trexp c
+       tt <- trbody t
+       ee <- trbody e
+       return $ C.If cc tt ee
 
 trexp :: A.Expr -> TM C.Expr
 trexp _ = do return $ C.Var "crap"
