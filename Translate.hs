@@ -2,13 +2,15 @@ module Translate where
 
 import CLang as C
 import AST as A
+
+import Common
+import Control.Exception
+import Control.Monad.Error
 import Control.Monad.Identity
 import Control.Monad.State
-import Control.Monad.Error
 import Data.Map.Strict as M
-import Common
+import Data.Maybe
 import Debug.Trace
-import Control.Exception
 
 -- Monad definition
 
@@ -73,7 +75,21 @@ addDecl d = do l:ls <- getData
                setData (l':ls)
 
 add_builtins :: TM ()
-add_builtins = do return ()
+add_builtins = do addToEnv "trunc" (A.Int, "__cmt_trunc", C.Int)
+                  addToEnv "repeat" (A.Int, "__cmt_repeat", C.Int)
+                  return ()
+
+ff :: Maybe a -> Maybe a -> Maybe a
+ff (Just x) _ = Just x
+ff Nothing m = m
+
+env_lookup :: String -> TM (A.Type, VarName, C.Type)
+env_lookup s = do d <- getData
+                  let dd = lmap fst d
+                  let f = Prelude.foldl (\a v -> ff a (M.lookup s v)) Nothing dd
+                  case f of
+                    Nothing -> error $ "undefined variable: " ++ s
+                    Just i -> return i
 
 -- Main translation procedure
 
