@@ -1,38 +1,16 @@
 .PHONY: clean all re test test-*
 TARGET := cmt
 SOURCE := Cemetery.hs
-CFLAGS :=
-GHC := ghc --make
 
-SAY := echo
-ifeq (${V},1)
-	Q :=
-else
-	Q := @
+include common.mk
+
+ifeq ($(filter all, $(MAKECMDGOALS)),)
+all:
+	@$(MAKE) --no-print-directory -f cmt.mk $@
 endif
 
-automods := Lexer.hs Parser.hs
-
-$(TARGET): $(wildcard *.hs) $(automods)
-	$(Q)$(SAY) "  GHC	$@"
-	$(Q)$(GHC) $(SOURCE) $(CFLAGS) -o $(TARGET)
-
-all: $(TARGET)
-
-Lexer.hs: Lexer.x
-	$(Q)$(SAY) " ALEX	$<"
-	$(Q)alex $< -o $@
-
-Parser.hs: Parser.y
-	$(Q)$(SAY) " HAPPY	$<"
-	$(Q)happy -i $< -o $@
-
-clean:
-	$(Q)$(SAY) " CLEAN"
-	$(Q)rm -f $(TARGET)
-	$(Q)rm -f *.o *.hi
-	$(Q)rm -f $(automods)
-	$(Q)rm -f Parser.info
+$(MAKECMDGOALS):
+	@$(MAKE) --no-print-directory -f cmt.mk $@
 
 test: test-all
 
