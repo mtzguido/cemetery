@@ -215,6 +215,9 @@ trexp (A.ConstFloat f) =
 trexp (A.ConstBool b) =
     do return (C.ConstBool b)
 
+trexp (A.ConstStr s) =
+    do return (C.ConstStr s)
+
 trexp (A.BinOp Xor l r) =       -- built-in operator
     do ll <- trexp l
        rr <- trexp r
@@ -234,9 +237,14 @@ trexp (A.UnOp a_op e) =
 trexp (A.Call f args) =
     do (_, ff, _) <- env_lookup f
        ee <- mapM trexp args
-       return $ C.Call ff ee
+       return (C.Call ff ee)
 
-trexp _ = do return $ C.Var "crap"
+trexp (A.Var v) =
+    do (_, vv, _) <- env_lookup v
+       return (C.Var v)
+
+trexp (A.BinLit _) = -- need to add a declaration and point to it
+    do return $ C.ConstInt 0
 
 trbinop A.Plus      = do return C.Plus
 trbinop A.Minus     = do return C.Minus
