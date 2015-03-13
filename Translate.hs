@@ -202,4 +202,40 @@ trstm (A.If c t e) =
        return $ C.If cc tt ee
 
 trexp :: A.Expr -> TM C.Expr
+trexp (A.ConstInt n) =
+    do return (C.ConstInt n)
+
+trexp (A.ConstFloat f) =
+    do return (C.ConstFloat f)
+
+trexp (A.BinOp Xor l r) =       -- built-in operator
+    do ll <- trexp l
+       rr <- trexp r
+       return (C.Call "__cmt_xor" [ll, rr])
+
+trexp (A.BinOp a_op l r) =
+    do c_op <- trbinop a_op
+       ll <- trexp l
+       rr <- trexp r
+       return (C.BinOp c_op ll rr)
+
+trexp (A.UnOp a_op e) =
+    do c_op <- trunop a_op
+       ee <- trexp e
+       return (C.UnOp c_op ee)
+
+trexp (A.Call f args) =
+    do (_, ff, _) <- env_lookup f
+       ee <- mapM trexp args
+       return $ C.Call ff ee
+
 trexp _ = do return $ C.Var "crap"
+
+trbinop A.Plus      = do return C.Plus
+trbinop A.Minus     = do return C.Minus
+trbinop A.Div       = do return C.Div
+trbinop A.Prod      = do return C.Prod
+trbinop A.Eq        = do return C.Eq
+trbinop A.Mod       = do return C.Mod
+
+trunop A.NegateNum  = do return C.NegateNum
