@@ -34,6 +34,7 @@ data Expr = BinOp BinOp Expr Expr
           | ConstFloat Double
           | Call String [Expr]
           | Var String
+          | ConstBool Bool
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod

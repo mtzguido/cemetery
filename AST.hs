@@ -27,11 +27,11 @@ data UnOp = NegateNum
 
 data Expr = ConstInt Int
           | ConstFloat Double
+          | ConstBool Bool
           | BinOp BinOp Expr Expr
           | UnOp UnOp Expr
           | Call VarName [Expr]
           | Var VarName
-          | TFalse | TTrue
           | ConstStr String
           | BinLit B.ByteString
           deriving (Eq, Show)

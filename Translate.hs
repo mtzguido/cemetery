@@ -105,8 +105,7 @@ infer :: A.Expr -> TM A.Type
 infer (A.ConstStr _)    = do return A.String
 infer (A.ConstInt _)    = do return A.Int
 infer (A.ConstFloat _)  = do return A.Double
-infer (A.TFalse)        = do return A.Bool
-infer (A.TTrue)         = do return A.Bool
+infer (A.ConstBool _)   = do return A.Bool
 infer (A.BinLit _)      = do return A.Bytes
 infer e = do trace ("e = " ++ show e) (error "")
 
@@ -207,6 +206,9 @@ trexp (A.ConstInt n) =
 
 trexp (A.ConstFloat f) =
     do return (C.ConstFloat f)
+
+trexp (A.ConstBool b) =
+    do return (C.ConstBool b)
 
 trexp (A.BinOp Xor l r) =       -- built-in operator
     do ll <- trexp l

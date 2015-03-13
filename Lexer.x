@@ -57,8 +57,8 @@ tokens :-
   "/="			{ simple DivAssign }
   "^="			{ simple XorAssign }
 
-  "false"		{ simple TFalse }
-  "true"		{ simple TTrue }
+  "false"		{ simple (BoolLit False) }
+  "true"		{ simple (BoolLit True) }
 
   -- This needs to be extended to multiline strings
   \"[^\"]*\"		{ ind $ stringLit }
@@ -181,7 +181,6 @@ data Sym =
   Int | Bool | Float | Bytes |
   Ident String |
 
-  TFalse | TTrue |
 
   Plus | Dash | Asterisk | Slash | Circ | Perc |
   Eq | Eq2 | Dot |
@@ -200,7 +199,8 @@ data Sym =
   ProdAssign | DivAssign |
   XorAssign |
 
-  IntLit Int | StringLit String | FloatLit Double
+  IntLit Int | StringLit String | FloatLit Double |
+  BoolLit Bool
   deriving (Show)
 
 qstrip = tail . init

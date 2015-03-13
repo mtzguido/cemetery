@@ -23,7 +23,7 @@ import qualified AST as A
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
 	EXTERN		{ L.Tok L.Extern _ }
-	FALSE		{ L.Tok L.TFalse _ }
+	BOOL		{ L.Tok (L.BoolLit _) _ }
 	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	FUN		{ L.Tok L.Fun _ }
 	ID		{ L.Tok (L.Ident _) _ }
@@ -38,7 +38,6 @@ import qualified AST as A
 	SLASH		{ L.Tok L.Slash _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
 	STRUCT		{ L.Tok L.Struct _ }
-	TRUE		{ L.Tok L.TTrue _ }
 	TYPE		{ L.Tok (L.Type _) _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
@@ -68,6 +67,7 @@ type : TYPE { readType $1 }
 intlit : INT { readInt $1 }
 floatlit : FLOAT { readFloat $1 }
 strlit : STRING { readStr $1 }
+boollit : BOOL { readBool $1 }
 
 fun : FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {
@@ -148,8 +148,7 @@ expr : intlit			{ A.ConstInt $1 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.NegateNum $2 }
      | strlit			{ A.ConstStr $1 }
-     | FALSE			{ A.TFalse }
-     | TRUE			{ A.TTrue }
+     | boollit			{ A.ConstBool $1 }
 
 argv : {- empty -}		{ [] }
      | expr			{ [$1] }
@@ -162,5 +161,6 @@ readType	(L.Tok (L.Type t) _) = t
 readInt		(L.Tok (L.IntLit i) _) = i
 readFloat	(L.Tok (L.FloatLit d) _) = d
 readStr		(L.Tok (L.StringLit s) _) = s
+readBool	(L.Tok (L.BoolLit b) _) = b
 
 }
