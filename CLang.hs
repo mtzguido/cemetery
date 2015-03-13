@@ -29,7 +29,7 @@ data Stmt = Assign String Expr
   deriving (Eq, Show)
 
 data Expr = BinOp BinOp Expr Expr
-          | UnOp UnOp Expr Expr
+          | UnOp UnOp Expr
           | ConstInt Int
           | ConstFloat Double
           | Call String [Expr]
