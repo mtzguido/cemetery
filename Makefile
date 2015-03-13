@@ -1,21 +1,21 @@
-.PHONY:clean all re test test-*
-TARGET = cmt
-SOURCE = Cemetery.hs
-CFLAGS =
-CC = ghc --make
+.PHONY: clean all re test test-*
+TARGET := cmt
+SOURCE := Cemetery.hs
+CFLAGS :=
+GHC := ghc --make
 
-SAY = echo
+SAY := echo
 ifeq (${V},1)
-	Q=
+	Q :=
 else
-	Q=@
+	Q := @
 endif
 
-automods=Lexer.hs Parser.hs
+automods := Lexer.hs Parser.hs
 
 $(TARGET): $(wildcard *.hs) $(automods)
 	$(Q)$(SAY) "  GHC	$@"
-	$(Q)$(CC) $(SOURCE) $(CFLAGS) -o $(TARGET)
+	$(Q)$(GHC) $(SOURCE) $(CFLAGS) -o $(TARGET)
 
 all: $(TARGET)
 
@@ -28,11 +28,11 @@ Parser.hs: Parser.y
 	$(Q)happy -i $< -o $@
 
 clean:
-	$(Q)$(SAY) "CLEAN"
+	$(Q)$(SAY) " CLEAN"
 	$(Q)rm -f $(TARGET)
 	$(Q)rm -f *.o *.hi
 	$(Q)rm -f $(automods)
-	$(Q)rm -f $(patsubst %,%.hi, $(mods))
+	$(Q)rm -f Parser.info
 
 test: test-all
 
