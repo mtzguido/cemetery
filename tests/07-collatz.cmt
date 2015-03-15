@@ -1,5 +1,5 @@
-fun even (x : int) : int
-	return 1
+fun even (x : int) : bool
+	return x % 2 == 0
 
 fun coll (x : int) : int
 	if x == 1

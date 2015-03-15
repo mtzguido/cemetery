@@ -88,8 +88,8 @@ addDecl d = do l:ls <- getData
                setData $ l { opening = d : opening l } : ls
 
 add_builtins :: TM ()
-add_builtins = do addToEnv "trunc" (A.Int, "__cmt_trunc", C.Int)
-                  addToEnv "repeat" (A.Int, "__cmt_repeat", C.Int)
+add_builtins = do addToEnv "trunc" (A.Fun [A.Bytes] A.Bytes, "__cmt_trunc", C.Int)
+                  addToEnv "repeat" (A.Fun [A.Bytes] A.Bytes, "__cmt_repeat", C.Int)
                   return ()
 
 ff :: Maybe a -> Maybe a -> Maybe a
@@ -201,10 +201,9 @@ trstm (A.Assign n e) =
     do (ee, te) <- trexp e
        (ta, nn, __) <- env_lookup n
 
-       -- check that "n" can be asigned a "te"
-       if ta == te
+       if tmatch ta te
          then return (C.Assign nn ee)
-         else error "type mismatch"
+         else error "type mismatch (1)"
 
 trstm (A.Seq l r) =
     do ll <- trstm l
@@ -213,8 +212,10 @@ trstm (A.Seq l r) =
 
 trstm (A.Return e) =
     do (ee, te) <- trexp e
-       -- check we're returning the correct type
-       return $ C.Return ee
+       rt <- getRetType
+       if tmatch te rt
+         then return (C.Return ee)
+         else error "type mismatch (2)"
 
 trstm (A.Decl d) =
     do cds <- tr1 d
@@ -223,11 +224,13 @@ trstm (A.Decl d) =
 
 trstm (A.If c t e) =
     do (cc, tc) <- trexp c
-       -- check tc is bool (or maybe int too?)
        tr <- getRetType
-       tt <- trbody t tr
-       ee <- trbody e tr
-       return $ C.If cc tt ee
+       trace ("lala:" ++ show c ++ "::" ++ show cc ++ "::" ++ show tc) (return ())
+       if tmatch tc A.Bool || tmatch tc A.Int
+         then do tt <- trbody t tr
+                 ee <- trbody e tr
+                 return (C.If cc tt ee)
+         else error "type mismatch (3)"
 
 trexp :: A.Expr -> TM (C.Expr, A.Type)
 trexp (A.ConstInt n) =
@@ -242,31 +245,23 @@ trexp (A.ConstBool b) =
 trexp (A.ConstStr s) =
     do return (C.ConstStr s, A.String)
 
-trexp (A.BinOp Xor l r) =       -- built-in operator
+trexp (A.BinOp a_op l r) =
     do (ll, tl) <- trexp l
        (rr, tr) <- trexp r
-       -- check both are binaries
-       return (C.Call "__cmt_xor" [ll, rr], tl)
-
-trexp (A.BinOp a_op l r) =
-    do c_op <- trbinop a_op
-       (ll, tl) <- trexp l
-       (rr, tr) <- trexp r
-       -- check binop table for match
-       return (C.BinOp c_op ll rr, tl)
+       trbinop a_op ll tl rr tr
 
 trexp (A.UnOp a_op e) =
-    do c_op <- trunop a_op
-       (ee, te) <- trexp e
-       -- check unop table for match
-       return (C.UnOp c_op ee, te)
+    do (ee, te) <- trexp e
+       trunop a_op ee te
 
 trexp (A.Call f args) =
     do (tf, ff, _) <- env_lookup f
        args_ir <- mapM trexp args
        let (args, args_t) = unzip args_ir
+       trace ("looking for " ++ f) (return ())
+       let A.Fun _ rt = tf
        -- check match for f(a1, a2, ...)
-       return (C.Call ff args, A.Int)
+       return (C.Call ff args, rt)
 
 trexp (A.Var v) =
     do (tv, vv, _) <- env_lookup v
@@ -275,11 +270,38 @@ trexp (A.Var v) =
 trexp (A.BinLit _) = -- need to add a declaration and point to it
     do return (C.ConstInt 0, A.Bytes)
 
-trbinop A.Plus      = do return C.Plus
-trbinop A.Minus     = do return C.Minus
-trbinop A.Div       = do return C.Div
-trbinop A.Prod      = do return C.Prod
-trbinop A.Eq        = do return C.Eq
-trbinop A.Mod       = do return C.Mod
+-- Operator translation
 
-trunop A.NegateNum  = do return C.NegateNum
+trbinop A.Plus  = arith_op C.Plus
+trbinop A.Minus = arith_op C.Minus
+trbinop A.Prod  = arith_op C.Prod
+trbinop A.Div   = arith_op C.Div
+trbinop A.Mod   = arith_op C.Mod
+trbinop A.Xor   = tr_xor
+trbinop A.Eq    = tr_comparison
+
+arith_op op l lt r rt = 
+    do if (tmatch lt A.Int && tmatch rt A.Int)
+          || (tmatch lt A.Double && tmatch rt A.Double)
+           then return (C.BinOp op l r, lt)
+           else error "type mismatch (4)"
+
+tr_xor l lt r rt =       -- built-in operator
+    do if tmatch lt A.Bytes && tmatch rt A.Bytes
+         then return (C.Call "__cmt_xor" [l, r], lt)
+         else error "type mismatch (5)"
+
+tr_comparison l lt r rt =
+    do if tmatch lt rt -- obviously wrong once we have more rich types
+           then return (C.BinOp C.Eq l r, A.Bool)
+           else error "type mismatch (6)"
+
+trunop A.NegateNum  = tr_negatenum
+
+tr_negatenum ee te =
+    do if tmatch te A.Int
+           then return (C.UnOp C.NegateNum ee, te)
+           else error "type mismatch (7)"
+
+tmatch :: A.Type -> A.Type -> Bool
+tmatch p q = p == q
