@@ -280,7 +280,7 @@ trbinop A.Mod   = arith_op C.Mod
 trbinop A.Xor   = tr_xor
 trbinop A.Eq    = tr_comparison
 
-arith_op op l lt r rt = 
+arith_op op l lt r rt =
     do if (tmatch lt A.Int && tmatch rt A.Int)
           || (tmatch lt A.Double && tmatch rt A.Double)
            then return (C.BinOp op l r, lt)
