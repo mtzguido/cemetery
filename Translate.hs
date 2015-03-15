@@ -182,7 +182,8 @@ trstm :: A.Stmt -> TM C.Stmt
 trstm A.Skip = do return C.Skip
 
 trstm (A.Assign n e) =
-    do ee <- trexp e
+    do (ee, te) <- trexp e
+       -- check that "n" can be asigned a "te"
        return $ C.Assign n ee
 
 trstm (A.Seq l r) =
@@ -191,7 +192,8 @@ trstm (A.Seq l r) =
        return $ C.sseq ll rr
 
 trstm (A.Return e) =
-    do ee <- trexp e
+    do (ee, te) <- trexp e
+       -- check we're returning the correct type
        return $ C.Return ee
 
 trstm (A.Decl d) =
@@ -200,51 +202,57 @@ trstm (A.Decl d) =
        return C.Skip
 
 trstm (A.If c t e) =
-    do cc <- trexp c
+    do (cc, tc) <- trexp c
+       -- check tc is bool (or maybe int too?)
        tt <- trbody t
        ee <- trbody e
        return $ C.If cc tt ee
 
-trexp :: A.Expr -> TM C.Expr
+trexp :: A.Expr -> TM (C.Expr, A.Type)
 trexp (A.ConstInt n) =
-    do return (C.ConstInt n)
+    do return (C.ConstInt n, A.Int)
 
 trexp (A.ConstFloat f) =
-    do return (C.ConstFloat f)
+    do return (C.ConstFloat f, A.Double)
 
 trexp (A.ConstBool b) =
-    do return (C.ConstBool b)
+    do return (C.ConstBool b, A.Bool)
 
 trexp (A.ConstStr s) =
-    do return (C.ConstStr s)
+    do return (C.ConstStr s, A.String)
 
 trexp (A.BinOp Xor l r) =       -- built-in operator
-    do ll <- trexp l
-       rr <- trexp r
-       return (C.Call "__cmt_xor" [ll, rr])
+    do (ll, tl) <- trexp l
+       (rr, tr) <- trexp r
+       -- check both are binaries
+       return (C.Call "__cmt_xor" [ll, rr], tl)
 
 trexp (A.BinOp a_op l r) =
     do c_op <- trbinop a_op
-       ll <- trexp l
-       rr <- trexp r
-       return (C.BinOp c_op ll rr)
+       (ll, tl) <- trexp l
+       (rr, tr) <- trexp r
+       -- check binop table for match
+       return (C.BinOp c_op ll rr, tl)
 
 trexp (A.UnOp a_op e) =
     do c_op <- trunop a_op
-       ee <- trexp e
-       return (C.UnOp c_op ee)
+       (ee, te) <- trexp e
+       -- check unop table for match
+       return (C.UnOp c_op ee, te)
 
 trexp (A.Call f args) =
-    do (_, ff, _) <- env_lookup f
-       ee <- mapM trexp args
-       return (C.Call ff ee)
+    do (tf, ff, _) <- env_lookup f
+       args_ir <- mapM trexp args
+       let (args, args_t) = unzip args_ir
+       -- check match for f(a1, a2, ...)
+       return (C.Call ff args, A.Int)
 
 trexp (A.Var v) =
-    do (_, vv, _) <- env_lookup v
-       return (C.Var v)
+    do (tv, vv, _) <- env_lookup v
+       return (C.Var v, tv)
 
 trexp (A.BinLit _) = -- need to add a declaration and point to it
-    do return $ C.ConstInt 0
+    do return (C.ConstInt 0, A.Bytes)
 
 trbinop A.Plus      = do return C.Plus
 trbinop A.Minus     = do return C.Minus
