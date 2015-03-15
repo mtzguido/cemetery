@@ -14,10 +14,15 @@ import Debug.Trace
 
 -- Monad definition
 
-type LevelState = (M.Map VarName (A.Type, VarName, C.Type), [C.Decl])
+data LevelState = LevelState {
+                      env :: M.Map VarName (A.Type, VarName, C.Type),
+                      opening :: [C.Decl],
+                      ret_type :: A.Type
+                  }
+                  deriving (Show)
 
 blank_level :: LevelState
-blank_level = (empty, [])
+blank_level = LevelState { env = empty, opening = [], ret_type = A.Invalid }
 
 data TransState = TSt { level_data :: [LevelState] }
   deriving Show
@@ -55,6 +60,16 @@ setData :: [LevelState] -> TM ()
 setData es = do s <- get
                 put $ s { level_data = es }
 
+getRetType :: TM A.Type
+getRetType = do s <- get
+                let d = level_data s
+                return $ ret_type (head d)
+
+setRetType :: A.Type -> TM ()
+setRetType t = do s <- get
+                  let h:ts = level_data s
+                  put $ s { level_data = h { ret_type = t } : ts }
+
 pushLevel :: TM ()
 pushLevel = do e <- getData
                setData (blank_level : e)
@@ -66,13 +81,11 @@ popLevel = do e <- getData
 
 addToEnv :: VarName -> (A.Type, VarName, C.Type) -> TM ()
 addToEnv n t = do e:es <- getData
-                  let (m, d) = e
-                  setData $ (insert n t m, d) : es
+                  setData $ (e { env = insert n t (env e) }) : es
 
 addDecl :: C.Decl -> TM ()
 addDecl d = do l:ls <- getData
-               let l' = (\(a,b) -> (a, d:b)) l
-               setData (l':ls)
+               setData $ l { opening = d : opening l } : ls
 
 add_builtins :: TM ()
 add_builtins = do addToEnv "trunc" (A.Int, "__cmt_trunc", C.Int)
@@ -85,7 +98,7 @@ ff Nothing m = m
 
 env_lookup :: String -> TM (A.Type, VarName, C.Type)
 env_lookup s = do d <- getData
-                  let dd = lmap fst d
+                  let dd = lmap env d
                   let f = Prelude.foldl (\a v -> ff a (M.lookup s v)) Nothing dd
                   case f of
                     Nothing -> error $ "undefined variable: " ++ s
@@ -161,18 +174,21 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
 
        mapM add1 (zip a atc)
 
-       body <- trbody b
+       body <- trbody b r
        return [FunDef funt body]
 
 -- Statement and expression translations
 -- Abandon all hope ye who enter below this line
 
-trbody :: A.Stmt -> TM C.Block
-trbody s = do pushLevel
-              st <- trstm s
-              (env, ds) <- popLevel
-              trace ("ds = " ++ show ds) (return ())
-              return (reverse ds, st)
+trbody :: A.Stmt -> A.Type -> TM C.Block
+trbody s t =
+    do pushLevel
+       setRetType t
+       st <- trstm s
+       lvl <- popLevel
+       let ds = opening lvl
+       trace ("ds = " ++ show ds) (return ())
+       return (reverse ds, st)
 
 fromCDecl :: C.Unit -> C.Decl
 fromCDecl (C.Decl d) = d
@@ -183,8 +199,12 @@ trstm A.Skip = do return C.Skip
 
 trstm (A.Assign n e) =
     do (ee, te) <- trexp e
+       (ta, nn, __) <- env_lookup n
+
        -- check that "n" can be asigned a "te"
-       return $ C.Assign n ee
+       if ta == te
+         then return (C.Assign nn ee)
+         else error "type mismatch"
 
 trstm (A.Seq l r) =
     do ll <- trstm l
@@ -204,8 +224,9 @@ trstm (A.Decl d) =
 trstm (A.If c t e) =
     do (cc, tc) <- trexp c
        -- check tc is bool (or maybe int too?)
-       tt <- trbody t
-       ee <- trbody e
+       tr <- getRetType
+       tt <- trbody t tr
+       ee <- trbody e tr
        return $ C.If cc tt ee
 
 trexp :: A.Expr -> TM (C.Expr, A.Type)
