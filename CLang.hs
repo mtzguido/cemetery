@@ -8,7 +8,6 @@ data VarModifiers = Extern | Const
 data Unit = Decl Decl
           | FunDecl Funtype
           | FunDef Funtype Block
-          | UnitStub
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)
