@@ -74,7 +74,7 @@ arg_def (h:t) =
        arg_def t
 
 g_decl :: Decl -> GM ()
-g_decl (VarDecl s t _) =
+g_decl (VarDecl s t _ _) =
     do n <- box (g_typ t)
        mapM emit n
        emit s

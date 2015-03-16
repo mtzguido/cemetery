@@ -12,7 +12,7 @@ data Unit = Decl Decl
 
 type Block = ([Decl], Stmt)
 
-data Decl = VarDecl String Type [VarModifiers]
+data Decl = VarDecl String Type (Maybe Expr) [VarModifiers]
   deriving (Eq, Show)
 
 data Funtype = Funtype { name :: String,

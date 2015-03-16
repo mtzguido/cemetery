@@ -145,13 +145,16 @@ tr1 (A.VarDecl mods n Nothing Nothing) =
 tr1 (A.VarDecl n mods (Just typ) Nothing) =
     do tt <- tmap typ
        addToEnv n (typ, n, tt)
-       return [C.Decl $ C.VarDecl n tt []]
+       return [C.Decl $ C.VarDecl n tt Nothing []]
 
 tr1 (A.VarDecl n mods Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
-       addToEnv n (ta, n, typ)
-       return [C.Decl $ C.VarDecl n typ []]
+       (ee, te) <- trexp expr
+       if tmatch ta te
+           then do addToEnv n (ta, n, typ)
+                   return [C.Decl $ C.VarDecl n typ (Just ee) []]
+           else error "type mismatch (8)"
 
 tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
     do ta' <- infer expr
@@ -160,8 +163,11 @@ tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
          else return ()
 
        typ <- tmap ta
-       addToEnv n (ta, n, typ)
-       return [C.Decl $ C.VarDecl n typ []]
+       (ee, te) <- trexp expr
+       if tmatch ta te
+           then do addToEnv n (ta, n, typ)
+                   return [C.Decl $ C.VarDecl n typ (Just ee) []]
+           else error "type mismatch (9)"
 
 tr1 (A.Struct) =
     do return []
@@ -296,7 +302,7 @@ tr_xor l lt r rt =       -- built-in operator
          else error "type mismatch (5)"
 
 tr_comparison l lt r rt =
-    do if tmatch lt rt -- obviously wrong once we have more rich types
+    do if tmatch lt rt -- obviously wrong once we have richer types
            then return (C.BinOp C.Eq l r, A.Bool)
            else error "type mismatch (6)"
 
