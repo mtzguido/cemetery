@@ -2,4 +2,4 @@
 
 set -ue
 
-./scripts/test-custom.sh
+./scripts/test-custom.sh tests/good tests/bad

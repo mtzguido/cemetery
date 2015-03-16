@@ -2,4 +2,4 @@
 
 set -ue
 
-./scripts/test-custom.sh "--trans"
+./scripts/test-custom.sh tests/good tests/trans-bad "--trans"
