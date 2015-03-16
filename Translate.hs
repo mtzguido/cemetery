@@ -120,6 +120,10 @@ infer (A.ConstInt _)    = do return A.Int
 infer (A.ConstFloat _)  = do return A.Double
 infer (A.ConstBool _)   = do return A.Bool
 infer (A.BinLit _)      = do return A.Bytes
+infer (A.Var v)         =
+    do (tv, _, __) <- env_lookup v
+       return tv
+
 infer e = do trace ("e = " ++ show e) (error "")
 
 tmap :: A.Type -> TM C.Type
