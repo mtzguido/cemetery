@@ -1,7 +1,7 @@
 module Translate where
 
-import CLang as C
-import AST as A
+import qualified CLang as C
+import qualified AST as A
 
 import Common
 import Control.Exception
@@ -16,7 +16,7 @@ import Debug.Trace
 -- Monad definition
 
 data LevelState = LevelState {
-                      env :: M.Map VarName (A.Type, VarName, C.Type),
+                      env :: M.Map A.VarName (A.Type, A.VarName, C.Type),
                       opening :: [C.Decl],
                       ret_type :: A.Type
                   }
@@ -91,12 +91,12 @@ getUnusedName s = do lvls <- getData
                      return (head valid_names)
 
 -- Adds a name to the environment, with a hint of how the C name should look like
-addToEnv :: VarName -> (A.Type, C.Type) -> TM VarName
+addToEnv :: A.VarName -> (A.Type, C.Type) -> TM A.VarName
 addToEnv n (at, ct) = do nn <- getUnusedName n
                          addToEnv' n (at, nn, ct)
                          return nn
 
-addToEnv' :: VarName -> (A.Type, VarName, C.Type) -> TM ()
+addToEnv' :: A.VarName -> (A.Type, A.VarName, C.Type) -> TM ()
 addToEnv' n t = do e:es <- getData
                    setData $ (e { env = M.insert n t (env e) }) : es
 
@@ -113,7 +113,7 @@ ff :: Maybe a -> Maybe a -> Maybe a
 ff (Just x) _ = Just x
 ff Nothing m = m
 
-env_lookup :: String -> TM (A.Type, VarName, C.Type)
+env_lookup :: String -> TM (A.Type, A.VarName, C.Type)
 env_lookup s = do d <- getData
                   let dd = L.map env d
                   let f = Prelude.foldl (\a v -> ff a (M.lookup s v)) Nothing dd
@@ -199,7 +199,7 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
        names_c <- mapM getUnusedName names_a
 
        let args_c = zip names_c argtypes_c
-       let funt = Funtype { C.name = n, C.args = args_c, C.ret = ret_type }
+       let funt = C.Funtype { C.name = n, C.args = args_c, C.ret = ret_type }
        fn <- addToEnv n (A.Fun argtypes_a r, C.Fun funt)
 
        pushLevel
@@ -208,7 +208,7 @@ tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
 
        body <- trbody b r
        popLevel
-       return [FunDef funt body]
+       return [C.FunDef funt body]
 
 -- Statement and expression translations
 -- Abandon all hope ye who enter below this line
