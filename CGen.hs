@@ -74,10 +74,14 @@ arg_def (h:t) =
        arg_def t
 
 g_decl :: Decl -> GM ()
-g_decl (VarDecl s t _ _) =
+g_decl (VarDecl s t me _) =
     do n <- box (g_typ t)
        mapM emit n
        emit s
+       case me of
+        Just e -> do emit "="
+                     g_expr e
+        Nothing -> return ()
        emit ";"
 
 g_stmt :: Stmt -> GM ()
