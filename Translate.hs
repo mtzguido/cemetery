@@ -10,6 +10,7 @@ import Control.Monad.Identity
 import Control.Monad.State
 import Data.Map.Strict as M
 import Data.Maybe
+import Data.List as L
 import Debug.Trace
 
 -- Monad definition
@@ -47,9 +48,6 @@ runTranslate m = let a = runErrorT m
 semanticT :: A.Prog -> (TransState, Either CmtError C.Prog)
 semanticT = runTranslate.translate
 
--- Good ol' list map, since the Data.Map one might hide it
-lmap = Prelude.map
-
 -- Environment handling functions
 
 getData :: TM [LevelState]
@@ -79,17 +77,36 @@ popLevel = do e <- getData
               setData (tail e)
               return (head e)
 
-addToEnv :: VarName -> (A.Type, VarName, C.Type) -> TM ()
-addToEnv n t = do e:es <- getData
-                  setData $ (e { env = insert n t (env e) }) : es
+minus :: Eq a => [a] -> [a] -> [a]
+minus p q = L.filter (\x -> not (elem x q)) p
+
+getUnusedName :: String -> TM String
+getUnusedName s = do lvls <- getData
+                     let maps = L.map env lvls
+                     let joined_maps = L.foldl' M.union M.empty maps
+                     let joined_envs = L.map snd $ toList (joined_maps)
+                     let used_names = L.map (\(a,b,c) -> b) joined_envs
+                     let possible_names = s : (L.map (\i -> s ++ "_" ++ show i) [1..])
+                     let valid_names = minus possible_names used_names
+                     return (head valid_names)
+
+-- Adds a name to the environment, with a hint of how the C name should look like
+addToEnv :: VarName -> (A.Type, C.Type) -> TM VarName
+addToEnv n (at, ct) = do nn <- getUnusedName n
+                         addToEnv' n (at, nn, ct)
+                         return nn
+
+addToEnv' :: VarName -> (A.Type, VarName, C.Type) -> TM ()
+addToEnv' n t = do e:es <- getData
+                   setData $ (e { env = M.insert n t (env e) }) : es
 
 addDecl :: C.Decl -> TM ()
 addDecl d = do l:ls <- getData
                setData $ l { opening = d : opening l } : ls
 
 add_builtins :: TM ()
-add_builtins = do addToEnv "trunc" (A.Fun [A.Bytes] A.Bytes, "__cmt_trunc", C.Int)
-                  addToEnv "repeat" (A.Fun [A.Bytes] A.Bytes, "__cmt_repeat", C.Int)
+add_builtins = do addToEnv' "trunc" (A.Fun [A.Bytes] A.Bytes, "__cmt_trunc", C.Int)
+                  addToEnv' "repeat" (A.Fun [A.Bytes] A.Bytes, "__cmt_repeat", C.Int)
                   return ()
 
 ff :: Maybe a -> Maybe a -> Maybe a
@@ -98,7 +115,7 @@ ff Nothing m = m
 
 env_lookup :: String -> TM (A.Type, VarName, C.Type)
 env_lookup s = do d <- getData
-                  let dd = lmap env d
+                  let dd = L.map env d
                   let f = Prelude.foldl (\a v -> ff a (M.lookup s v)) Nothing dd
                   case f of
                     Nothing -> error $ "undefined variable: " ++ s
@@ -144,16 +161,16 @@ tr1 (A.VarDecl mods n Nothing Nothing) =
 
 tr1 (A.VarDecl n mods (Just typ) Nothing) =
     do tt <- tmap typ
-       addToEnv n (typ, n, tt)
-       return [C.Decl $ C.VarDecl n tt Nothing []]
+       nn <- addToEnv n (typ, tt)
+       return [C.Decl $ C.VarDecl nn tt Nothing []]
 
 tr1 (A.VarDecl n mods Nothing (Just expr)) =
     do ta <- infer expr
        typ <- tmap ta
        (ee, te) <- trexp expr
        if tmatch ta te
-           then do addToEnv n (ta, n, typ)
-                   return [C.Decl $ C.VarDecl n typ (Just ee) []]
+           then do nn <- addToEnv n (ta, typ)
+                   return [C.Decl $ C.VarDecl nn typ (Just ee) []]
            else error "type mismatch (8)"
 
 tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
@@ -165,26 +182,32 @@ tr1 (A.VarDecl n mods (Just ta) (Just expr)) =
        typ <- tmap ta
        (ee, te) <- trexp expr
        if tmatch ta te
-           then do addToEnv n (ta, n, typ)
-                   return [C.Decl $ C.VarDecl n typ (Just ee) []]
+           then do nn <- addToEnv n (ta, typ)
+                   return [C.Decl $ C.VarDecl nn typ (Just ee) []]
            else error "type mismatch (9)"
 
 tr1 (A.Struct) =
     do return []
 
 tr1 (A.FunDecl { A.name = n, A.ret = r, A.args = a, A.body = b}) =
-    do rc <- tmap r
-       let ata = lmap snd a
-       atc <- mapM tmap ata
-       let argsc = zip (lmap fst a) atc
-       let funt = Funtype { C.name = n, C.args = argsc, C.ret = rc }
-       addToEnv n (A.Fun ata r, n, C.Fun funt)
+    do ret_type <- tmap r
+       let names_a = L.map fst a
+       let argtypes_a = L.map snd a
 
-       let add1 ((n, ta), tc) = do addToEnv n (ta, n, tc)
+       argtypes_c <- mapM tmap argtypes_a
 
-       mapM add1 (zip a atc)
+       names_c <- mapM getUnusedName names_a
+
+       let args_c = zip names_c argtypes_c
+       let funt = Funtype { C.name = n, C.args = args_c, C.ret = ret_type }
+       fn <- addToEnv n (A.Fun argtypes_a r, C.Fun funt)
+
+       pushLevel
+       let add1 ((a, ta), tc, aa) = do addToEnv' a (ta, aa, tc)
+       mapM add1 (zip3 a argtypes_c names_c)
 
        body <- trbody b r
+       popLevel
        return [FunDef funt body]
 
 -- Statement and expression translations
@@ -229,7 +252,7 @@ trstm (A.Return e) =
 
 trstm (A.Decl d) =
     do cds <- tr1 d
-       mapM addDecl (lmap fromCDecl cds)
+       mapM addDecl (L.map fromCDecl cds)
        return C.Skip
 
 trstm (A.If c t e) =
