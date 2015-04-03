@@ -1,8 +1,10 @@
 module CLang where
 
+import Data.Word
+
 type Prog = [Unit]
 
-data VarModifiers = Extern | Const
+data VarModifiers = Extern | Const | Static
   deriving (Eq, Show)
 
 data Unit = Decl Decl
@@ -35,6 +37,7 @@ data Expr = BinOp BinOp Expr Expr
           | Var String
           | ConstBool Bool
           | ConstStr String
+          | ConstArr [Word8]
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod

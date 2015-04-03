@@ -152,6 +152,21 @@ g_expr (ConstBool b) =
 g_expr (ConstStr s) =
     do emit $ "\"" ++ s ++ "\""
 
+g_expr (ConstArr b) =
+    do emit "{"
+       arr_print b
+       emit "}"
+
+arr_print [] = return ()
+
+arr_print [x] =
+    do emit $ show x
+
+arr_print (x:xs) =
+    do emit $ show x
+       emit ","
+       arr_print xs
+
 g_args :: [Expr] -> GM ()
 g_args [] = do return ()
 g_args [h] = do g_expr h

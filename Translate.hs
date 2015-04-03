@@ -8,7 +8,8 @@ import Control.Exception
 import Control.Monad.Error
 import Control.Monad.Identity
 import Control.Monad.State
-import Data.Map.Strict as M
+import qualified Data.ByteString as B
+import qualified Data.Map.Strict as M
 import Data.Maybe
 import Data.List as L
 import Debug.Trace
@@ -23,7 +24,7 @@ data LevelState = LevelState {
                   deriving (Show)
 
 blank_level :: LevelState
-blank_level = LevelState { env = empty, opening = [], ret_type = A.Invalid }
+blank_level = LevelState { env = M.empty, opening = [], ret_type = A.Invalid }
 
 data TransState = TSt { level_data :: [LevelState] }
   deriving Show
@@ -84,7 +85,7 @@ getUnusedName :: String -> TM String
 getUnusedName s = do lvls <- getData
                      let maps = L.map env lvls
                      let joined_maps = L.foldl' M.union M.empty maps
-                     let joined_envs = L.map snd $ toList (joined_maps)
+                     let joined_envs = L.map snd $ M.toList (joined_maps)
                      let used_names = L.map (\(a,b,c) -> b) joined_envs
                      let possible_names = s : (L.map (\i -> s ++ "_" ++ show i) [1..])
                      let valid_names = minus possible_names used_names
@@ -103,6 +104,11 @@ addToEnv' n t = do e:es <- getData
 addDecl :: C.Decl -> TM ()
 addDecl d = do l:ls <- getData
                setData $ l { opening = d : opening l } : ls
+
+addGlobalDecl :: C.Decl -> TM ()
+addGlobalDecl d = do ls <- getData
+                     let l = last ls
+                     setData $ (init ls ++ [l { opening = d : opening l }])
 
 add_builtins :: TM ()
 add_builtins = do addToEnv' "trunc" (A.Fun [A.Bytes] A.Bytes, "__cmt_trunc", C.Int)
@@ -127,7 +133,10 @@ translate :: A.Prog -> TM C.Prog
 translate decls = do pushLevel -- global environment
                      add_builtins -- add builtins to the environment
                      dd <- mapM tr1 decls
-                     return $ concat dd
+                     final <- popLevel
+                     let gd = opening final
+
+                     return $ L.map C.Decl gd ++ concat dd
 
 -- Type inference and mapping
 
@@ -300,8 +309,15 @@ trexp (A.Var v) =
     do (tv, vv, _) <- env_lookup v
        return (C.Var v, tv)
 
-trexp (A.BinLit _) = -- need to add a declaration and point to it
-    do return (C.ConstInt 0, A.Bytes)
+trexp (A.BinLit b) =
+    do name <- getUnusedName "__cmt_litbuf"
+       ce <- bin_init b
+       addGlobalDecl (C.VarDecl name (C.Ptr C.Void) (Just ce) [C.Static])
+       return (C.Var name, A.Bytes)
+
+bin_init :: B.ByteString -> TM C.Expr
+bin_init b = do let bs = B.unpack b
+                return $ C.ConstArr bs
 
 -- Operator translation
 
