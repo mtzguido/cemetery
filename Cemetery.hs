@@ -22,7 +22,7 @@ options = [
  Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
  Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
  Option [] ["translate", "trans"] (NoArg StopTranslate) "stop after translation",
- Option ['V'] ["verbose"] (NoArg Verbose) "be more verbose"
+ Option ['v'] ["verbose"] (NoArg Verbose) "be more verbose"
  ]
 
 main = do args <- getArgs
