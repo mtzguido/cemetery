@@ -89,6 +89,10 @@ work = do (opts, basename) <- ask
 
           let ast = cmtParse toks
 
+          case ast of
+            [] -> error "File is empty"
+            _  -> return ()
+
           dbg "AST: "
           dbgLn $ show ast
           dbgLn ""
