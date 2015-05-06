@@ -10,6 +10,7 @@ import Lexer
 import Parser
 import Translate
 import CGen
+import Common
 
 data Opts = StopLexer | StopParse | StopTranslate
           | Verbose deriving (Eq, Show)
