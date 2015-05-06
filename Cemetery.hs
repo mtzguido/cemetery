@@ -51,8 +51,10 @@ breakIf f = do (opts, _) <- ask
                else
                  return ()
 
-dbg s = do lift (putStr s)
-dbgLn s = do lift (putStrLn s)
+dbg s   = do (v, _) <- ask
+             when (elem Verbose v) $ lift (putStr s)
+dbgLn s = do (v, _) <- ask
+             when (elem Verbose v) $ lift (putStrLn s)
 
 base :: String -> String
 base s = if drop (length s - 4) s == ".cmt"
