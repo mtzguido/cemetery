@@ -229,7 +229,6 @@ trbody s t =
        st <- trstm s
        lvl <- popLevel
        let ds = opening lvl
-       trace ("ds = " ++ show ds) (return ())
        return (reverse ds, st)
 
 fromCDecl :: C.Unit -> C.Decl
