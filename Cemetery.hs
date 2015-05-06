@@ -111,6 +111,10 @@ work = do (opts, basename) <- ask
           breakIf StopTranslate
 
           let ctext = cgenT t
+          let htext = ""
           dbgLn $ "ctext = " ++ ctext
+
+          lift $ writeFile outC ctext
+          lift $ writeFile outH htext
 
           return ()
