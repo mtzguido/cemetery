@@ -61,6 +61,7 @@ import qualified AST as A
 Prog : EOF		{ [] }
      | fun Prog		{ $1 : $2 }
      | decl Prog	{ $1 : $2 }
+     | BREAK Prog	{ $2 }
 
 id : ID { readIdent $1 }
 type : TYPE { readType $1 }
