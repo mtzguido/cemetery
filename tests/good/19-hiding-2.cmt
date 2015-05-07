@@ -1,0 +1,5 @@
+var x : int
+
+fun f (y : int) : int
+	var x : int
+	x = y
