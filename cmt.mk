@@ -1,4 +1,4 @@
-.PHONY: clean all re test test-*
+.PHONY: clean all re test test-* prepare
 TARGET := cmt
 SOURCE := Cemetery.hs
 
@@ -19,6 +19,8 @@ $(TARGET): $(obj-y)
 .deps.mk: $(automods)
 	$(Q)$(SAY) "  DEPS"
 	$(Q)ghc -M $(SOURCE) -dep-makefile .deps.mk
+
+prepare: $(automods)
 
 %.hi: %.o ;
 %.o: %.hs
