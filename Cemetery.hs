@@ -68,6 +68,9 @@ get_toks = do c <- alexMonadScan
                 _ -> do cs <- get_toks
                         return (c ++ cs)
 
+hprologue = ""
+cprologue = "#include <stdbool.h>\n\n"
+
 work :: App ()
 work = do (opts, basename) <- ask
           let inp  = basename ++ ".cmt"
@@ -118,7 +121,7 @@ work = do (opts, basename) <- ask
           let htext = ""
           dbgLn $ "ctext = " ++ ctext
 
-          lift $ writeFile outC ctext
-          lift $ writeFile outH htext
+          lift $ writeFile outC (cprologue ++ ctext)
+          lift $ writeFile outH (hprologue ++ htext)
 
           return ()
