@@ -12,9 +12,4 @@ endif
 $(MAKECMDGOALS):
 	@$(MAKE) --no-print-directory -f cmt.mk $@
 
-test: test-all
-
-test-%:
-	./scripts/$@.sh
-
 re: clean all

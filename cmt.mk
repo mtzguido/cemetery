@@ -43,3 +43,8 @@ clean:
 	$(Q)rm -f *.o *.hi
 	$(Q)rm -f $(automods)
 	$(Q)rm -f Parser.info
+
+test: test-all
+
+test-%:
+	./scripts/$@.sh
