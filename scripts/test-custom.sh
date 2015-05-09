@@ -3,7 +3,7 @@
 set -e
 
 GOOD_DIR=$1
-BAD_DIR=$2
+BAD_DIR=$2 # (optional)
 build=
 
 shift 2
@@ -41,7 +41,7 @@ done
 
 echo -n ' '
 
-if [ ${BAD_DIR} != "" ]; then
+if [ "${BAD_DIR}" != "" ]; then
 	for i in ${BAD_DIR}/*.cmt; do
 		if ! [ -f "$i" ] ; then continue ; fi
 
