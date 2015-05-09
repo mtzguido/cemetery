@@ -11,6 +11,7 @@ import Parser
 import Translate
 import CGen
 import Common
+import Prologue
 
 data Opts = StopLexer | StopParse | StopTranslate
           | Verbose deriving (Eq, Show)
@@ -67,13 +68,6 @@ get_toks = do c <- alexMonadScan
                 (_, EOF) -> return c
                 _ -> do cs <- get_toks
                         return (c ++ cs)
-
-hprologue = ""
-cprologue =
-  unlines ["#include <stdbool.h>",
-           "#include <stdint.h>",
-           "",
-           "typedef uint8_t cmt_buf_t[];"]
 
 work :: App ()
 work = do (opts, basename) <- ask
