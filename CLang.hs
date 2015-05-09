@@ -42,6 +42,8 @@ data Expr = BinOp BinOp Expr Expr
           | ConstBool Bool
           | ConstStr String
           | ConstArr [Word8]
+          | StructVal [(String, Expr)]
+          | PtrTo String
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod
@@ -52,7 +54,7 @@ data UnOp = NegateNum
   deriving (Eq, Show)
 
 data Type = Int | Void | Double | Bool | String
-          | Ptr Type | Fun Funtype | CmtBuf
+          | Ptr Type | Fun Funtype | CmtBuf | CmtBufStruct
   deriving (Eq, Show)
 
 sseq Skip s = s

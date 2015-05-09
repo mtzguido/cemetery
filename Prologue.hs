@@ -11,5 +11,6 @@ cprologue = unlines [
     "\tuint8_t data[];",
     "};",
     "",
-    "typedef struct __cmt_buf *cmt_buf_t;"
+    "typedef struct __cmt_buf *cmt_buf_t;",
+    ""
  ]

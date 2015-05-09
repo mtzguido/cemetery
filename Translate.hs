@@ -134,7 +134,7 @@ translate decls = do pushLevel -- global environment
                      add_builtins -- add builtins to the environment
                      dd <- mapM tr1 decls
                      final <- popLevel
-                     let gd = opening final
+                     let gd = reverse (opening final)
 
                      return $ L.map C.Decl gd ++ concat dd
 
@@ -309,14 +309,18 @@ trexp (A.Var v) =
        return (C.Var v, tv)
 
 trexp (A.BinLit b) =
-    do name <- getUnusedName "__cmt_litbuf"
+    do name_str <- getUnusedName "__cmt_litbuf"
+       name <- getUnusedName "cmt_litbuf"
        ce <- bin_init b
-       addGlobalDecl (C.VarDecl name (C.CmtBuf) (Just ce) [C.Static])
+       addGlobalDecl (C.VarDecl name_str (C.CmtBufStruct) (Just ce) [C.Static])
+       addGlobalDecl (C.VarDecl name (C.CmtBuf) (Just (C.PtrTo name_str)) [C.Const])
        return (C.Var name, A.Bytes)
 
 bin_init :: B.ByteString -> TM C.Expr
 bin_init b = do let bs = B.unpack b
-                return $ C.ConstArr bs
+                let str = C.StructVal [("length", C.ConstInt (length bs)),
+                                       ("data", C.ConstArr bs)]
+                return str
 
 -- Operator translation
 

@@ -157,6 +157,20 @@ g_expr (ConstArr b) =
        arr_print b
        emit "}"
 
+g_expr (StructVal fields) =
+    do emit "{"
+       mapM g_field fields
+       emit "}"
+
+g_expr (PtrTo s) =
+    do emit ("&" ++ s)
+
+g_field (name, expr) =
+    do emit ("." ++ name)
+       emit "="
+       g_expr expr
+       emit ","
+
 arr_print [] = return ()
 
 arr_print [x] =
@@ -182,7 +196,7 @@ g_typ Void          = do emit "void"
 g_typ String        = do emit "char *"
 g_typ Bool          = do emit "bool"
 g_typ CmtBuf        = do emit "cmt_buf_t"
-g_typ _             = do emit "weird_t"
+g_typ CmtBufStruct  = do emit "struct __cmt_buf"
 
 g_binop :: BinOp -> GM ()
 g_binop Plus        = do emit "+"
