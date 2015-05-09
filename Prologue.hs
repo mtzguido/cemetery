@@ -4,6 +4,12 @@ hprologue = ""
 cprologue = unlines [
     "#include <stdbool.h>",
     "#include <stdint.h>",
+    "#include <stddef.h>",
     "",
-    "typedef uint8_t cmt_buf_t[];"
+    "struct __cmt_buf {",
+    "\tsize_t length;",
+    "\tuint8_t data[];",
+    "};",
+    "",
+    "typedef struct __cmt_buf *cmt_buf_t;"
  ]
