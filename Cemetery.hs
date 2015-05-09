@@ -69,7 +69,11 @@ get_toks = do c <- alexMonadScan
                         return (c ++ cs)
 
 hprologue = ""
-cprologue = "#include <stdbool.h>\n\n"
+cprologue =
+  unlines ["#include <stdbool.h>",
+           "#include <stdint.h>",
+           "",
+           "typedef uint8_t cmt_buf_t[];"]
 
 work :: App ()
 work = do (opts, basename) <- ask

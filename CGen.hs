@@ -179,8 +179,9 @@ g_typ :: Type -> GM ()
 g_typ Int           = do emit "int"
 g_typ Double        = do emit "double"
 g_typ Void          = do emit "void"
-g_typ String        = do emit "__cmt_string_t"
+g_typ String        = do emit "char *"
 g_typ Bool          = do emit "bool"
+g_typ CmtBuf        = do emit "cmt_buf_t"
 g_typ _             = do emit "weird_t"
 
 g_binop :: BinOp -> GM ()

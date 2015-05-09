@@ -158,7 +158,7 @@ tmap A.Bool     = do return C.Bool
 tmap A.String   = do return C.String
 tmap A.Void     = do return C.Void
 tmap A.Double   = do return C.Double
-tmap A.Bytes    = do return (C.Ptr C.Void)
+tmap A.Bytes    = do return C.CmtBuf
 
 -- Unit translations
 
@@ -311,7 +311,7 @@ trexp (A.Var v) =
 trexp (A.BinLit b) =
     do name <- getUnusedName "__cmt_litbuf"
        ce <- bin_init b
-       addGlobalDecl (C.VarDecl name (C.Ptr C.Void) (Just ce) [C.Static])
+       addGlobalDecl (C.VarDecl name (C.CmtBuf) (Just ce) [C.Static])
        return (C.Var name, A.Bytes)
 
 bin_init :: B.ByteString -> TM C.Expr

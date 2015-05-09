@@ -2,6 +2,10 @@ module CLang where
 
 import Data.Word
 
+-- C Lanuage definition, but with some of our
+-- types that will later get translated by the C
+-- Generator
+
 type Prog = [Unit]
 
 data VarModifiers = Extern | Const | Static
@@ -48,7 +52,7 @@ data UnOp = NegateNum
   deriving (Eq, Show)
 
 data Type = Int | Void | Double | Bool | String
-          | Ptr Type | Fun Funtype
+          | Ptr Type | Fun Funtype | CmtBuf
   deriving (Eq, Show)
 
 sseq Skip s = s
