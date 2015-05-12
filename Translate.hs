@@ -154,9 +154,22 @@ infer (A.ConstInt _)    = do return A.Int
 infer (A.ConstFloat _)  = do return A.Double
 infer (A.ConstBool _)   = do return A.Bool
 infer (A.BinLit _)      = do return A.Bytes
+infer (A.BinOp A.Xor l r) =
+    do lt <- infer l
+       rt <- infer r
+       if not (tmatch lt rt)
+       then error "type mismatch (10)"
+       else return ()
+       return lt
+
 infer (A.Var v)         =
     do (tv, _, __) <- env_lookup v
        return tv
+infer (A.Call fun args) =
+    do (tf, _, _) <- env_lookup fun
+       -- We assume the arguments are OK
+       let A.Fun _ rt = tf
+       return rt
 
 infer e = do trace ("e = " ++ show e) (error "")
 
