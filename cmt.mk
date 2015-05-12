@@ -7,10 +7,10 @@ ifneq ($(MAKECMDGOALS),clean)
 -include .deps.mk
 endif
 
-obj-y          := AST.o Cemetery.o CGen.o CLang.o Common.o Translate.o Prologue.o
+obj-y          := AST.o Cemetery.o CGen.o CLang.o Common.o Translate.o
 
-automods       := Lexer.hs Parser.hs
-obj-y          += Lexer.o Parser.o
+automods       := Lexer.hs Parser.hs Prologue.hs
+obj-y          += $(patsubst %.hs,%.o,$(automods))
 
 $(TARGET): $(obj-y)
 	$(Q)$(SAY) "  LD	$@"
@@ -36,6 +36,10 @@ Lexer.hs: Lexer.x
 Parser.hs: Parser.y
 	$(Q)$(SAY) " HAPPY	$<"
 	$(Q)happy -i $< -o $@
+
+Prologue.hs: Prologue.c Prologue.h
+	$(Q)$(SAY) " PROLOGUE"
+	$(Q)ghc scripts/mk_prologue.hs -e main
 
 clean:
 	$(Q)$(SAY) " CLEAN"

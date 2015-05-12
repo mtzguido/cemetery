@@ -6,5 +6,6 @@ cmt
 Lexer.hs
 Parser.hs
 Parser.info
+Prologue.hs
 .deps.mk
 .deps.mk.bak
