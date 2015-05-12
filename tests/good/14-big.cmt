@@ -44,13 +44,13 @@ fun long_line (x : int) : int
 fun otp (p k : bytes) : bytes
 	var c : bytes
 
-	c = p ^ trunc(k) -- Will fail if k is shorter than p
+	c = p ^ trunc(k, length(c))
 	return c
 
 fun repKeyXor(p k : bytes) : bytes
 	var c : bytes
 
-	c = p ^ repeat(k) -- How would this work? Think about it some more
+	c = p ^ repeat(k, length(p))
 	return c
 
 {- Type inferences -}
