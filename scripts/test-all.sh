@@ -6,3 +6,4 @@ set -ue
 ./scripts/test-parse.sh
 ./scripts/test-trans.sh
 ./scripts/test-full.sh
+./scripts/test-build.sh
