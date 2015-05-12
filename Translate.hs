@@ -110,9 +110,17 @@ addGlobalDecl d = do ls <- getData
                      let l = last ls
                      setData $ (init ls ++ [l { opening = d : opening l }])
 
+-- C Types don't matter here
+builtins :: [(String, String, A.Type, C.Type)]
+builtins = [
+    ("trunc",   "__cmt_trunc",  A.Fun [A.Bytes] A.Bytes, C.Void),
+    ("repeat",  "__cmt_repeat", A.Fun [A.Bytes] A.Bytes, C.Void),
+    ("length",  "__cmt_length", A.Fun [A.Bytes] A.Int,   C.Void)
+ ]
+
 add_builtins :: TM ()
-add_builtins = do addToEnv' "trunc" (A.Fun [A.Bytes] A.Bytes, "__cmt_trunc", C.Int)
-                  addToEnv' "repeat" (A.Fun [A.Bytes] A.Bytes, "__cmt_repeat", C.Int)
+add_builtins = do mapM (\(an, cn, at, ct) -> addToEnv' an (at, cn, ct))
+                       builtins
                   return ()
 
 ff :: Maybe a -> Maybe a -> Maybe a
