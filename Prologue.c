@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 struct __cmt_buf {
 	size_t length;
@@ -31,22 +32,31 @@ static inline size_t __cmt_length(cmt_buf_t buf)
 	return buf->length;
 }
 
-static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, size_t length)
-{
-	cmt_buf_t ret;
-
-	ret = realloc(buf, length);
-	assert(ret);
-
-	return ret;
-}
-
 cmt_buf_t cmt_alloc(size_t length)
 {
 	cmt_buf_t ret;
 
 	ret = malloc(sizeof *ret + length);
 	ret->length = length;
+
+	return ret;
+}
+
+static inline cmt_buf_t cmt_mkbuf(void *data, size_t length)
+{
+	cmt_buf_t ret = cmt_alloc(length);
+
+	memcpy(ret->data, data, length);
+
+	return ret;
+}
+
+static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, size_t length)
+{
+	cmt_buf_t ret;
+
+	ret = realloc(buf, length);
+	assert(ret);
 
 	return ret;
 }
@@ -89,7 +99,8 @@ cmt_buf_t __cmt_repeat(cmt_buf_t buf, size_t length)
 	off = old_length;
 
 	while (length > 0) {
-		memcpy(buf->data + off, buf->data, min(length, old_length));
+		memcpy(buf->data + off, buf->data,
+				__cmt_min(length, old_length));
 		length -= old_length;
 		off += old_length;
 	}
