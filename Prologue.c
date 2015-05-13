@@ -55,7 +55,7 @@ static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, ssize_t length)
 {
 	cmt_buf_t ret;
 
-	ret = realloc(buf, length);
+	ret = realloc(buf, sizeof *buf + length);
 	assert(ret);
 
 	return ret;
@@ -80,7 +80,8 @@ cmt_buf_t __cmt_trunc(cmt_buf_t buf, ssize_t length)
 {
 	ssize_t old_length = __cmt_length(buf);
 
-	cmt_realloc(buf, sizeof *buf + length);
+	buf = cmt_realloc(buf, length);
+	buf->length = length;
 
 	if (length > old_length)
 		memset(buf->data + old_length, 0, length - old_length);
@@ -93,7 +94,8 @@ cmt_buf_t __cmt_repeat(cmt_buf_t buf, ssize_t length)
 	ssize_t old_length = __cmt_length(buf);
 	ssize_t off;
 
-	cmt_realloc(buf, sizeof *buf + length);
+	buf = cmt_realloc(buf, length);
+	buf->length = length;
 
 	length -= old_length;
 	off = old_length;
