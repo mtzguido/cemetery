@@ -23,6 +23,11 @@ DIR=$1
 shift
 FLAGS="$@"
 
+if ! [ -d "${DIR}" ]; then
+	# Just quietly bail out
+	exit 0
+fi
+
 if ! [ -x ./cmt ]; then
 	echo "cmt not found. You need to run 'make' first." >&2
 	exit 1
