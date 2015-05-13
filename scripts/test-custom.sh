@@ -38,6 +38,7 @@ for i in ${GOOD_DIR}/*.cmt; do
 
 	if [ "$build" != "" ]; then
 		indent -kr -i8 "${i/.cmt/.c}"
+		rm -f "${i/.cmt/.c~}"
 		gcc -c "${i/.cmt/.c}" -o /dev/null
 	fi
 	echo -n '.'
