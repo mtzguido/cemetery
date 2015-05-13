@@ -15,7 +15,7 @@
 #include <assert.h>
 
 struct __cmt_buf {
-	size_t length;
+	ssize_t length;
 	uint8_t data[];
 };
 
@@ -27,12 +27,12 @@ struct __cmt_buf {
 
 typedef struct __cmt_buf *cmt_buf_t;
 
-static inline size_t __cmt_length(cmt_buf_t buf)
+static inline ssize_t __cmt_length(cmt_buf_t buf)
 {
 	return buf->length;
 }
 
-cmt_buf_t cmt_alloc(size_t length)
+cmt_buf_t cmt_alloc(ssize_t length)
 {
 	cmt_buf_t ret;
 
@@ -42,7 +42,7 @@ cmt_buf_t cmt_alloc(size_t length)
 	return ret;
 }
 
-static inline cmt_buf_t cmt_mkbuf(void *data, size_t length)
+static inline cmt_buf_t cmt_mkbuf(void *data, ssize_t length)
 {
 	cmt_buf_t ret = cmt_alloc(length);
 
@@ -51,7 +51,7 @@ static inline cmt_buf_t cmt_mkbuf(void *data, size_t length)
 	return ret;
 }
 
-static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, size_t length)
+static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, ssize_t length)
 {
 	cmt_buf_t ret;
 
@@ -64,7 +64,7 @@ static inline cmt_buf_t cmt_realloc(cmt_buf_t buf, size_t length)
 cmt_buf_t __cmt_xor(cmt_buf_t l, cmt_buf_t r)
 {
 	cmt_buf_t ret;
-	size_t length;
+	ssize_t length;
 	int i;
 
 	length = __cmt_min(__cmt_length(l), __cmt_length(r));
@@ -76,9 +76,9 @@ cmt_buf_t __cmt_xor(cmt_buf_t l, cmt_buf_t r)
 	return ret;
 }
 
-cmt_buf_t __cmt_trunc(cmt_buf_t buf, size_t length)
+cmt_buf_t __cmt_trunc(cmt_buf_t buf, ssize_t length)
 {
-	size_t old_length = __cmt_length(buf);
+	ssize_t old_length = __cmt_length(buf);
 
 	cmt_realloc(buf, sizeof *buf + length);
 
@@ -88,10 +88,10 @@ cmt_buf_t __cmt_trunc(cmt_buf_t buf, size_t length)
 	return buf;
 }
 
-cmt_buf_t __cmt_repeat(cmt_buf_t buf, size_t length)
+cmt_buf_t __cmt_repeat(cmt_buf_t buf, ssize_t length)
 {
-	size_t old_length = __cmt_length(buf);
-	size_t off;
+	ssize_t old_length = __cmt_length(buf);
+	ssize_t off;
 
 	cmt_realloc(buf, sizeof *buf + length);
 
