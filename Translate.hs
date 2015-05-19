@@ -176,6 +176,15 @@ infer (A.Call fun args) =
        let A.Fun _ rt = tf
        return rt
 
+infer (A.BinOp A.Plus l r) =
+    do lt <- infer l
+       rt <- infer r
+       if is_byte_type lt && is_byte_type rt
+       then return lt
+       else if is_num_type lt && is_num_type rt
+       then return lt
+       else error "can't infer"
+
 infer e = do trace ("e = " ++ show e) (error "")
 
 tmap :: A.Type -> TM C.Type
@@ -350,7 +359,7 @@ bin_init b = do let bs = B.unpack b
 
 -- Operator translation
 
-trbinop A.Plus  = arith_op C.Plus
+trbinop A.Plus  = tr_plus
 trbinop A.Minus = arith_op C.Minus
 trbinop A.Prod  = arith_op C.Prod
 trbinop A.Div   = arith_op C.Div
@@ -364,8 +373,13 @@ arith_op op l lt r rt =
            then return (C.BinOp op l r, lt)
            else error "type mismatch (4)"
 
+tr_plus l lt r rt =
+    do if is_byte_type lt && is_byte_type rt
+       then return (C.Call "__cmt_append" [l, r], A.Bytes)
+       else arith_op C.Plus l lt r rt
+
 tr_xor l lt r rt =       -- built-in operator
-    do if tmatch lt A.Bytes && tmatch rt A.Bytes
+    do if is_byte_type lt && is_byte_type rt
          then return (C.Call "__cmt_xor" [l, r], lt)
          else error "type mismatch (5)"
 
@@ -383,3 +397,9 @@ tr_negatenum ee te =
 
 tmatch :: A.Type -> A.Type -> Bool
 tmatch p q = p == q
+
+is_byte_type :: A.Type -> Bool
+is_byte_type t = tmatch t A.Bytes
+
+is_num_type :: A.Type -> Bool
+is_num_type t = tmatch t A.Int || tmatch t A.Double

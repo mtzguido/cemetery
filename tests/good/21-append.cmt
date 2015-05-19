@@ -1,0 +1,4 @@
+fun succ(x : int) : int
+	var a = <0x1 0x2>
+	var b = <0x3 0x4>
+	var c : bytes = a + b
