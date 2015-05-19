@@ -81,12 +81,17 @@ popLevel = do e <- getData
 minus :: Eq a => [a] -> [a] -> [a]
 minus p q = L.filter (\x -> not (elem x q)) p
 
+cdecl_name :: C.Decl -> String
+cdecl_name (C.VarDecl s _ _ _) = s
+
+sndOf3 (a,b,c) = b
+
 getUnusedName :: String -> TM String
 getUnusedName s = do lvls <- getData
-                     let maps = L.map env lvls
-                     let joined_maps = L.foldl' M.union M.empty maps
-                     let joined_envs = L.map snd $ M.toList (joined_maps)
-                     let used_names = L.map (\(a,b,c) -> b) joined_envs
+                     let level_env l = L.map (sndOf3.snd) (M.toList (env l))
+                     let level_decls l = L.map cdecl_name (opening l)
+                     let level_vars l = level_env l ++ level_decls l
+                     let used_names = concat $ L.map level_vars lvls
                      let possible_names = s : (L.map (\i -> s ++ "_" ++ show i) [1..])
                      let valid_names = minus possible_names used_names
                      return (head valid_names)
