@@ -343,13 +343,24 @@ trexp (A.Var v) =
     do (tv, vv, _) <- env_lookup v
        return (C.Var v, tv)
 
+-- This declares the struct and the pointer to it,
+-- thus, there are two names.
 trexp (A.BinLit b) =
-    do name_str <- getUnusedName "__cmt_litbuf"
-       name <- getUnusedName "cmt_litbuf"
-       ce <- bin_init b
-       addGlobalDecl (C.VarDecl name_str (C.CmtBufStruct) (Just ce) [C.Static])
-       addGlobalDecl (C.VarDecl name (C.CmtBuf) (Just (C.PtrTo name_str)) [C.Const])
-       return (C.Var name, A.Bytes)
+    do ce <- bin_init b
+
+       str_name <- getUnusedName "__cmt_litbuf"
+       let str_type = (C.CmtBufStruct)
+       let str_init = Just ce
+       let str_mods = [C.Static]
+
+       p_name <- getUnusedName "__cmt_litbufp"
+       let p_type = C.CmtBuf
+       let p_init = Just (C.PtrTo str_name)
+       let p_mods = [C.Const]
+
+       addGlobalDecl (C.VarDecl str_name str_type str_init str_mods);
+       addGlobalDecl (C.VarDecl p_name p_type p_init p_mods);
+       return (C.Var p_name, A.Bytes)
 
 bin_init :: B.ByteString -> TM C.Expr
 bin_init b = do let bs = B.unpack b
