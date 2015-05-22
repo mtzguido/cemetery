@@ -6,4 +6,3 @@ set -ue
 ./scripts/do-test.sh --fail	tests/bad-ast	"--ast"
 ./scripts/do-test.sh --fail	tests/bad-type	"--trans"
 ./scripts/do-test.sh		tests/good	""
-./scripts/do-test.sh --build	tests/good	""

@@ -13,7 +13,7 @@ data Type = Int
           | Void
           | Double
           | Fun [Type] Type
-          | Invalid
+          | Invalid -- Dummy type
           deriving (Eq, Show)
 
 cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),

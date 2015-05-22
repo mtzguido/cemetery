@@ -6,10 +6,10 @@ import System.Console.GetOpt
 import System.Environment
 import System.Exit
 import AST
+import IR
 import Lexer
 import Parser
 import Translate
-import CGen
 import Common
 import Prologue
 
@@ -100,26 +100,18 @@ work = do (opts, basename) <- ask
 
           breakIf StopParse
 
-          let (st, cast) = semanticT ast
+          let (st, ir) = semanticT ast
           dbgLn $ "Translation final state: " ++ show st
           dbgLn ""
 
-          case cast of
+          case ir of
             Left e -> do dbg $ "ERROR: " ++ show e
                          lift exitFailure
             Right t -> do dbg "C AST: "
                           dbgLn $ show t
 
-          let Right t = cast
-          dbgLn ""
+          let Right t = ir
+          lift $ putStrLn (show ir)
 
           breakIf StopTranslate
-
-          let ctext = cgenT t
-          let htext = ""
-          dbgLn $ "ctext = " ++ ctext
-
-          lift $ writeFile outC (cprologue ++ ctext)
-          lift $ writeFile outH (hprologue ++ htext)
-
           return ()

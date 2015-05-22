@@ -4,11 +4,12 @@ import Data.List (elemIndex)
 import Control.Monad.Error
 import Debug.Trace
 
-replace :: Eq a => [a] -> [a] -> [a] -> [a]
-replace from to seq = map repl1 seq where
-                      repl1 x = case elemIndex x from of
-                                     Nothing -> x
-                                     Just i -> to !! i
+-- Works similarly to the Unix 'tr' command
+tr :: Eq a => [a] -> [a] -> [a] -> [a]
+tr from to seq = map repl1 seq where
+                 repl1 x = case elemIndex x from of
+                                Nothing -> x
+                                Just i -> to !! i
 
 traceM :: (Monad m) => String -> m ()
 traceM s = trace s (return ())

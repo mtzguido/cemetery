@@ -7,7 +7,7 @@ ifneq ($(MAKECMDGOALS),clean)
 -include .deps.mk
 endif
 
-obj-y          := AST.o Cemetery.o CGen.o CLang.o Common.o Translate.o
+obj-y          := AST.o Cemetery.o IR.o Common.o Translate.o
 
 automods       := Lexer.hs Parser.hs Prologue.hs
 obj-y          += $(patsubst %.hs,%.o,$(automods))
