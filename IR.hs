@@ -17,7 +17,7 @@ data Type = Int
   deriving (Eq, Show)
 
 data Unit = FunDef Funtype Stmt
-          | Scaf
+          | UnitScaf
   deriving (Eq, Show)
 
 data Funtype = Funtype { name :: String,
@@ -25,11 +25,11 @@ data Funtype = Funtype { name :: String,
                          ret :: Type }
   deriving (Eq, Show)
 
-data Reg = Reg Int
+data Reg = Temp Int | Var String
   deriving (Eq, Show)
 
 regn :: Int -> Reg
-regn n = Reg n
+regn n = Temp n
 
 data BinOp = Plus | Minus | Div | Prod
   deriving (Eq, Show)
@@ -38,4 +38,5 @@ data Stmt = AssignInt   Reg Int
           | AssignOp    BinOp Reg Reg Reg
           | Return      Reg
           | Seq         Stmt Stmt
+          | StmtScaf
   deriving (Eq, Show)

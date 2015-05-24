@@ -122,12 +122,31 @@ translate prog = do -- Push a first level and add builtins to it
 
 translate1 :: A.Decl -> TM IR.Unit
 translate1 (A.VarDecl _ _ _ _) =
-    do return IR.Scaf
+    do return IR.UnitScaf
 translate1 (A.Struct) =
-    do return IR.Scaf
+    do return IR.UnitScaf
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do pushLevel
-       ir <- return IR.Scaf
+       ir_name <- tr_fun_name name
+       ir_args <- mapM tr_arg args
+       ir_body <- tr_body body
+       ir_ret  <- tmap ret
        popLevel
-       return ir
+       return $ IR.FunDef (IR.Funtype { IR.name = ir_name,
+                                        IR.args = ir_args,
+                                        IR.ret  = ir_ret }) ir_body
+
+tr_body :: A.Stmt -> TM IR.Stmt
+tr_body _ = do return IR.StmtScaf
+
+tr_arg :: (String, A.Type) -> TM (String, IR.Type)
+tr_arg (s, t) = do ir_t <- tmap t
+                   return (s, ir_t)
+
+tr_fun_name :: String -> TM String
+tr_fun_name s = do return s
+
+tmap :: A.Type -> TM IR.Type
+tmap A.Int = do return IR.Int
+tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
