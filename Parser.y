@@ -91,10 +91,11 @@ stmts : {- empty -}		{ A.Skip }
 
 stmt_group : BRACE stmts UNBRACE	{ $2 }
 
+vardecl : mods id var_typ var_init BREAK	{ A.VarDecl $2 $1 $3 $4 }
 stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
-     | decl			{ A.Decl $1 }
+     | vardecl			{ A.Decl $1 }
      | BRACE stmts UNBRACE	{ $2 }
      | if			{ $1 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
@@ -121,7 +122,7 @@ var_init : {- empty -}		{ Nothing }
 var_typ : {- empty -}		{ Nothing }
         | COLON type		{ Just $2 }
 
-decl : mods id var_typ var_init BREAK	{ A.VarDecl $2 $1 $3 $4 }
+decl : vardecl				{ $1 }
      | STRUCT id BRACE fields UNBRACE	{ A.Struct }
 
 fields : field			{ $1 : [] }
