@@ -110,11 +110,12 @@ semanticT :: A.Prog -> (TransState, Either CmtError IR.IR)
 semanticT = runTranslate.translate
 
 add_builtins = do return ()
+
 -- Each Cemetery unit is a IR unit, at least for now,
 -- so just mapM the unit translation
 translate :: A.Prog -> TM IR.IR
 translate prog = do -- Push a first level and add builtins to it
-                    pushLevel
+                    setData [blank_level]
                     add_builtins
                     ir <- mapM translate1 prog
                     lvl <- popLevel -- Useful?
