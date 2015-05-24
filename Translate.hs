@@ -57,29 +57,39 @@ setData :: [LevelState] -> TM ()
 setData es = do s <- get
                 put $ s { level_data = es }
 
-getEnv :: TM EnvT
-getEnv = do d <- getData
-            return (env $ head d)
-
-getRetType :: TM A.Type
-getRetType = do s <- get
-                let d = level_data s
-                return $ ret_type (head d)
-
-setRetType :: A.Type -> TM ()
-setRetType t = do s <- get
-                  let h:ts = level_data s
-                  put $ s { level_data = h { ret_type = t } : ts }
-
 pushLevel :: TM ()
 pushLevel = do e <- getData
                -- duplicate the current level
-               setData ((head e) : e)
+               setData (head e : e)
 
 popLevel :: TM LevelState
 popLevel = do e <- getData
               setData (tail e)
               return (head e)
+
+getLevel :: TM LevelState
+getLevel = do d <- getData
+              return (head d)
+
+setLevel :: LevelState -> TM ()
+setLevel l = do d <- getData
+                setData (l : tail d)
+
+getEnv :: TM EnvT
+getEnv = do l <- getLevel
+            return (env l)
+
+setEnv :: EnvT -> TM ()
+setEnv e = do l <- getLevel
+              setLevel (l { env = e })
+
+getRetType :: TM A.Type
+getRetType = do l <- getLevel
+                return (ret_type l)
+
+setRetType :: A.Type -> TM ()
+setRetType t = do l <- getLevel
+                  setLevel (l { ret_type = t})
 
 ff :: Maybe a -> Maybe a -> Maybe a
 ff (Just x) _ = Just x
@@ -90,6 +100,11 @@ env_lookup s = do e <- getEnv
                   case M.lookup s e of
                     Nothing -> error $ "undefined variable: " ++ s
                     Just i -> return i
+
+addToEnv :: String -> A.Type -> IR.Reg -> TM ()
+addToEnv n t r = do e <- getEnv
+                    let e' = M.insert n (t, r) e
+                    setEnv e'
 
 -- Translator Monad definition
 type TM =
@@ -108,6 +123,13 @@ runTranslate m = let a = runErrorT m
 
 semanticT :: A.Prog -> (TransState, Either CmtError IR.IR)
 semanticT = runTranslate.translate
+
+-- IR Helpers
+
+sseq :: IR.Stmt -> IR.Stmt -> IR.Stmt
+sseq (IR.Skip) r = r
+sseq l (IR.Skip) = l
+sseq l r = IR.Seq l r
 
 add_builtins = do return ()
 
@@ -131,18 +153,42 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
     do pushLevel
        ir_name <- tr_fun_name name
        ir_args <- mapM tr_arg args
-       ir_body <- tr_body body
        ir_ret  <- tmap ret
+       ir_body <- tr_stmt body
        popLevel
        return $ IR.FunDef (IR.Funtype { IR.name = ir_name,
                                         IR.args = ir_args,
                                         IR.ret  = ir_ret }) ir_body
 
-tr_body :: A.Stmt -> TM IR.Stmt
-tr_body _ = do return IR.StmtScaf
+getUnusedName s = do return s
+
+tr_stmt :: A.Stmt -> TM IR.Stmt
+tr_stmt A.Skip =
+    do return IR.Skip
+
+tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
+    do ir_name <- getUnusedName name
+       addToEnv name A.Int (IR.Var ir_name)
+       return IR.Skip
+
+tr_stmt (A.Seq l r) =
+    do l_ir <- tr_stmt l
+       r_ir <- tr_stmt r
+       return (sseq l_ir r_ir)
+
+tr_stmt (A.Assign name e) =
+    do (t, rv) <- env_lookup name
+       (e_ir, e_res) <- tr_expr e
+       return $ IR.Seq e_ir (IR.Assign rv e_res)
+
+tr_stmt _ = do return IR.StmtScaf
+
+tr_expr :: A.Expr -> TM (IR.Stmt, IR.Reg)
+tr_expr _ = do return (IR.StmtScaf, IR.regn 99)
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
+                   addToEnv s t (IR.Var s)
                    return (s, ir_t)
 
 tr_fun_name :: String -> TM String

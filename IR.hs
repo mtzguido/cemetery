@@ -35,8 +35,10 @@ data BinOp = Plus | Minus | Div | Prod
   deriving (Eq, Show)
 
 data Stmt = AssignInt   Reg Int
+          | Assign      Reg Reg
           | AssignOp    BinOp Reg Reg Reg
           | Return      Reg
           | Seq         Stmt Stmt
           | StmtScaf
+          | Skip                            -- Simply discard this
   deriving (Eq, Show)
