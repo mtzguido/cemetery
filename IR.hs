@@ -52,7 +52,7 @@ data Stmt = AssignInt   Reg Int
           | Skip                            -- Simply discard this
           | If          Reg Stmt Stmt       -- C-like semantics
           | Call        String [Reg] Reg    -- Last reg is result
-          | StmtScaf
+          | StmtScaf    Reg                 -- Reg is only for development
   deriving (Eq)
 
 indent' [] = []
@@ -70,7 +70,7 @@ instance Show Stmt where
   show (Return r) = "return: " ++ show r ++ "\n"
   show (Seq l r) = show l ++ show r
   show (Skip) = "\n"
-  show (StmtScaf) = "I.O.U.\n"
+  show (StmtScaf r) = show r ++ " <- MAGIC!\n"
   show (If r t e) = "IF (" ++ show r ++ ")\n" ++ indent (show t)
                      ++ "ELSE\n" ++ indent (show e)
   show (Call n rs res) = show res ++ " <- " ++ n ++ "(" ++

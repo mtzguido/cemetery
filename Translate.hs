@@ -208,9 +208,6 @@ tr_stmt (A.If c t e) =
        popLevel
        return $ sseq c_ir (IR.If c_reg t_ir e_ir)
 
-tr_stmt _ =
-    do return IR.StmtScaf
-
 tr_expr :: A.Expr -> TM (IR.Stmt, IR.Reg)
 tr_expr (A.ConstInt i) =
     do r <- fresh
@@ -233,7 +230,8 @@ tr_expr (A.Call name args) =
        return (irlist (args_ir ++ [call]), result)
 
 tr_expr _ =
-    do return (IR.StmtScaf, IR.regn 999)
+    do r <- fresh
+       return (IR.StmtScaf r, r)
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
