@@ -34,9 +34,9 @@ if ! [ -x ./cmt ]; then
 fi
 
 if ${build}; then
-	printf "%-30s" "BUILDING tests with <${FLAGS}>:"
+	printf "%-35s" "BUILDING tests with <${FLAGS}>:"
 else
-	printf "%-30s" "Running tests with  <${FLAGS}>:"
+	printf "%-35s" "Running tests with  <${FLAGS}>:"
 fi
 
 for i in ${DIR}/*.cmt; do

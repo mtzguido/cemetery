@@ -1,4 +1,0 @@
-var x = y
-
-fun succ(x : int) : int
-	x = 3
