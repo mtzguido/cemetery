@@ -279,6 +279,12 @@ tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
 
+-- This structure describes how to map binary operators. For a given
+-- Cemetery operator and the type of each of its two operands, we give
+-- the type of the result and the corresponding IR operator.
+--
+-- In a future, we may use not only IR operators but function calls, or
+-- even enable operator polymorphism.
 binop_mapping = [
 {-
  cmt_op     l_type   r_type   res_type  ir_op
