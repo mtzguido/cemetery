@@ -69,6 +69,16 @@ get_toks = do c <- alexMonadScan
                 _ -> do cs <- get_toks
                         return (c ++ cs)
 
+showIRUnit :: IR.Unit -> App ()
+showIRUnit UnitScaf =
+    do lift $ putStrLn "UnitScaf"
+
+showIRUnit (FunDef (Funtype { IR.name = name,
+                              IR.args = args,
+                              IR.ret = ret }) body) =
+    do lift $ putStrLn $ "function: " ++ name ++ "(" ++ show (length args) ++ ")"
+       lift $ putStrLn $ show body
+
 work :: App ()
 work = do (opts, basename) <- ask
           let inp  = basename ++ ".cmt"
@@ -107,11 +117,8 @@ work = do (opts, basename) <- ask
           case ir of
             Left e -> do dbg $ "ERROR: " ++ show e
                          lift exitFailure
-            Right t -> do dbg "C AST: "
-                          dbgLn $ show t
-
-          let Right t = ir
-          lift $ putStrLn (show ir)
+            Right t -> do lift $ putStrLn "IR Tree: "
+                          mapM showIRUnit t
 
           breakIf StopTranslate
           return ()

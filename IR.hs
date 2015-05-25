@@ -26,13 +26,22 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data Reg = Temp Int
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Reg where
+  show (Temp i) = "r" ++ show i
 
 regn :: Int -> Reg
 regn n = Temp n
 
 data BinOp = Plus | Minus | Div | Prod
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show BinOp where
+  show Plus = "+"
+  show Minus = "-"
+  show Div = "/"
+  show Prod = "*"
 
 data Stmt = AssignInt   Reg Int
           | Assign      Reg Reg
@@ -41,4 +50,14 @@ data Stmt = AssignInt   Reg Int
           | Seq         Stmt Stmt
           | StmtScaf
           | Skip                            -- Simply discard this
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Stmt where
+  show (AssignInt r i) = show r ++ " <- #" ++ show i ++ "\n"
+  show (Assign r s) = show r ++ " <- " ++ show s ++ "\n"
+  show (AssignOp op r s t) = show r ++ " <- " ++ show s ++ " " ++
+                             show op ++ " " ++ show t ++ "\n"
+  show (Return r) = "return: " ++ show r ++ "\n"
+  show (Seq l r) = show l ++ show r
+  show (Skip) = "\n"
+  show (StmtScaf) = "I.O.U.\n"
