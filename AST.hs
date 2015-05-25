@@ -23,7 +23,7 @@ data BinOp = Plus | Minus | Div | Prod | Eq | Mod
            | Xor | And | Or
           deriving (Eq, Show)
 
-data UnOp = NegateNum | Not
+data UnOp = Neg | Not
           deriving (Eq, Show)
 
 data Expr = ConstInt Int

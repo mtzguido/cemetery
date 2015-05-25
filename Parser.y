@@ -154,7 +154,7 @@ expr : intlit			{ A.ConstInt $1 }
      | expr OR		expr	{ A.BinOp A.Or		$1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
-     | DASH expr %prec NEG	{ A.UnOp A.NegateNum $2 }
+     | DASH expr %prec NEG	{ A.UnOp A.Neg $2 }
      | NOT expr %prec NEG	{ A.UnOp A.Not $2 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }

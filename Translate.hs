@@ -239,6 +239,19 @@ tr_expr (A.BinOp op l r) =
        let stmt = irlist [l_ir, r_ir, IR.AssignBinOp ir_op e_reg l_reg r_reg]
        return (typ, stmt, e_reg)
 
+tr_expr (A.UnOp op e) =
+    do (e_typ, e_ir, e_reg) <- tr_expr e
+       r_reg <- fresh
+
+       possible <- find_matching_unop op e_typ
+       let (typ, ir_op) = case possible of
+                            [] -> error "Operator type mismatch"
+                            [(t, o)] -> (t, o)
+                            _ -> error "What"
+
+       let stmt = irlist [e_ir, IR.AssignUnOp ir_op r_reg e_reg]
+       return (typ, stmt, e_reg)
+
 tr_expr (A.Var name) =
     do (t, Left r) <- env_lookup name
        return (t, IR.Skip, r)
@@ -279,6 +292,9 @@ tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
 
+tmatch :: A.Type -> A.Type -> Bool
+tmatch p q = p == q
+
 -- This structure describes how to map binary operators. For a given
 -- Cemetery operator and the type of each of its two operands, we give
 -- the type of the result and the corresponding IR operator.
@@ -305,5 +321,16 @@ find_matching_binop op l_typ r_typ =
                 op == o && tmatch l_typ lt && tmatch r_typ rt) binop_mapping
        return $ map (\(a,b,c,d,e) -> (d,e)) l
 
-tmatch :: A.Type -> A.Type -> Bool
-tmatch p q = p == q
+unop_mapping = [
+{-
+ cmt_op     e_type   res_type  ir_op
+-}
+ (A.Neg,    A.Int,   A.Int,    IR.Neg),
+ (A.Not,    A.Bool,  A.Bool,   IR.Not)
+ ]
+
+find_matching_unop :: A.UnOp -> A.Type -> TM [(A.Type, IR.UnOp)]
+find_matching_unop op e_typ =
+    do let l = filter (\(o, et, rt, ir_op) ->
+                op == o && tmatch e_typ et) unop_mapping
+       return $ map (\(a,b,c,d) -> (c,d)) l
