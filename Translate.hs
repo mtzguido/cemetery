@@ -33,12 +33,17 @@ data LevelState =
 
       -- ret_type is the current function's return type,
       -- to check for invalid returns
-      ret_type :: A.Type
+      ret_type :: A.Type,
+
+      -- Counter to create new fresh temporary registers,
+      -- in a very simple and crappy way
+      fresh_counter :: Int
   }
   deriving (Show)
 
 blank_level :: LevelState
-blank_level = LevelState { env = M.empty, ret_type = A.Invalid }
+blank_level = LevelState { env = M.empty, ret_type = A.Invalid,
+                           fresh_counter = 0 }
 
 -- The monad state is a stack of LevelStates so we can
 -- drop the names when moving out of a function.
@@ -106,6 +111,12 @@ addToEnv n t r = do e <- getEnv
                     let e' = M.insert n (t, r) e
                     setEnv e'
 
+fresh :: TM IR.Reg
+fresh = do l <- getLevel
+           let i = fresh_counter l
+           setLevel (l { fresh_counter = i + 1 })
+           return $ IR.Temp i
+
 -- Translator Monad definition
 type TM =
   ErrorT CmtError (
@@ -130,6 +141,9 @@ sseq :: IR.Stmt -> IR.Stmt -> IR.Stmt
 sseq (IR.Skip) r = r
 sseq l (IR.Skip) = l
 sseq l r = IR.Seq l r
+
+irlist :: [IR.Stmt] -> IR.Stmt
+irlist l = foldl sseq IR.Skip l
 
 add_builtins = do return ()
 
@@ -160,15 +174,14 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                                         IR.args = ir_args,
                                         IR.ret  = ir_ret }) ir_body
 
-getUnusedName s = do return s
-
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
     do return IR.Skip
 
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
-    do ir_name <- getUnusedName name
-       addToEnv name A.Int (IR.Var ir_name)
+    do --ir_name <- getUnusedName name
+       ir_reg <- fresh
+       addToEnv name A.Int ir_reg
        return IR.Skip
 
 tr_stmt (A.Seq l r) =
@@ -181,14 +194,34 @@ tr_stmt (A.Assign name e) =
        (e_ir, e_res) <- tr_expr e
        return $ IR.Seq e_ir (IR.Assign rv e_res)
 
-tr_stmt _ = do return IR.StmtScaf
+tr_stmt (A.Return e) =
+    do (e_ir, e_res) <- tr_expr e
+       return $ IR.Seq e_ir (IR.Return e_res)
+
+tr_stmt _ =
+    do return IR.StmtScaf
 
 tr_expr :: A.Expr -> TM (IR.Stmt, IR.Reg)
-tr_expr _ = do return (IR.StmtScaf, IR.regn 99)
+tr_expr (A.ConstInt i) =
+    do r <- fresh
+       return (IR.AssignInt r i, r)
+
+tr_expr (A.BinOp A.Plus l r)  = simple_binop_translate IR.Plus  l r
+tr_expr (A.BinOp A.Minus l r) = simple_binop_translate IR.Minus l r
+tr_expr (A.BinOp A.Div l r)   = simple_binop_translate IR.Div   l r
+tr_expr (A.BinOp A.Prod l r)  = simple_binop_translate IR.Prod  l r
+
+tr_expr (A.Var name) =
+    do (t, r) <- env_lookup name
+       return (IR.Skip, r)
+
+tr_expr _ =
+    do return (IR.StmtScaf, IR.regn 999)
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
-                   addToEnv s t (IR.Var s)
+                   ir_reg <- fresh
+                   addToEnv s t ir_reg
                    return (s, ir_t)
 
 tr_fun_name :: String -> TM String
@@ -197,3 +230,11 @@ tr_fun_name s = do return s
 tmap :: A.Type -> TM IR.Type
 tmap A.Int = do return IR.Int
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
+
+simple_binop_translate :: IR.BinOp -> A.Expr -> A.Expr -> TM (IR.Stmt, IR.Reg)
+simple_binop_translate ir_op l r =
+    do (l_ir, l_reg) <- tr_expr l
+       (r_ir, r_reg) <- tr_expr r
+       e_reg <- fresh
+       return (irlist [l_ir, r_ir, IR.AssignOp ir_op e_reg l_reg r_reg],
+               e_reg)
