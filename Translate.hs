@@ -198,6 +198,16 @@ tr_stmt (A.Return e) =
     do (e_ir, e_res) <- tr_expr e
        return $ sseq e_ir (IR.Return e_res)
 
+tr_stmt (A.If c t e) =
+    do (c_ir, c_reg) <- tr_expr c
+       pushLevel
+       t_ir <- tr_stmt t
+       popLevel
+       pushLevel
+       e_ir <- tr_stmt e
+       popLevel
+       return $ sseq c_ir (IR.If c_reg t_ir e_ir)
+
 tr_stmt _ =
     do return IR.StmtScaf
 

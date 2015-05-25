@@ -1,4 +1,4 @@
-fun even (x : int) : bool
+fun even (x : int) : int
 	return x % 2 == 0
 
 fun coll (x : int) : int

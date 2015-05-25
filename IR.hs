@@ -50,7 +50,15 @@ data Stmt = AssignInt   Reg Int
           | Seq         Stmt Stmt
           | StmtScaf
           | Skip                            -- Simply discard this
+          | If          Reg Stmt Stmt       -- C-like semantics
   deriving (Eq)
+
+indent' [] = []
+indent' "\n" = "\n"
+indent' (c:cs) = if c == '\n'
+                   then c : indent cs
+                   else c : indent' cs
+indent s = ' ' : indent' s
 
 instance Show Stmt where
   show (AssignInt r i) = show r ++ " <- #" ++ show i ++ "\n"
@@ -61,3 +69,5 @@ instance Show Stmt where
   show (Seq l r) = show l ++ show r
   show (Skip) = "\n"
   show (StmtScaf) = "I.O.U.\n"
+  show (If r t e) = "IF (" ++ show r ++ ")\n" ++ indent (show t)
+                     ++ "ELSE\n" ++ indent (show e)
