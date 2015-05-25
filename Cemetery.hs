@@ -12,6 +12,8 @@ import Parser
 import Translate
 import Common
 import Prologue
+import Optimize
+import CGen
 
 data Opts = StopLexer | StopParse | StopTranslate
           | Verbose deriving (Eq, Show)
@@ -120,5 +122,18 @@ work = do (opts, basename) <- ask
             Right t -> do lift $ putStrLn "IR Tree: "
                           mapM showIRUnit t
 
+          let Right ir' = ir
+
           breakIf StopTranslate
+
+          let oir = optimize ir'
+
+          lift $ putStrLn "Optimized IR: "
+          mapM showIRUnit oir
+
+          let ctext = cgen oir
+
+          lift $ putStrLn "C source:"
+          lift $ putStrLn ctext
+
           return ()
