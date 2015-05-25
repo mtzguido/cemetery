@@ -246,14 +246,16 @@ tr_expr (A.Var name) =
 tr_expr (A.Call name args) =
     do args_tr <- mapM tr_expr args
        (f_type, f_sym) <- env_lookup name
-       let A.Fun _ ret_type = f_type
+       let A.Fun f_args_t ret_type = f_type
 
        let ir_name = case f_sym of
                        Left _ -> error "symbol is not a cemtery func"
                        Right n -> n
 
        let (args_t, args_ir, args_regs) = unzip3 args_tr
-       -- Type check
+
+       let ok = all id $ map (uncurry tmatch) (zip f_args_t args_t)
+       when (not ok) $ error "call arguments do not type"
 
        result <- fresh
        let call = IR.Call ir_name args_regs result
