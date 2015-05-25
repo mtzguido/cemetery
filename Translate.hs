@@ -203,15 +203,15 @@ tr_stmt (A.Seq l r) =
 
 tr_stmt (A.Assign name e) =
     do (t, Left rv) <- env_lookup name
-       (e_ir, e_res) <- tr_expr e
+       (_, e_ir, e_res) <- tr_expr e
        return $ sseq e_ir (IR.Assign rv e_res)
 
 tr_stmt (A.Return e) =
-    do (e_ir, e_res) <- tr_expr e
+    do (_, e_ir, e_res) <- tr_expr e
        return $ sseq e_ir (IR.Return e_res)
 
 tr_stmt (A.If c t e) =
-    do (c_ir, c_reg) <- tr_expr c
+    do (_, c_ir, c_reg) <- tr_expr c
        pushLevel
        t_ir <- tr_stmt t
        popLevel
@@ -220,42 +220,48 @@ tr_stmt (A.If c t e) =
        popLevel
        return $ sseq c_ir (IR.If c_reg t_ir e_ir)
 
-tr_expr :: A.Expr -> TM (IR.Stmt, IR.Reg)
+tr_expr :: A.Expr -> TM (A.Type, IR.Stmt, IR.Reg)
 tr_expr (A.ConstInt i) =
     do r <- fresh
-       return (IR.AssignInt r i, r)
+       return (A.Int, IR.AssignInt r i, r)
 
-tr_expr (A.BinOp A.Plus  l r) = simple_binop_translate IR.Plus  l r
-tr_expr (A.BinOp A.Minus l r) = simple_binop_translate IR.Minus l r
-tr_expr (A.BinOp A.Div   l r) = simple_binop_translate IR.Div   l r
-tr_expr (A.BinOp A.Prod  l r) = simple_binop_translate IR.Prod  l r
-tr_expr (A.BinOp A.Mod   l r) = simple_binop_translate IR.Mod   l r
-tr_expr (A.BinOp A.Eq    l r) = simple_binop_translate IR.Eq    l r
-tr_expr (A.BinOp A.And   l r) = simple_binop_translate IR.And   l r
-tr_expr (A.BinOp A.Or    l r) = simple_binop_translate IR.Or    l r
+tr_expr (A.BinOp op l r) =
+    do (l_typ, l_ir, l_reg) <- tr_expr l
+       (r_typ, r_ir, r_reg) <- tr_expr r
+       e_reg <- fresh
+
+       possible <- find_matching_binop op l_typ r_typ
+       let (typ, ir_op) = case possible of
+                            [] -> error "Operator type mismatch"
+                            [(t, o)] -> (t, o)
+                            _ -> error "What"
+
+       let stmt = irlist [l_ir, r_ir, IR.AssignOp ir_op e_reg l_reg r_reg]
+       return (typ, stmt, e_reg)
 
 tr_expr (A.Var name) =
     do (t, Left r) <- env_lookup name
-       return (IR.Skip, r)
+       return (t, IR.Skip, r)
 
 tr_expr (A.Call name args) =
     do args_tr <- mapM tr_expr args
        (f_type, f_sym) <- env_lookup name
+       let A.Fun _ ret_type = f_type
 
        let ir_name = case f_sym of
                        Left _ -> error "symbol is not a cemtery func"
                        Right n -> n
 
-       let (args_ir, args_regs) = unzip args_tr
+       let (args_t, args_ir, args_regs) = unzip3 args_tr
        -- Type check
 
        result <- fresh
        let call = IR.Call ir_name args_regs result
-       return (irlist (args_ir ++ [call]), result)
+       return (f_type, irlist (args_ir ++ [call]), result)
 
 tr_expr _ =
     do r <- fresh
-       return (IR.StmtScaf r, r)
+       return (A.Int, IR.StmtScaf r, r)
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
@@ -271,10 +277,25 @@ tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
 
-simple_binop_translate :: IR.BinOp -> A.Expr -> A.Expr -> TM (IR.Stmt, IR.Reg)
-simple_binop_translate ir_op l r =
-    do (l_ir, l_reg) <- tr_expr l
-       (r_ir, r_reg) <- tr_expr r
-       e_reg <- fresh
-       return (irlist [l_ir, r_ir, IR.AssignOp ir_op e_reg l_reg r_reg],
-               e_reg)
+binop_mapping = [
+{-
+ cmt_op     l_type   r_type   res_type  ir_op
+-}
+ (A.Plus,   A.Int,   A.Int,   A.Int,    IR.Plus),
+ (A.Minus,  A.Int,   A.Int,   A.Int,    IR.Minus),
+ (A.Div,    A.Int,   A.Int,   A.Int,    IR.Div),
+ (A.Prod,   A.Int,   A.Int,   A.Int,    IR.Prod),
+ (A.Mod,    A.Int,   A.Int,   A.Int,    IR.Mod),
+ (A.Eq,     A.Int,   A.Int,   A.Int,    IR.Eq),
+ (A.And,    A.Bool,  A.Bool,  A.Bool,   IR.And),
+ (A.Or,     A.Bool,  A.Bool,  A.Bool,   IR.Or)
+ ]
+
+find_matching_binop :: A.BinOp -> A.Type -> A.Type -> TM [(A.Type, IR.BinOp)]
+find_matching_binop op l_typ r_typ =
+    do let l = filter (\(o, lt, rt, et, ir_op) ->
+                op == o && tmatch l_typ lt && tmatch r_typ rt) binop_mapping
+       return $ map (\(a,b,c,d,e) -> (d,e)) l
+
+tmatch :: A.Type -> A.Type -> Bool
+tmatch p q = p == q
