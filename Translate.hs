@@ -13,6 +13,7 @@ module Translate where
 
 import qualified AST as A
 import qualified IR as IR
+import Builtins
 
 import Common
 import Control.Monad.Error
@@ -22,7 +23,8 @@ import qualified Data.Map.Strict as M
 
 -- Monad definition
 
-type EnvT = M.Map A.VarName (A.Type, IR.Reg)
+-- Each symbol is either a temporary value or a C name
+type EnvT = M.Map A.VarName (A.Type, Either IR.Reg String)
 
 -- State at each level inside the AST
 data LevelState =
@@ -100,13 +102,13 @@ ff :: Maybe a -> Maybe a -> Maybe a
 ff (Just x) _ = Just x
 ff Nothing m = m
 
-env_lookup :: String -> TM (A.Type, IR.Reg)
+env_lookup :: String -> TM (A.Type, Either IR.Reg String)
 env_lookup s = do e <- getEnv
                   case M.lookup s e of
                     Nothing -> error $ "undefined variable: " ++ s
                     Just i -> return i
 
-addToEnv :: String -> A.Type -> IR.Reg -> TM ()
+addToEnv :: String -> A.Type -> Either IR.Reg String -> TM ()
 addToEnv n t r = do e <- getEnv
                     let e' = M.insert n (t, r) e
                     setEnv e'
@@ -145,7 +147,11 @@ sseq l r = IR.Seq l r
 irlist :: [IR.Stmt] -> IR.Stmt
 irlist l = foldl sseq IR.Skip l
 
-add_builtins = do return ()
+add_one (name, typ, c_name) =
+    do addToEnv name typ (Right c_name)
+
+add_builtins =
+    do mapM add_one builtins
 
 -- Each Cemetery unit is a IR unit, at least for now,
 -- so just mapM the unit translation
@@ -164,12 +170,18 @@ translate1 (A.Struct) =
     do return IR.UnitScaf
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
-    do pushLevel
+    do -- First translate the name, and add it to the
+       -- environment. This enables recursion.
        ir_name <- tr_fun_name name
+       let fun_t = A.Fun (map snd args) ret
+       addToEnv name fun_t (Right ir_name)
+
+       pushLevel
        ir_args <- mapM tr_arg args
        ir_ret  <- tmap ret
        ir_body <- tr_stmt body
        popLevel
+
        return $ IR.FunDef (IR.Funtype { IR.name = ir_name,
                                         IR.args = ir_args,
                                         IR.ret  = ir_ret }) ir_body
@@ -181,7 +193,7 @@ tr_stmt A.Skip =
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
     do --ir_name <- getUnusedName name
        ir_reg <- fresh
-       addToEnv name A.Int ir_reg
+       addToEnv name A.Int (Left ir_reg)
        return IR.Skip
 
 tr_stmt (A.Seq l r) =
@@ -190,7 +202,7 @@ tr_stmt (A.Seq l r) =
        return (sseq l_ir r_ir)
 
 tr_stmt (A.Assign name e) =
-    do (t, rv) <- env_lookup name
+    do (t, Left rv) <- env_lookup name
        (e_ir, e_res) <- tr_expr e
        return $ sseq e_ir (IR.Assign rv e_res)
 
@@ -213,20 +225,30 @@ tr_expr (A.ConstInt i) =
     do r <- fresh
        return (IR.AssignInt r i, r)
 
-tr_expr (A.BinOp A.Plus l r)  = simple_binop_translate IR.Plus  l r
+tr_expr (A.BinOp A.Plus  l r) = simple_binop_translate IR.Plus  l r
 tr_expr (A.BinOp A.Minus l r) = simple_binop_translate IR.Minus l r
-tr_expr (A.BinOp A.Div l r)   = simple_binop_translate IR.Div   l r
-tr_expr (A.BinOp A.Prod l r)  = simple_binop_translate IR.Prod  l r
+tr_expr (A.BinOp A.Div   l r) = simple_binop_translate IR.Div   l r
+tr_expr (A.BinOp A.Prod  l r) = simple_binop_translate IR.Prod  l r
+tr_expr (A.BinOp A.Mod   l r) = simple_binop_translate IR.Mod   l r
+tr_expr (A.BinOp A.Eq    l r) = simple_binop_translate IR.Eq    l r
 
 tr_expr (A.Var name) =
-    do (t, r) <- env_lookup name
+    do (t, Left r) <- env_lookup name
        return (IR.Skip, r)
 
 tr_expr (A.Call name args) =
     do args_tr <- mapM tr_expr args
+       (f_type, f_sym) <- env_lookup name
+
+       let ir_name = case f_sym of
+                       Left _ -> error "symbol is not a cemtery func"
+                       Right n -> n
+
        let (args_ir, args_regs) = unzip args_tr
+       -- Type check
+
        result <- fresh
-       let call = IR.Call name args_regs result
+       let call = IR.Call ir_name args_regs result
        return (irlist (args_ir ++ [call]), result)
 
 tr_expr _ =
@@ -236,7 +258,7 @@ tr_expr _ =
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
                    ir_reg <- fresh
-                   addToEnv s t ir_reg
+                   addToEnv s t (Left ir_reg)
                    return (s, ir_t)
 
 tr_fun_name :: String -> TM String

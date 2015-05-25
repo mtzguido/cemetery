@@ -35,14 +35,16 @@ instance Show Reg where
 regn :: Int -> Reg
 regn n = Temp n
 
-data BinOp = Plus | Minus | Div | Prod
+data BinOp = Plus | Minus | Div | Prod | Eq | Mod
   deriving (Eq)
 
 instance Show BinOp where
-  show Plus = "+"
+  show Plus  = "+"
   show Minus = "-"
-  show Div = "/"
-  show Prod = "*"
+  show Div   = "/"
+  show Prod  = "*"
+  show Eq    = "=="
+  show Mod   = "%"
 
 data Stmt = AssignInt   Reg Int
           | Assign      Reg Reg

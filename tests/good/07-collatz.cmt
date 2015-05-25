@@ -1,6 +1,3 @@
-fun even (x : int) : int
-	return x % 2 == 0
-
 fun coll (x : int) : int
 	if x == 1
 		return 1
