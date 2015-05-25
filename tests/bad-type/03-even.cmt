@@ -1,0 +1,2 @@
+fun e(p : bool) : bool
+	return even(p)
