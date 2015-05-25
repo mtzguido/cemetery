@@ -11,7 +11,9 @@ import qualified AST as A
 %error { \s -> error $ "Parse error near token: " ++ show (head s) }
 
 %token
+	AND		{ L.Tok L.And _ }
 	ASTERISK	{ L.Tok L.Asterisk _ }
+	BOOL		{ L.Tok (L.BoolLit _) _ }
 	BRACE		{ L.Tok L.Brace _ }
 	BREAK		{ L.Tok L.Break _ }
 	CIRC		{ L.Tok L.Circ _ }
@@ -23,13 +25,14 @@ import qualified AST as A
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
 	EXTERN		{ L.Tok L.Extern _ }
-	BOOL		{ L.Tok (L.BoolLit _) _ }
 	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	FUN		{ L.Tok L.Fun _ }
 	ID		{ L.Tok (L.Ident _) _ }
 	IF		{ L.Tok L.If _ }
 	INT		{ L.Tok (L.IntLit _) _ }
 	LANGLE		{ L.Tok L.Langle _ }
+	NOT		{ L.Tok L.Not _ }
+	OR		{ L.Tok L.Or _ }
 	PAREN		{ L.Tok L.Paren _ }
 	PERC		{ L.Tok L.Perc _ }
 	PLUS		{ L.Tok L.Plus _ }
@@ -51,6 +54,7 @@ import qualified AST as A
 
 	EOF		{ L.EOF }
 
+%left AND OR
 %left PLUS DASH
 %left ASTERISK SLASH
 %left EQ2 PERC CIRC
@@ -139,16 +143,19 @@ expr : intlit			{ A.ConstInt $1 }
      | floatlit			{ A.ConstFloat $1 }
      | id			{ A.Var $1 }
      | binlit			{ A.BinLit $ B.pack $ map fromIntegral $1 }
-     | expr PLUS expr		{ A.BinOp A.Plus $1 $3 }
-     | expr DASH expr		{ A.BinOp A.Minus $1 $3 }
-     | expr SLASH expr		{ A.BinOp A.Div $1 $3 }
-     | expr ASTERISK expr	{ A.BinOp A.Prod $1 $3 }
-     | expr EQ2 expr		{ A.BinOp A.Eq $1 $3 }
-     | expr PERC expr		{ A.BinOp A.Mod $1 $3 }
-     | expr CIRC expr		{ A.BinOp A.Xor $1 $3 }
+     | expr PLUS	expr	{ A.BinOp A.Plus	$1 $3 }
+     | expr DASH	expr	{ A.BinOp A.Minus	$1 $3 }
+     | expr SLASH	expr	{ A.BinOp A.Div		$1 $3 }
+     | expr ASTERISK	expr	{ A.BinOp A.Prod	$1 $3 }
+     | expr EQ2		expr	{ A.BinOp A.Eq		$1 $3 }
+     | expr PERC	expr	{ A.BinOp A.Mod		$1 $3 }
+     | expr CIRC	expr	{ A.BinOp A.Xor		$1 $3 }
+     | expr AND		expr	{ A.BinOp A.And		$1 $3 }
+     | expr OR		expr	{ A.BinOp A.Or		$1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.NegateNum $2 }
+     | NOT expr %prec NEG	{ A.UnOp A.Not $2 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
 

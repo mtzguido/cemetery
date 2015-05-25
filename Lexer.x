@@ -44,6 +44,10 @@ tokens :-
   "^"			{ simple Circ }
   "%"			{ simple Perc }
 
+  "&&"			{ simple And }
+  "||"			{ simple Or }
+  "!"			{ simple Not }
+
   ","			{ simple Comma }
   "="			{ simple Eq }
   "=="			{ simple Eq2 }
@@ -198,6 +202,8 @@ data Sym =
   PlusAssign | MinusAssign |
   ProdAssign | DivAssign |
   XorAssign |
+
+  And | Or | Not |
 
   IntLit Int | StringLit String | FloatLit Double |
   BoolLit Bool

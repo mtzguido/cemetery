@@ -14,7 +14,7 @@ import Data.List
 
 type IR = [Unit]
 
-data Type = Int
+data Type = Int | Bool
   deriving (Eq, Show)
 
 data Unit = FunDef Funtype Stmt
@@ -35,7 +35,7 @@ instance Show Reg where
 regn :: Int -> Reg
 regn n = Temp n
 
-data BinOp = Plus | Minus | Div | Prod | Eq | Mod
+data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
   deriving (Eq)
 
 instance Show BinOp where
@@ -45,6 +45,8 @@ instance Show BinOp where
   show Prod  = "*"
   show Eq    = "=="
   show Mod   = "%"
+  show And   = "&&"
+  show Or    = "||"
 
 data Stmt = AssignInt   Reg Int
           | Assign      Reg Reg

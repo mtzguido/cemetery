@@ -231,6 +231,8 @@ tr_expr (A.BinOp A.Div   l r) = simple_binop_translate IR.Div   l r
 tr_expr (A.BinOp A.Prod  l r) = simple_binop_translate IR.Prod  l r
 tr_expr (A.BinOp A.Mod   l r) = simple_binop_translate IR.Mod   l r
 tr_expr (A.BinOp A.Eq    l r) = simple_binop_translate IR.Eq    l r
+tr_expr (A.BinOp A.And   l r) = simple_binop_translate IR.And   l r
+tr_expr (A.BinOp A.Or    l r) = simple_binop_translate IR.Or    l r
 
 tr_expr (A.Var name) =
     do (t, Left r) <- env_lookup name
@@ -265,7 +267,8 @@ tr_fun_name :: String -> TM String
 tr_fun_name s = do return s
 
 tmap :: A.Type -> TM IR.Type
-tmap A.Int = do return IR.Int
+tmap A.Int  = do return IR.Int
+tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
 
 simple_binop_translate :: IR.BinOp -> A.Expr -> A.Expr -> TM (IR.Stmt, IR.Reg)
