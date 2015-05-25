@@ -192,11 +192,11 @@ tr_stmt (A.Seq l r) =
 tr_stmt (A.Assign name e) =
     do (t, rv) <- env_lookup name
        (e_ir, e_res) <- tr_expr e
-       return $ IR.Seq e_ir (IR.Assign rv e_res)
+       return $ sseq e_ir (IR.Assign rv e_res)
 
 tr_stmt (A.Return e) =
     do (e_ir, e_res) <- tr_expr e
-       return $ IR.Seq e_ir (IR.Return e_res)
+       return $ sseq e_ir (IR.Return e_res)
 
 tr_stmt _ =
     do return IR.StmtScaf
