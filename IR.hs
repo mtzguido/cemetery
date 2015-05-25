@@ -48,9 +48,17 @@ instance Show BinOp where
   show And   = "&&"
   show Or    = "||"
 
+data UnOp = Neg | Not
+  deriving (Eq)
+
+instance Show UnOp where
+  show Neg   = "-"
+  show Not   = "!"
+
 data Stmt = AssignInt   Reg Int
           | Assign      Reg Reg
-          | AssignOp    BinOp Reg Reg Reg   -- First one is result
+          | AssignBinOp BinOp Reg Reg Reg   -- First one is result
+          | AssignUnOp  UnOp Reg Reg        -- idem BinOp
           | Return      Reg
           | Seq         Stmt Stmt
           | Skip                            -- Simply discard this
@@ -69,8 +77,10 @@ indent s = ' ' : indent' s
 instance Show Stmt where
   show (AssignInt r i) = show r ++ " <- #" ++ show i ++ "\n"
   show (Assign r s) = show r ++ " <- " ++ show s ++ "\n"
-  show (AssignOp op r s t) = show r ++ " <- " ++ show s ++ " " ++
-                             show op ++ " " ++ show t ++ "\n"
+  show (AssignUnOp op r t) = show r ++ " <- " ++ show op ++ " " ++
+                             show t ++ "\n"
+  show (AssignBinOp op r s t) = show r ++ " <- " ++ show s ++ " " ++
+                                show op ++ " " ++ show t ++ "\n"
   show (Return r) = "return: " ++ show r ++ "\n"
   show (Seq l r) = show l ++ show r
   show (Skip) = "\n"

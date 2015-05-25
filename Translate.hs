@@ -236,7 +236,7 @@ tr_expr (A.BinOp op l r) =
                             [(t, o)] -> (t, o)
                             _ -> error "What"
 
-       let stmt = irlist [l_ir, r_ir, IR.AssignOp ir_op e_reg l_reg r_reg]
+       let stmt = irlist [l_ir, r_ir, IR.AssignBinOp ir_op e_reg l_reg r_reg]
        return (typ, stmt, e_reg)
 
 tr_expr (A.Var name) =
