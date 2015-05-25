@@ -225,6 +225,13 @@ tr_expr (A.Var name) =
     do (t, r) <- env_lookup name
        return (IR.Skip, r)
 
+tr_expr (A.Call name args) =
+    do args_tr <- mapM tr_expr args
+       let (args_ir, args_regs) = unzip args_tr
+       result <- fresh
+       let call = IR.Call name args_regs result
+       return (irlist (args_ir ++ [call]), result)
+
 tr_expr _ =
     do return (IR.StmtScaf, IR.regn 999)
 

@@ -10,6 +10,7 @@
 module IR where
 
 import Data.Word
+import Data.List
 
 type IR = [Unit]
 
@@ -48,9 +49,10 @@ data Stmt = AssignInt   Reg Int
           | AssignOp    BinOp Reg Reg Reg   -- First one is result
           | Return      Reg
           | Seq         Stmt Stmt
-          | StmtScaf
           | Skip                            -- Simply discard this
           | If          Reg Stmt Stmt       -- C-like semantics
+          | Call        String [Reg] Reg    -- Last reg is result
+          | StmtScaf
   deriving (Eq)
 
 indent' [] = []
@@ -71,3 +73,5 @@ instance Show Stmt where
   show (StmtScaf) = "I.O.U.\n"
   show (If r t e) = "IF (" ++ show r ++ ")\n" ++ indent (show t)
                      ++ "ELSE\n" ++ indent (show e)
+  show (Call n rs res) = show res ++ " <- " ++ n ++ "(" ++
+                             concat (intersperse ", " (map show rs)) ++ ")\n"
