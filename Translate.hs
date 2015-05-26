@@ -38,13 +38,15 @@ data LevelState =
 
       -- Counter to create new fresh temporary registers,
       -- in a very simple and crappy way
-      fresh_counter :: Int
+      fresh_counter :: Int,
+
+      temp_decls :: [(IR.Reg, IR.Type)]
   }
   deriving (Show)
 
 blank_level :: LevelState
 blank_level = LevelState { env = M.empty, ret_type = A.Invalid,
-                           fresh_counter = 0 }
+                           fresh_counter = 0, temp_decls = [] }
 
 -- The monad state is a stack of LevelStates so we can
 -- drop the names when moving out of a function.
@@ -65,8 +67,10 @@ setData es = do s <- get
 
 pushLevel :: TM ()
 pushLevel = do e <- getData
-               -- duplicate the current level
-               setData (head e : e)
+               -- duplicate the current level, except for temp_decls
+               -- which shouldn't empty as its data is not cumulative
+               let l = (head e) { temp_decls = [] }
+               setData (l : e)
 
 popLevel :: TM LevelState
 popLevel = do e <- getData
@@ -80,6 +84,11 @@ getLevel = do d <- getData
 setLevel :: LevelState -> TM ()
 setLevel l = do d <- getData
                 setData (l : tail d)
+
+addRegDecl :: IR.Reg -> IR.Type -> TM ()
+addRegDecl r t = do l <- getLevel
+                    let ds = temp_decls l
+                    setLevel l { temp_decls = (r,t) : ds }
 
 getEnv :: TM EnvT
 getEnv = do l <- getLevel
@@ -112,11 +121,13 @@ addToEnv n t r = do e <- getEnv
                     let e' = M.insert n (t, r) e
                     setEnv e'
 
-fresh :: TM IR.Reg
-fresh = do l <- getLevel
-           let i = fresh_counter l
-           setLevel (l { fresh_counter = i + 1 })
-           return $ IR.Temp i
+fresh :: IR.Type -> TM IR.Reg
+fresh t = do l <- getLevel
+             let i = fresh_counter l
+             setLevel (l { fresh_counter = i + 1 })
+             let r = IR.Temp i
+             addRegDecl r t
+             return r
 
 -- Translator Monad definition
 type TM =
@@ -179,11 +190,19 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
        ir_args <- mapM tr_arg args
        ir_ret  <- tmap ret
        ir_body <- tr_stmt body
-       popLevel
+       lvl <- popLevel
+
+       full_body <- addRegDecls lvl ir_body
 
        return $ IR.FunDef (IR.Funtype { IR.name = ir_name,
                                         IR.args = ir_args,
-                                        IR.ret  = ir_ret }) ir_body
+                                        IR.ret  = ir_ret }) full_body
+
+addRegDecls :: LevelState -> IR.Stmt -> TM IR.Stmt
+addRegDecls lvl body =
+    do let ds = map (\(r,t) -> IR.RegDecl r t) $ reverse $ temp_decls lvl
+       let ds_ir = foldl sseq IR.Skip ds
+       return (sseq ds_ir body)
 
 getUnusedName n = do return n
 
@@ -193,7 +212,9 @@ tr_stmt A.Skip =
 
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
     do ir_name <- getUnusedName name
+       ir_t <- tmap A.Int               -- FIXME
        addToEnv name A.Int (IR.Lit ir_name)
+       addRegDecl (IR.Lit ir_name) ir_t
        return IR.Skip
 
 tr_stmt (A.Seq l r) =
@@ -213,22 +234,24 @@ tr_stmt (A.Return e) =
 tr_stmt (A.If c t e) =
     do (_, c_ir, c_reg) <- tr_expr c
        pushLevel
-       t_ir <- tr_stmt t
-       popLevel
+       t_body <- tr_stmt t
+       lvl_t <- popLevel
        pushLevel
-       e_ir <- tr_stmt e
-       popLevel
+       e_body <- tr_stmt e
+       lvl_e <- popLevel
+
+       t_ir <- addRegDecls lvl_t t_body
+       e_ir <- addRegDecls lvl_e e_body
        return $ sseq c_ir (IR.If c_reg t_ir e_ir)
 
 tr_expr :: A.Expr -> TM (A.Type, IR.Stmt, IR.Reg)
 tr_expr (A.ConstInt i) =
-    do r <- fresh
+    do r <- fresh IR.Int
        return (A.Int, IR.AssignInt r i, r)
 
 tr_expr (A.BinOp op l r) =
     do (l_typ, l_ir, l_reg) <- tr_expr l
        (r_typ, r_ir, r_reg) <- tr_expr r
-       e_reg <- fresh
 
        possible <- find_matching_binop op l_typ r_typ
        let (typ, ir_op) = case possible of
@@ -236,18 +259,23 @@ tr_expr (A.BinOp op l r) =
                             [(t, o)] -> (t, o)
                             _ -> error "What"
 
+       ir_t <- tmap typ
+       e_reg <- fresh ir_t
+
        let stmt = irlist [l_ir, r_ir, IR.AssignBinOp ir_op e_reg l_reg r_reg]
        return (typ, stmt, e_reg)
 
 tr_expr (A.UnOp op e) =
     do (e_typ, e_ir, e_reg) <- tr_expr e
-       r_reg <- fresh
 
        possible <- find_matching_unop op e_typ
        let (typ, ir_op) = case possible of
                             [] -> error "Operator type mismatch"
                             [(t, o)] -> (t, o)
                             _ -> error "What"
+
+       ir_t <- tmap typ
+       r_reg <- fresh ir_t
 
        let stmt = irlist [e_ir, IR.AssignUnOp ir_op r_reg e_reg]
        return (typ, stmt, e_reg)
@@ -270,12 +298,13 @@ tr_expr (A.Call name args) =
        let ok = all id $ map (uncurry tmatch) (zip f_args_t args_t)
        when (not ok) $ error "call arguments do not type"
 
-       result <- fresh
+       ir_ret_t <- tmap ret_type
+       result <- fresh ir_ret_t
        let call = IR.Call ir_name args_regs result
        return (f_type, irlist (args_ir ++ [call]), result)
 
-tr_expr _ =
-    do r <- fresh
+tr_expr _ = -- FIXME
+    do r <- fresh IR.Int
        return (A.Int, IR.StmtScaf r, r)
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)

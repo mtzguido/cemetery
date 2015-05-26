@@ -84,6 +84,8 @@ g_stmt (If r t e) =
        emit $ "} else {"
        emit $ indent (joinLines ee)
        emit $ "}"
+g_stmt (RegDecl r t) =
+    do emit' [showC t, " ", showC r, ";"]
 
 g_stmt (StmtScaf _) =
     do emit "/* StmtScaf */"

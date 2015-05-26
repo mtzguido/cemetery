@@ -68,6 +68,7 @@ data Stmt = AssignInt   Reg Int
           | If          Reg Stmt Stmt       -- C-like semantics
           | Call        String [Reg] Reg    -- Last reg is result
           | StmtScaf    Reg                 -- Reg is only for development
+          | RegDecl     Reg Type            -- Declare a register
   deriving (Eq)
 
 instance Show Stmt where
@@ -85,3 +86,4 @@ instance Show Stmt where
                      ++ "ELSE\n" ++ indent (show e)
   show (Call n rs res) = show res ++ " <- " ++ n ++ "(" ++
                              concat (intersperse ", " (map show rs)) ++ ")\n"
+  show (RegDecl r t) = show r ++ " :: " ++ show t ++ "\n"
