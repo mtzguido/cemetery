@@ -331,7 +331,7 @@ tr_expr (A.Call name args) =
        let A.Fun f_args_t ret_type = f_type
 
        let ir_name = case f_sym of
-                       IR.Temp _ -> error "symbol is not a cemtery func"
+                       IR.Temp _ -> error "symbol is not a cemetery func"
                        IR.Lit n -> n
 
        let (args_t, args_ir, args_regs) = unzip3 args_tr
