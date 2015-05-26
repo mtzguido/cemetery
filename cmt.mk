@@ -17,7 +17,7 @@ $(TARGET): $(obj-y)
 	$(Q)$(SAY) "  LD	$@"
 	$(Q)$(GHC) $(SOURCE) $(CFLAGS) -o $(TARGET)
 
-.deps.mk: $(automods)
+.deps.mk: $(automods) *.hs
 	$(Q)$(SAY) "  DEPS"
 	$(Q)ghc -M $(SOURCE) -dep-makefile .deps.mk
 
