@@ -1,0 +1,4 @@
+- Think some more about type mapping. Is it always possible to have
+  a one-to-one map? If not, what can we assume?
+
+- Fix every FIXME
