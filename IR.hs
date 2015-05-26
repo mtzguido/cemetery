@@ -9,6 +9,7 @@
 
 module IR where
 
+import Common
 import Data.Word
 import Data.List
 
@@ -66,13 +67,6 @@ data Stmt = AssignInt   Reg Int
           | Call        String [Reg] Reg    -- Last reg is result
           | StmtScaf    Reg                 -- Reg is only for development
   deriving (Eq)
-
-indent' [] = []
-indent' "\n" = "\n"
-indent' (c:cs) = if c == '\n'
-                   then c : indent cs
-                   else c : indent' cs
-indent s = ' ' : indent' s
 
 instance Show Stmt where
   show (AssignInt r i) = show r ++ " <- #" ++ show i ++ "\n"

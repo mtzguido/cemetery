@@ -14,6 +14,10 @@ tr from to seq = map repl1 seq where
 traceM :: (Monad m) => String -> m ()
 traceM s = trace s (return ())
 
+-- Indent every line with one tab
+indent :: String -> String
+indent s = unlines $ map ('\t':) $ lines s
+
 -- Single stub error, should be expanded later on
 data CmtError = CmtErr
   deriving Show
