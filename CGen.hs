@@ -2,115 +2,46 @@ module CGen where
 
 import Data.List
 import Data.Monoid
-import IR
+import qualified IR as I
+import qualified CLang as C
 import Common
 
-cgen :: IR -> String
-cgen p = joinLines $ fst $ runGM (g_ir p)
+import Control.Monad.Writer
+import Control.Monad.Identity
 
-joinLines ls = concat $ map (++ "\n") ls
+cgen :: I.IR -> C.Prog
+cgen p = C.Prog { C.includes = [], C.units = [] }
 
-data GenerateMonad mt a = GM (() -> mt, a)
+type GM = WriterT [C.Unit] (
+           Identity
+          )
 
-type GM = GenerateMonad [String]
-
-instance Monoid mt => Monad (GenerateMonad mt) where
-    return v = GM (\_ -> mempty, v)
-    GM (f, v) >>= g = let s = f ()
-                          GM (h, v2) = g v -- :: m b
-                          t = h ()
-                       in GM (\_ -> mappend s t, v2)
-
-emit :: String -> GM ()
-emit s = GM (\() -> [s], ())
-
-emit' :: [String] -> GM ()
-emit' ls = emit (concat ls)
-
-box :: GM () -> GM [String]
-box (GM (m, ())) = do return (m ())
-
-runGM :: GM a -> ([String], a)
-runGM (GM (f, a)) = (f (), a)
-
-g_ir :: IR -> GM ()
+g_ir :: I.IR -> GM ()
 g_ir p = do bs <- mapM g_unit p
             return ()
 
-show_args_decl [] = ""
-show_args_decl [(n,t)] = showC t ++ " " ++ n
-show_args_decl ((n,t):as) = showC t ++ " " ++ n ++ ", " ++ show_args_decl as
+g_unit :: I.Unit -> GM ()
+g_unit (I.FunDef (I.Funtype { I.name = name,
+                              I.args = args,
+                              I.ret  = ret}) body) =
+    do c_args <- g_args args
+       c_ret <- g_type ret
+       c_body <- g_body body
+       let ft = C.Funtype { C.name = name, C.args = c_args, C.ret = c_ret }
+       tell [C.FunDef ft c_body]
 
-g_unit :: Unit -> GM ()
-g_unit (FunDef (Funtype { name = name,
-                          args = args,
-                          ret  = ret}) body) =
-    do emit' [showC ret, " ", name, "(", show_args_decl args, ")"]
-       emit "{"
-       b <- box $ g_stmt body
-       emit $ indent (joinLines b)
-       emit "}"
+g_unit (I.UnitScaf) =
+    do tell [C.Comment "UnitScaf"]
 
-g_unit (UnitScaf) =
-    do emit "/* UnitScaf */"
+g_args :: [(String, I.Type)] -> GM [(String, C.Type)]
+g_args _ = do return []
 
-show_args [] = ""
-show_args [r] = showC r
-show_args (r:rs) = showC r ++ ", " ++ show_args rs
+g_body :: I.Stmt -> GM C.Block
+g_body b = do s <- g_stmt b
+              return ([], s)
 
-g_stmt :: Stmt -> GM ()
-g_stmt (Seq l r) =
-    do g_stmt l
-       g_stmt r
-g_stmt (AssignInt r i) =
-    do emit' [showC r, " = ", show i, ";"]
-g_stmt (Assign r t) =
-    do emit' [showC r, " = ", showC t, ";"]
-g_stmt (AssignUnOp op r t) =
-    do emit' [showC r, " = ", showC op, showC t, ";"]
-g_stmt (AssignBinOp op r s t) =
-    do emit' [showC r, " = ", showC s, " ", showC op, " ", showC t, ";"]
-g_stmt (Return r) =
-    do emit' ["return ", showC r, ";"]
-g_stmt (Skip) =
-    do return ()
-g_stmt (Call n args r) =
-    do emit' [showC r, " = ", n, "(", show_args args, ");"]
-g_stmt (If r t e) =
-    do tt <- box (g_stmt t)
-       ee <- box (g_stmt e)
-       emit' ["if (", showC r, ") {"]
-       emit $ indent (joinLines tt)
-       emit $ "} else {"
-       emit $ indent (joinLines ee)
-       emit $ "}"
-g_stmt (RegDecl r t) =
-    do emit' [showC t, " ", showC r, ";"]
+g_stmt :: I.Stmt -> GM C.Stmt
+g_stmt _ =
+    do return (C.Skip)
 
-g_stmt (StmtScaf _) =
-    do emit "/* StmtScaf */"
-
-class ShowC a where
-    showC :: a -> String
-
-instance ShowC Type where
-    showC Int   = "int"
-    showC Bool  = "bool"
-
-instance ShowC UnOp where
-    showC Neg   = "-"
-    showC Not   = "!"
-
-instance ShowC BinOp where
-    showC Plus  = "+"
-    showC Minus = "-"
-    showC Div   = "/"
-    showC Prod  = "*"
-    showC Eq    = "=="
-    showC Mod   = "%"
-    showC And   = "&&"
-    showC Or    = "||"
-
-instance ShowC Reg where
-    showC (Temp i) = "r" ++ show i
-    showC (Lit s)  = s
+g_type _ = do return C.Int

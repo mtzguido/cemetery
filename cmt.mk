@@ -8,7 +8,7 @@ ifneq ($(MAKECMDGOALS),clean)
 endif
 
 obj-y          := AST.o Cemetery.o IR.o Common.o Translate.o Builtins.o \
-		  CGen.o Optimize.o
+		  CGen.o Optimize.o CPrint.o CLang.o
 
 automods       := Lexer.hs Parser.hs Prologue.hs
 obj-y          += $(patsubst %.hs,%.o,$(automods))

@@ -14,6 +14,7 @@ import Common
 import Prologue
 import Optimize
 import CGen
+import CPrint
 
 data Opts = StopLexer | StopParse | StopTranslate
           | Verbose deriving (Eq, Show)
@@ -131,9 +132,13 @@ work = do (opts, basename) <- ask
           lift $ putStrLn "Optimized IR: "
           mapM showIRUnit oir
 
-          let ctext = cgen oir
+          let cast = cgen oir
 
-          lift $ putStrLn "C source:"
+          lift $ putStrLn "C ast:"
+          lift $ putStrLn (show cast)
+
+          let ctext = cprint cast
+          lift $ putStrLn "C text:"
           lift $ putStrLn ctext
 
           return ()
