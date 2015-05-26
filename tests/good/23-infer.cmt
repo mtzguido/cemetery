@@ -1,0 +1,5 @@
+fun f(x : int, y : bool) : bool
+	var a = x
+	var b = y
+	var c = x * 2
+	var d : bool = y
