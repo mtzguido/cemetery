@@ -19,6 +19,7 @@ import Common
 import Control.Monad.Error
 import Control.Monad.Identity
 import Control.Monad.State
+import Data.Maybe
 import qualified Data.Map.Strict as M
 
 -- Monad definition
@@ -206,6 +207,34 @@ addRegDecls lvl body =
 
 getUnusedName n = do return n
 
+infer :: A.Expr -> TM A.Type
+infer (A.ConstInt _) =
+    do return A.Int
+infer (A.ConstBool _) =
+    do return A.Bool
+infer (A.BinOp op l r) =
+    do lt <- infer l
+       rt <- infer r
+       poss <- find_matching_binop op lt rt
+       let et = case poss of
+                  [] -> error "Operator type mismatch"
+                  [(t, _)] -> t
+                  _ -> error "What"
+       return et
+infer (A.UnOp op l) =
+    do lt <- infer l
+       poss <- find_matching_unop op lt
+       let et = case poss of
+                  [] -> error "Operator type mismatch"
+                  [(t, _)] -> t
+                  _ -> error "What"
+       return et
+infer (A.Var n) =
+    do (t, _) <- env_lookup n
+       return t
+infer _ =
+    do error "I.O.U."
+
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
     do return IR.Skip
@@ -213,8 +242,11 @@ tr_stmt A.Skip =
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
     do when (mt == Nothing && me == Nothing) $
          error "Variables need to have either a type or an initializer"
+       typ <- case mt of
+                Just t -> return t
+                Nothing -> infer (fromJust me)
        ir_name <- getUnusedName name
-       ir_t <- tmap A.Int               -- FIXME
+       ir_t <- tmap typ
        addToEnv name A.Int (IR.Lit ir_name)
        addRegDecl (IR.Lit ir_name) ir_t
        return IR.Skip
