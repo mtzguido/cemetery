@@ -23,8 +23,7 @@ import qualified Data.Map.Strict as M
 
 -- Monad definition
 
--- Each symbol is either a temporary value or a C name
-type EnvT = M.Map A.VarName (A.Type, Either IR.Reg String)
+type EnvT = M.Map A.VarName (A.Type, IR.Reg)
 
 -- State at each level inside the AST
 data LevelState =
@@ -102,13 +101,13 @@ ff :: Maybe a -> Maybe a -> Maybe a
 ff (Just x) _ = Just x
 ff Nothing m = m
 
-env_lookup :: String -> TM (A.Type, Either IR.Reg String)
+env_lookup :: String -> TM (A.Type, IR.Reg )
 env_lookup s = do e <- getEnv
                   case M.lookup s e of
                     Nothing -> error $ "undefined variable: " ++ s
                     Just i -> return i
 
-addToEnv :: String -> A.Type -> Either IR.Reg String -> TM ()
+addToEnv :: String -> A.Type -> IR.Reg -> TM ()
 addToEnv n t r = do e <- getEnv
                     let e' = M.insert n (t, r) e
                     setEnv e'
@@ -148,7 +147,7 @@ irlist :: [IR.Stmt] -> IR.Stmt
 irlist l = foldl sseq IR.Skip l
 
 add_one (name, typ, c_name) =
-    do addToEnv name typ (Right c_name)
+    do addToEnv name typ (IR.Lit c_name)
 
 add_builtins =
     do mapM add_one builtins
@@ -172,9 +171,9 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do -- First translate the name, and add it to the
        -- environment. This enables recursion.
-       ir_name <- tr_fun_name name
+       ir_name <- getUnusedName name
        let fun_t = A.Fun (map snd args) ret
-       addToEnv name fun_t (Right ir_name)
+       addToEnv name fun_t (IR.Lit ir_name)
 
        pushLevel
        ir_args <- mapM tr_arg args
@@ -186,14 +185,15 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                                         IR.args = ir_args,
                                         IR.ret  = ir_ret }) ir_body
 
+getUnusedName n = do return n
+
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
     do return IR.Skip
 
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
-    do --ir_name <- getUnusedName name
-       ir_reg <- fresh
-       addToEnv name A.Int (Left ir_reg)
+    do ir_name <- getUnusedName name
+       addToEnv name A.Int (IR.Lit ir_name)
        return IR.Skip
 
 tr_stmt (A.Seq l r) =
@@ -202,7 +202,7 @@ tr_stmt (A.Seq l r) =
        return (sseq l_ir r_ir)
 
 tr_stmt (A.Assign name e) =
-    do (t, Left rv) <- env_lookup name
+    do (t, rv) <- env_lookup name
        (_, e_ir, e_res) <- tr_expr e
        return $ sseq e_ir (IR.Assign rv e_res)
 
@@ -253,7 +253,7 @@ tr_expr (A.UnOp op e) =
        return (typ, stmt, e_reg)
 
 tr_expr (A.Var name) =
-    do (t, Left r) <- env_lookup name
+    do (t, r) <- env_lookup name
        return (t, IR.Skip, r)
 
 tr_expr (A.Call name args) =
@@ -262,8 +262,8 @@ tr_expr (A.Call name args) =
        let A.Fun f_args_t ret_type = f_type
 
        let ir_name = case f_sym of
-                       Left _ -> error "symbol is not a cemtery func"
-                       Right n -> n
+                       IR.Temp _ -> error "symbol is not a cemtery func"
+                       IR.Lit n -> n
 
        let (args_t, args_ir, args_regs) = unzip3 args_tr
 
@@ -280,12 +280,9 @@ tr_expr _ =
 
 tr_arg :: (String, A.Type) -> TM (String, IR.Type)
 tr_arg (s, t) = do ir_t <- tmap t
-                   ir_reg <- fresh
-                   addToEnv s t (Left ir_reg)
+                   ir_name <- getUnusedName s
+                   addToEnv s t (IR.Lit ir_name)
                    return (s, ir_t)
-
-tr_fun_name :: String -> TM String
-tr_fun_name s = do return s
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int

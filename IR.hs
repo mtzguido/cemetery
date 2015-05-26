@@ -28,10 +28,12 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data Reg = Temp Int
+         | Lit String -- Literal name on the output language
   deriving (Eq)
 
 instance Show Reg where
   show (Temp i) = "r" ++ show i
+  show (Lit s) = s
 
 regn :: Int -> Reg
 regn n = Temp n

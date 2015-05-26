@@ -111,3 +111,4 @@ instance ShowC BinOp where
 
 instance ShowC Reg where
     showC (Temp i) = "r" ++ show i
+    showC (Lit s)  = s
