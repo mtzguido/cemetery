@@ -249,7 +249,14 @@ tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
        ir_t <- tmap typ
        addToEnv name A.Int (IR.Lit ir_name)
        addRegDecl (IR.Lit ir_name) ir_t
-       return IR.Skip
+
+       ir <- case me of
+         Nothing -> return IR.Skip
+         Just e -> do (e_typ, e_ir, e_reg) <- tr_expr e
+                      when (not (tmatch e_typ typ)) $
+                        error "Initializer doesn't match type"
+                      return $ irlist [e_ir, IR.Assign (IR.Lit ir_name) e_reg]
+       return ir
 
 tr_stmt (A.Seq l r) =
     do l_ir <- tr_stmt l
