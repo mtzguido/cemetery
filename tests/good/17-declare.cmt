@@ -1,8 +1,6 @@
-var A
 var B = 2
 
 fun test(x : int) : int
-	var a
 	var b = 2
 	var c : int
 	var d : int = 4

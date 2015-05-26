@@ -211,7 +211,9 @@ tr_stmt A.Skip =
     do return IR.Skip
 
 tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
-    do ir_name <- getUnusedName name
+    do when (mt == Nothing && me == Nothing) $
+         error "Variables need to have either a type or an initializer"
+       ir_name <- getUnusedName name
        ir_t <- tmap A.Int               -- FIXME
        addToEnv name A.Int (IR.Lit ir_name)
        addRegDecl (IR.Lit ir_name) ir_t
