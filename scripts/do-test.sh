@@ -33,11 +33,19 @@ if ! [ -x ./cmt ]; then
 	exit 1
 fi
 
-if ${build}; then
-	printf "%-35s" "BUILDING tests with <${FLAGS}>:"
+if $build; then
+	msg="BUILDING"
 else
-	printf "%-35s" "Running tests with  <${FLAGS}>:"
+	msg="Running"
 fi
+
+if $fail; then
+	goodbad="bad "
+else
+	goodbad="good"
+fi
+
+printf "%-35s" "${msg} ${goodbad} tests with <${FLAGS}>:"
 
 for i in ${DIR}/*.cmt; do
 	if ! [ -f "$i" ] ; then continue ; fi
