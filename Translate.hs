@@ -273,7 +273,11 @@ tr_stmt (A.Return e) =
        return $ sseq e_ir (IR.Return e_res)
 
 tr_stmt (A.If c t e) =
-    do (_, c_ir, c_reg) <- tr_expr c
+    do (c_typ, c_ir, c_reg) <- tr_expr c
+
+       when (not (tmatch c_typ A.Bool)) $
+           error "Condition type for If must be a boolean"
+
        pushLevel
        t_body <- tr_stmt t
        lvl_t <- popLevel
