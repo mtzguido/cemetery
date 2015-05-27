@@ -344,6 +344,10 @@ tr_expr (A.Call name args) =
        let call = IR.Call ir_name args_regs result
        return (ret_type, irlist (args_ir ++ [call]), result)
 
+tr_expr (A.ConstBool b) =
+    do r <- fresh IR.Bool
+       return (A.Bool,IR.AssignInt r (if b == True then 1 else 0), r)
+
 tr_expr _ = -- FIXME
     do r <- fresh IR.Int
        return (A.Int, IR.StmtScaf r, r)
