@@ -342,7 +342,7 @@ tr_expr (A.Call name args) =
        ir_ret_t <- tmap ret_type
        result <- fresh ir_ret_t
        let call = IR.Call ir_name args_regs result
-       return (f_type, irlist (args_ir ++ [call]), result)
+       return (ret_type, irlist (args_ir ++ [call]), result)
 
 tr_expr _ = -- FIXME
     do r <- fresh IR.Int
