@@ -377,7 +377,7 @@ binop_mapping = [
  (A.Div,    A.Int,   A.Int,   A.Int,    IR.Div),
  (A.Prod,   A.Int,   A.Int,   A.Int,    IR.Prod),
  (A.Mod,    A.Int,   A.Int,   A.Int,    IR.Mod),
- (A.Eq,     A.Int,   A.Int,   A.Int,    IR.Eq),
+ (A.Eq,     A.Int,   A.Int,   A.Bool,   IR.Eq),
  (A.And,    A.Bool,  A.Bool,  A.Bool,   IR.And),
  (A.Or,     A.Bool,  A.Bool,  A.Bool,   IR.Or)
  ]
