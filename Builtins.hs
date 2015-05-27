@@ -5,5 +5,5 @@ module Builtins where
 import AST
 
 builtins = [
- ("even", Fun [Int] Int, "__cmt_even")
+ ("even", Fun [Int] Bool, "__cmt_even")
  ]
