@@ -74,7 +74,30 @@ g_stmt (I.Return e) =
        return (C.Return c_e)
 
 g_expr :: I.Expr -> GM C.Expr
-g_expr _ =
-    do return $ C.ConstInt 2
+g_expr (I.ConstInt i) =
+    do return $ C.ConstInt i
+
+g_expr (I.ConstBool b) =
+    do return $ C.ConstBool b
+
+g_expr (I.BinOp op l r) =
+    do ll <- g_expr l
+       rr <- g_expr r
+       return $ C.BinOp C.Plus ll rr -- FIXME
+
+g_expr (I.UnOp op l) =
+    do ll <- g_expr l
+       return $ C.UnOp C.NegateNum ll -- FIXME
+
+g_expr (I.Var n) =
+    do return $ C.Var n
+
+g_expr (I.Call n args) =
+    do c_args <- mapM g_expr args
+       return $ C.Call n c_args
+
+-- ESeqs should be completely removed by the canonizer/optimizer
+g_expr (I.ESeq s e) =
+    do error "Internal error"
 
 g_type _ = do return C.Int
