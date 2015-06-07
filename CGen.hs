@@ -48,9 +48,16 @@ g_arg (n, t) =
     do t' <- g_type t
        return (n, t')
 
-g_body :: I.Stmt -> GM C.Block
-g_body b = do s <- g_stmt b
-              return ([], s)
+g_body :: I.Block -> GM C.Block
+g_body (d, s) =
+    do d' <- mapM g_decl d
+       s' <- g_stmt s
+       return (d', s')
+
+g_decl :: I.Decl -> GM C.Decl
+g_decl (I.DeclareVar n t) =
+    do tt <- g_type t
+       return $ C.VarDecl n tt Nothing []
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =

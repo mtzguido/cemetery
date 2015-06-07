@@ -16,7 +16,9 @@ optimize :: IR -> IR
 optimize p = map o_unit p
 
 o_unit UnitScaf = UnitScaf
-o_unit (FunDef ft body) = FunDef ft (o_stmt body)
+o_unit (FunDef ft body) = FunDef ft (o_body body)
+
+o_body (d, s) = (d, o_stmt s)
 
 o_stmt (Assign l e) = Assign l (o_expr e)
 o_stmt (Return e) = Return (o_expr e)

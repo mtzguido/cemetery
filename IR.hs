@@ -18,7 +18,7 @@ type IR = [Unit]
 data Type = Int | Bool
   deriving (Eq, Show)
 
-data Unit = FunDef Funtype Stmt
+data Unit = FunDef Funtype Block
           | UnitScaf
   deriving (Eq, Show)
 
@@ -45,10 +45,15 @@ data Expr = ConstInt   Int
           | ESeq       Stmt Expr
   deriving (Eq, Show)
 
+type Block = ([Decl], Stmt)
+
+data Decl = DeclareVar  String Type
+  deriving (Eq, Show)
+
 data Stmt = Assign      LValue Expr
           | Return      Expr
           | Seq         Stmt Stmt
           | Skip                         -- Simply discard this
           | Expr        Expr
-          | If          Expr Stmt Stmt   -- C-like semantics
+          | If          Expr Block Block -- C-like semantics
   deriving (Eq, Show)

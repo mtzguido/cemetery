@@ -52,7 +52,12 @@ p_unit (FunDef ft b) =
        line "}"
 
 p_block (decls, stmt) =
-    do p_stmt stmt
+    do mapM p_decl decls
+       p_stmt stmt
+
+p_decl (VarDecl n t me mods) =
+    do t <- p_typ t
+       line $ t ++ " " ++ n ++ ";"
 
 p_stmt (Seq l r) =
     do p_stmt l

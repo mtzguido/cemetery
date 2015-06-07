@@ -6,6 +6,7 @@ import Control.Monad.Identity
 import Control.Monad.State
 import qualified Data.Map.Strict as M
 import qualified AST as A
+import qualified IR as I
 
 -- Monad definition
 
@@ -24,12 +25,18 @@ data LevelState =
 
       -- ret_type is the current function's return type,
       -- to check for invalid returns
-      ret_type :: A.Type
+      ret_type :: A.Type,
+
+      -- Declarations that should be made at the beginning
+      -- of the current block
+      decls :: [I.Decl]
   }
   deriving (Show)
 
 blank_level :: LevelState
-blank_level = LevelState { env = M.empty, ret_type = A.Invalid }
+blank_level = LevelState { env = M.empty,
+                           ret_type = A.Invalid,
+                           decls = [] }
 
 -- The monad state is a stack of LevelStates so we can
 -- drop the names when moving out of a function.
@@ -82,6 +89,10 @@ getRetType = do l <- getLevel
 setRetType :: A.Type -> TM ()
 setRetType t = do l <- getLevel
                   setLevel (l { ret_type = t})
+
+addDecl :: I.Decl -> TM ()
+addDecl d = do l <- getLevel
+               setLevel (l { decls = d : decls l })
 
 env_lookup :: String -> TM EnvV
 env_lookup s = do e <- getEnv

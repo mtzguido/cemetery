@@ -39,7 +39,7 @@ add_builtins =
 
 -- These functions take care of name clashes,
 -- the first one fails, while the second one
--- tries to find a similar unused name
+-- tries to find a similar unused name (TODO)
 
 requestName s =
     do return ()
@@ -78,13 +78,17 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
 
        pushLevel
        setRetType ret
-       ir_body <- tr_stmt body
-       popLevel
+       ir_body_s <- tr_stmt body
+       l <- popLevel
 
        let ft = IR.Funtype { IR.name = name,
                              IR.args = ir_args,
                              IR.ret = ir_ret }
-       return (IR.FunDef ft ir_body)
+       return $ IR.FunDef ft (decls l, ir_body_s)
+
+tr_body :: A.Stmt -> TM IR.Block
+tr_body b = do s <- tr_stmt b
+               return ([], s)
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
@@ -108,13 +112,14 @@ tr_stmt (A.Seq l r) =
 
 tr_stmt (A.Decl d) =
     do tr_decl d
+       return IR.Skip
 
 tr_stmt (A.If c t e) =
     do (c_t, c_ir) <- tr_expr c
        when (not (tmatch c_t A.Bool))
         (error "If conditions have to be of type Bool")
-       tt <- tr_stmt t
-       ee <- tr_stmt e
+       tt <- tr_body t
+       ee <- tr_body e
        return $ IR.If c_ir tt ee
 
 tr_decl (A.VarDecl n mods mt me) =
@@ -131,7 +136,9 @@ tr_decl (A.VarDecl n mods mt me) =
                    error "Variables need either a type or an initializer"
        n' <- requestSimilar n
        addToEnv n (EnvV { typ = rt, ir_name = n' })
-       return IR.Skip
+       ir_t <- tmap rt
+       addDecl (IR.DeclareVar n' ir_t)
+       return ()
 
 tr_expr :: A.Expr -> TM (A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =
