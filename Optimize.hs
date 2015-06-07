@@ -13,4 +13,14 @@ module Optimize where
 import IR
 
 optimize :: IR -> IR
-optimize p = p
+optimize p = map o_unit p
+
+o_unit UnitScaf = UnitScaf
+o_unit (FunDef ft body) = FunDef ft (o_stmt body)
+
+o_stmt (Assign l e) = Assign l (o_expr e)
+o_stmt (Return e) = Return (o_expr e)
+o_stmt x = x
+
+o_expr (BinOp Plus (ConstInt l) (ConstInt r)) = ConstInt (l + r)
+o_expr e = e
