@@ -17,6 +17,7 @@ import CGen
 import CPrint
 
 data Opts = StopLexer | StopParse | StopTranslate
+          | StopGen
           | Verbose deriving (Eq, Show)
 
 -- Monadic type for the program logic
@@ -26,6 +27,7 @@ options = [
  Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
  Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
  Option [] ["translate", "trans"] (NoArg StopTranslate) "stop after translation",
+ Option [] ["generate"] (NoArg StopGen) "stop after genering a C ast",
  Option ['v'] ["verbose"] (NoArg Verbose) "be more verbose"
  ]
 
@@ -136,6 +138,8 @@ work = do (opts, basename) <- ask
 
           lift $ putStrLn "C ast:"
           lift $ putStrLn (show cast)
+
+          breakIf StopGen
 
           let ctext = cprint cast
           lift $ putStrLn "C text:"

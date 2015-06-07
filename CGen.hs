@@ -10,11 +10,17 @@ import Control.Monad.Writer
 import Control.Monad.Identity
 
 cgen :: I.IR -> C.Prog
-cgen p = C.Prog { C.includes = [], C.units = [] }
+cgen ir = let (units, ()) = runGM (g_ir ir)
+           in C.Prog { C.includes = [], C.units = units}
 
 type GM = WriterT [C.Unit] (
            Identity
           )
+
+runGM :: GM t -> ([C.Unit], t)
+runGM m = let m' = runWriterT m
+              (r, units) = runIdentity m'
+           in (units, r)
 
 g_ir :: I.IR -> GM ()
 g_ir p = do bs <- mapM g_unit p
@@ -42,6 +48,6 @@ g_body b = do s <- g_stmt b
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt _ =
-    do return (C.Skip)
+    do return C.Skip
 
 g_type _ = do return C.Int
