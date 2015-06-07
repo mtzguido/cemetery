@@ -11,7 +11,7 @@ import Control.Monad.Identity
 
 cgen :: I.IR -> C.Prog
 cgen ir = let (units, ()) = runGM (g_ir ir)
-           in C.Prog { C.includes = ["stdio"], C.units = units}
+           in C.Prog { C.includes = ["stdbool"], C.units = units}
 
 type GM = WriterT [C.Unit] (
            Identity
@@ -34,7 +34,7 @@ g_unit :: I.Unit -> GM ()
 g_unit (I.FunDef (I.Funtype { I.name = name,
                               I.args = args,
                               I.ret  = ret}) body) =
-    do c_args <- g_args args
+    do c_args <- mapM g_arg args
        c_ret <- g_type ret
        c_body <- g_body body
        let ft = C.Funtype { C.name = name, C.args = c_args, C.ret = c_ret }
@@ -43,8 +43,10 @@ g_unit (I.FunDef (I.Funtype { I.name = name,
 g_unit (I.UnitScaf) =
     do tell [C.Comment "UnitScaf"]
 
-g_args :: [(String, I.Type)] -> GM [(String, C.Type)]
-g_args _ = do return []
+g_arg :: (String, I.Type) -> GM (String, C.Type)
+g_arg (n, t) =
+    do t' <- g_type t
+       return (n, t')
 
 g_body :: I.Stmt -> GM C.Block
 g_body b = do s <- g_stmt b
@@ -100,4 +102,5 @@ g_expr (I.Call n args) =
 g_expr (I.ESeq s e) =
     do error "Internal error"
 
-g_type _ = do return C.Int
+g_type I.Int  = do return C.Int
+g_type I.Bool = do return C.Bool
