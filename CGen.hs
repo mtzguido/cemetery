@@ -86,12 +86,12 @@ g_expr (I.BinOp op l r) =
     do ll <- g_expr l
        rr <- g_expr r
        oo <- g_binop op
-       return $ C.BinOp oo ll rr -- FIXME
+       return $ C.BinOp oo ll rr
 
 g_expr (I.UnOp op l) =
     do ll <- g_expr l
        oo <- g_unop op
-       return $ C.UnOp oo ll -- FIXME
+       return $ C.UnOp oo ll
 
 g_expr (I.Var n) =
     do return $ C.Var n
