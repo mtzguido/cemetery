@@ -27,63 +27,28 @@ data Funtype = Funtype { name :: String,
                          ret :: Type }
   deriving (Eq, Show)
 
-data Reg = Temp Int
-         | Lit String -- Literal name on the output language
-  deriving (Eq)
-
-instance Show Reg where
-  show (Temp i) = "r" ++ show i
-  show (Lit s) = s
-
-regn :: Int -> Reg
-regn n = Temp n
-
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
-  deriving (Eq)
-
-instance Show BinOp where
-  show Plus  = "+"
-  show Minus = "-"
-  show Div   = "/"
-  show Prod  = "*"
-  show Eq    = "=="
-  show Mod   = "%"
-  show And   = "&&"
-  show Or    = "||"
+  deriving (Eq, Show)
 
 data UnOp = Neg | Not
-  deriving (Eq)
+  deriving (Eq, Show)
 
-instance Show UnOp where
-  show Neg   = "-"
-  show Not   = "!"
+data LValue = LVar String
+  deriving (Eq, Show)
 
-data Stmt = AssignInt   Reg Int
-          | Assign      Reg Reg
-          | AssignBinOp BinOp Reg Reg Reg   -- First one is result
-          | AssignUnOp  UnOp Reg Reg        -- idem BinOp
-          | Return      Reg
+data Expr = ConstInt   Int
+          | ConstBool  Bool
+          | BinOp      BinOp Expr Expr
+          | UnOp       UnOp Expr
+          | Call       String [Expr]
+          | Var        String
+          | ESeq       Stmt Expr
+  deriving (Eq, Show)
+
+data Stmt = Assign      LValue Expr
+          | Return      Expr
           | Seq         Stmt Stmt
-          | Skip                            -- Simply discard this
-          | If          Reg Stmt Stmt       -- C-like semantics
-          | Call        String [Reg] Reg    -- Last reg is result
-          | StmtScaf    Reg                 -- Reg is only for development
-          | RegDecl     Reg Type            -- Declare a register
-  deriving (Eq)
-
-instance Show Stmt where
-  show (AssignInt r i) = show r ++ " <- #" ++ show i ++ "\n"
-  show (Assign r s) = show r ++ " <- " ++ show s ++ "\n"
-  show (AssignUnOp op r t) = show r ++ " <- " ++ show op ++ " " ++
-                             show t ++ "\n"
-  show (AssignBinOp op r s t) = show r ++ " <- " ++ show s ++ " " ++
-                                show op ++ " " ++ show t ++ "\n"
-  show (Return r) = "return: " ++ show r ++ "\n"
-  show (Seq l r) = show l ++ show r
-  show (Skip) = "\n"
-  show (StmtScaf r) = show r ++ " <- MAGIC!\n"
-  show (If r t e) = "IF (" ++ show r ++ ")\n" ++ indent (show t)
-                     ++ "ELSE\n" ++ indent (show e)
-  show (Call n rs res) = show res ++ " <- " ++ n ++ "(" ++
-                             concat (intersperse ", " (map show rs)) ++ ")\n"
-  show (RegDecl r t) = show r ++ " :: " ++ show t ++ "\n"
+          | Skip                         -- Simply discard this
+          | Expr        Expr
+          | If          Expr Stmt Stmt   -- C-like semantics
+  deriving (Eq, Show)

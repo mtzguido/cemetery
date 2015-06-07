@@ -14,136 +14,12 @@ module Translate where
 import qualified AST as A
 import qualified IR as IR
 import Builtins
+import Infer
+import TMonad
 
 import Common
-import Control.Monad.Error
-import Control.Monad.Identity
-import Control.Monad.State
+import Control.Monad
 import Data.Maybe
-import qualified Data.Map.Strict as M
-
--- Monad definition
-
-type EnvT = M.Map A.VarName (A.Type, IR.Reg)
-
--- State at each level inside the AST
-data LevelState =
-  LevelState {
-      -- env holds the mapping from Cemetery variables
-      -- to their types and register where they're stored.
-      env :: EnvT,
-
-      -- ret_type is the current function's return type,
-      -- to check for invalid returns
-      ret_type :: A.Type,
-
-      -- Counter to create new fresh temporary registers,
-      -- in a very simple and crappy way
-      fresh_counter :: Int,
-
-      temp_decls :: [(IR.Reg, IR.Type)]
-  }
-  deriving (Show)
-
-blank_level :: LevelState
-blank_level = LevelState { env = M.empty, ret_type = A.Invalid,
-                           fresh_counter = 0, temp_decls = [] }
-
--- The monad state is a stack of LevelStates so we can
--- drop the names when moving out of a function.
-data TransState = TSt { level_data :: [LevelState] }
-  deriving Show
-
-initState = TSt { level_data = [] }
-
--- Environment handling
-
-getData :: TM [LevelState]
-getData = do s <- get
-             return $ level_data s
-
-setData :: [LevelState] -> TM ()
-setData es = do s <- get
-                put $ s { level_data = es }
-
-pushLevel :: TM ()
-pushLevel = do e <- getData
-               -- duplicate the current level, except for temp_decls
-               -- which shouldn't empty as its data is not cumulative
-               let l = (head e) { temp_decls = [] }
-               setData (l : e)
-
-popLevel :: TM LevelState
-popLevel = do e <- getData
-              setData (tail e)
-              return (head e)
-
-getLevel :: TM LevelState
-getLevel = do d <- getData
-              return (head d)
-
-setLevel :: LevelState -> TM ()
-setLevel l = do d <- getData
-                setData (l : tail d)
-
-addRegDecl :: IR.Reg -> IR.Type -> TM ()
-addRegDecl r t = do l <- getLevel
-                    let ds = temp_decls l
-                    setLevel l { temp_decls = (r,t) : ds }
-
-getEnv :: TM EnvT
-getEnv = do l <- getLevel
-            return (env l)
-
-setEnv :: EnvT -> TM ()
-setEnv e = do l <- getLevel
-              setLevel (l { env = e })
-
-getRetType :: TM A.Type
-getRetType = do l <- getLevel
-                return (ret_type l)
-
-setRetType :: A.Type -> TM ()
-setRetType t = do l <- getLevel
-                  setLevel (l { ret_type = t})
-
-ff :: Maybe a -> Maybe a -> Maybe a
-ff (Just x) _ = Just x
-ff Nothing m = m
-
-env_lookup :: String -> TM (A.Type, IR.Reg )
-env_lookup s = do e <- getEnv
-                  case M.lookup s e of
-                    Nothing -> error $ "undefined variable: " ++ s
-                    Just i -> return i
-
-addToEnv :: String -> A.Type -> IR.Reg -> TM ()
-addToEnv n t r = do e <- getEnv
-                    let e' = M.insert n (t, r) e
-                    setEnv e'
-
-fresh :: IR.Type -> TM IR.Reg
-fresh t = do l <- getLevel
-             let i = fresh_counter l
-             setLevel (l { fresh_counter = i + 1 })
-             let r = IR.Temp i
-             addRegDecl r t
-             return r
-
--- Translator Monad definition
-type TM =
-  ErrorT CmtError (
-   StateT TransState (
-    Identity
-  ))
-
-runTranslate :: TM a -> (TransState, Either CmtError a)
-runTranslate m = let a = runErrorT m
-                     b = runStateT a initState
-                     (c, s) = runIdentity b
-                  in case c of
-                       Left e -> (s, Left e)
-                       Right a' -> (s, Right a')
 
 semanticT :: A.Prog -> (TransState, Either CmtError IR.IR)
 semanticT = runTranslate.translate
@@ -158,11 +34,17 @@ sseq l r = IR.Seq l r
 irlist :: [IR.Stmt] -> IR.Stmt
 irlist l = foldl sseq IR.Skip l
 
-add_one (name, typ, c_name) =
-    do addToEnv name typ (IR.Lit c_name)
-
 add_builtins =
-    do mapM add_one builtins
+    do mapM (uncurry addToEnv) builtins
+
+-- These functions take care of name clashes,
+-- the first one fails, while the second one
+-- tries to find a similar unused name
+
+requestName s =
+    do return ()
+requestSimilar s =
+    do return s
 
 -- Each Cemetery unit is a IR unit, at least for now,
 -- so just mapM the unit translation
@@ -171,8 +53,10 @@ translate prog = do -- Push a first level and add builtins to it
                     setData [blank_level]
                     add_builtins
                     ir <- mapM translate1 prog
-                    lvl <- popLevel -- Useful?
+                    last_lvl <- popLevel
                     return ir
+
+fun_t args ret = A.Fun (map snd args) ret
 
 translate1 :: A.Decl -> TM IR.Unit
 translate1 (A.VarDecl _ _ _ _) =
@@ -181,231 +65,117 @@ translate1 (A.Struct) =
     do return IR.UnitScaf
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
-    do -- First translate the name, and add it to the
-       -- environment. This enables recursion.
-       ir_name <- getUnusedName name
-       let fun_t = A.Fun (map snd args) ret
-       addToEnv name fun_t (IR.Lit ir_name)
+    do ir_ret <- tmap ret
+       requestName name
+       addToEnv name (EnvV { typ = fun_t args ret, ir_name = name })
+       let tr_arg (s, t) = do s' <- requestSimilar s
+                              t' <- tmap t
+                              addToEnv s (EnvV { typ = t,
+                                                 ir_name = s' })
+                              return (s', t')
+
+       ir_args <- mapM tr_arg args
 
        pushLevel
-       ir_args <- mapM tr_arg args
-       ir_ret  <- tmap ret
+       setRetType ret
        ir_body <- tr_stmt body
-       lvl <- popLevel
+       popLevel
 
-       full_body <- addRegDecls lvl ir_body
-
-       return $ IR.FunDef (IR.Funtype { IR.name = ir_name,
-                                        IR.args = ir_args,
-                                        IR.ret  = ir_ret }) full_body
-
-addRegDecls :: LevelState -> IR.Stmt -> TM IR.Stmt
-addRegDecls lvl body =
-    do let ds = map (\(r,t) -> IR.RegDecl r t) $ reverse $ temp_decls lvl
-       let ds_ir = foldl sseq IR.Skip ds
-       return (sseq ds_ir body)
-
-getUnusedName n = do return n
-
-infer :: A.Expr -> TM A.Type
-infer (A.ConstInt _) =
-    do return A.Int
-infer (A.ConstBool _) =
-    do return A.Bool
-infer (A.BinOp op l r) =
-    do lt <- infer l
-       rt <- infer r
-       poss <- find_matching_binop op lt rt
-       let et = case poss of
-                  [] -> error "Operator type mismatch"
-                  [(t, _)] -> t
-                  _ -> error "What"
-       return et
-infer (A.UnOp op l) =
-    do lt <- infer l
-       poss <- find_matching_unop op lt
-       let et = case poss of
-                  [] -> error "Operator type mismatch"
-                  [(t, _)] -> t
-                  _ -> error "What"
-       return et
-infer (A.Var n) =
-    do (t, _) <- env_lookup n
-       return t
-infer _ =
-    do error "I.O.U."
+       let ft = IR.Funtype { IR.name = name,
+                             IR.args = ir_args,
+                             IR.ret = ir_ret }
+       return (IR.FunDef ft ir_body)
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
     do return IR.Skip
-
-tr_stmt (A.Decl (A.VarDecl name mods mt me)) =
-    do when (mt == Nothing && me == Nothing) $
-         error "Variables need to have either a type or an initializer"
-       typ <- case mt of
-                Just t -> return t
-                Nothing -> infer (fromJust me)
-       ir_name <- getUnusedName name
-       ir_t <- tmap typ
-       addToEnv name A.Int (IR.Lit ir_name)
-       addRegDecl (IR.Lit ir_name) ir_t
-
-       ir <- case me of
-         Nothing -> return IR.Skip
-         Just e -> do (e_typ, e_ir, e_reg) <- tr_expr e
-                      when (not (tmatch e_typ typ)) $
-                        error "Initializer doesn't match type"
-                      return $ irlist [e_ir, IR.Assign (IR.Lit ir_name) e_reg]
-       return ir
-
-tr_stmt (A.Seq l r) =
-    do l_ir <- tr_stmt l
-       r_ir <- tr_stmt r
-       return (sseq l_ir r_ir)
-
-tr_stmt (A.Assign name e) =
-    do (t, rv) <- env_lookup name
-       (_, e_ir, e_res) <- tr_expr e
-       return $ sseq e_ir (IR.Assign rv e_res)
+tr_stmt (A.Assign n e) =
+    do d <- env_lookup n
+       (t_e, ir_e) <- tr_expr e
+       when (not (tmatch t_e (typ d))) (error "type mismatch")
+       return $ IR.Assign (IR.LVar (ir_name d)) (ir_e)
 
 tr_stmt (A.Return e) =
-    do (_, e_ir, e_res) <- tr_expr e
-       return $ sseq e_ir (IR.Return e_res)
+    do rt <- getRetType
+       (t_e, ir_e) <- tr_expr e
+       when (not (tmatch rt t_e)) (error "invalid return")
+       return (IR.Return ir_e)
+
+tr_stmt (A.Seq l r) =
+    do ll <- tr_stmt l
+       rr <- tr_stmt r
+       return $ sseq ll rr
+
+tr_stmt (A.Decl d) =
+    do tr_decl d
 
 tr_stmt (A.If c t e) =
-    do (c_typ, c_ir, c_reg) <- tr_expr c
+    do (c_t, c_ir) <- tr_expr c
+       when (not (tmatch c_t A.Bool))
+        (error "If conditions have to be of type Bool")
+       tt <- tr_stmt t
+       ee <- tr_stmt e
+       return $ IR.If c_ir tt ee
 
-       when (not (tmatch c_typ A.Bool)) $
-           error "Condition type for If must be a boolean"
+tr_decl (A.VarDecl n mods mt me) =
+    do rt <- if me /= Nothing
+             then if mt /= Nothing
+                  then do inf <- infer (fromJust me)
+                          when (not (tmatch (fromJust mt) inf))
+                           (error "Type an initializer don't match")
+                          return inf
+                  else infer (fromJust me)
+             else if mt /= Nothing
+                  then return (fromJust mt)
+                  else
+                   error "Variables need either a type or an initializer"
+       n' <- requestSimilar n
+       addToEnv n (EnvV { typ = rt, ir_name = n' })
+       return IR.Skip
 
-       pushLevel
-       t_body <- tr_stmt t
-       lvl_t <- popLevel
-       pushLevel
-       e_body <- tr_stmt e
-       lvl_e <- popLevel
-
-       t_ir <- addRegDecls lvl_t t_body
-       e_ir <- addRegDecls lvl_e e_body
-       return $ sseq c_ir (IR.If c_reg t_ir e_ir)
-
-tr_expr :: A.Expr -> TM (A.Type, IR.Stmt, IR.Reg)
+tr_expr :: A.Expr -> TM (A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =
-    do r <- fresh IR.Int
-       return (A.Int, IR.AssignInt r i, r)
-
-tr_expr (A.BinOp op l r) =
-    do (l_typ, l_ir, l_reg) <- tr_expr l
-       (r_typ, r_ir, r_reg) <- tr_expr r
-
-       possible <- find_matching_binop op l_typ r_typ
-       let (typ, ir_op) = case possible of
-                            [] -> error "Operator type mismatch"
-                            [(t, o)] -> (t, o)
-                            _ -> error "What"
-
-       ir_t <- tmap typ
-       e_reg <- fresh ir_t
-
-       let stmt = irlist [l_ir, r_ir, IR.AssignBinOp ir_op e_reg l_reg r_reg]
-       return (typ, stmt, e_reg)
-
-tr_expr (A.UnOp op e) =
-    do (e_typ, e_ir, e_reg) <- tr_expr e
-
-       possible <- find_matching_unop op e_typ
-       let (typ, ir_op) = case possible of
-                            [] -> error "Operator type mismatch"
-                            [(t, o)] -> (t, o)
-                            _ -> error "What"
-
-       ir_t <- tmap typ
-       r_reg <- fresh ir_t
-
-       let stmt = irlist [e_ir, IR.AssignUnOp ir_op r_reg e_reg]
-       return (typ, stmt, e_reg)
-
-tr_expr (A.Var name) =
-    do (t, r) <- env_lookup name
-       return (t, IR.Skip, r)
-
-tr_expr (A.Call name args) =
-    do args_tr <- mapM tr_expr args
-       (f_type, f_sym) <- env_lookup name
-       let A.Fun f_args_t ret_type = f_type
-
-       let ir_name = case f_sym of
-                       IR.Temp _ -> error "symbol is not a cemetery func"
-                       IR.Lit n -> n
-
-       let (args_t, args_ir, args_regs) = unzip3 args_tr
-
-       let ok = all id $ map (uncurry tmatch) (zip f_args_t args_t)
-       when (not ok) $ error "call arguments do not type"
-
-       ir_ret_t <- tmap ret_type
-       result <- fresh ir_ret_t
-       let call = IR.Call ir_name args_regs result
-       return (ret_type, irlist (args_ir ++ [call]), result)
+    do return (A.Int, IR.ConstInt i)
 
 tr_expr (A.ConstBool b) =
-    do r <- fresh IR.Bool
-       return (A.Bool,IR.AssignInt r (if b == True then 1 else 0), r)
+    do return (A.Bool, IR.ConstBool b)
 
-tr_expr _ = -- FIXME
-    do r <- fresh IR.Int
-       return (A.Int, IR.StmtScaf r, r)
+tr_expr (A.BinOp op l r) =
+    do (l_t, l_ir) <- tr_expr l
+       (r_t, r_ir) <- tr_expr r
+       (e_t, ir_op) <- liftM head (find_matching_binop op l_t r_t)
+       return (e_t, IR.BinOp ir_op l_ir r_ir)
 
-tr_arg :: (String, A.Type) -> TM (String, IR.Type)
-tr_arg (s, t) = do ir_t <- tmap t
-                   ir_name <- getUnusedName s
-                   addToEnv s t (IR.Lit ir_name)
-                   return (s, ir_t)
+tr_expr (A.UnOp op l) =
+    do (l_t, l_ir) <- tr_expr l
+       (e_t, ir_op) <- liftM head (find_matching_unop op l_t)
+       return (e_t, IR.UnOp ir_op l_ir)
+
+tr_expr (A.Var n) =
+    do d <- env_lookup n
+       return (typ d, IR.Var (ir_name d))
+
+tr_expr (A.Call f args) =
+    do d <- env_lookup f
+       let A.Fun expected_t ret = typ d
+       as <- mapM tr_expr args
+       let (actual_t, args_ir) = unzip as
+
+       let ok = zipWith tmatch actual_t expected_t
+       when (not (all id ok)) (error "ill typed function argument")
+
+       return (ret, IR.Call (ir_name d) args_ir)
+
+tr_expr (A.ConstFloat _) =
+    do error "Floats unsupported"
+
+tr_expr (A.ConstStr _) =
+    do error "Strings unsupported"
+
+tr_expr (A.BinLit _) =
+    do error "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
-
-tmatch :: A.Type -> A.Type -> Bool
-tmatch p q = p == q
-
--- This structure describes how to map binary operators. For a given
--- Cemetery operator and the type of each of its two operands, we give
--- the type of the result and the corresponding IR operator.
---
--- In a future, we may use not only IR operators but function calls, or
--- even enable operator polymorphism.
-binop_mapping = [
-{-
- cmt_op     l_type   r_type   res_type  ir_op
--}
- (A.Plus,   A.Int,   A.Int,   A.Int,    IR.Plus),
- (A.Minus,  A.Int,   A.Int,   A.Int,    IR.Minus),
- (A.Div,    A.Int,   A.Int,   A.Int,    IR.Div),
- (A.Prod,   A.Int,   A.Int,   A.Int,    IR.Prod),
- (A.Mod,    A.Int,   A.Int,   A.Int,    IR.Mod),
- (A.Eq,     A.Int,   A.Int,   A.Bool,   IR.Eq),
- (A.And,    A.Bool,  A.Bool,  A.Bool,   IR.And),
- (A.Or,     A.Bool,  A.Bool,  A.Bool,   IR.Or)
- ]
-
-find_matching_binop :: A.BinOp -> A.Type -> A.Type -> TM [(A.Type, IR.BinOp)]
-find_matching_binop op l_typ r_typ =
-    do let l = filter (\(o, lt, rt, et, ir_op) ->
-                op == o && tmatch l_typ lt && tmatch r_typ rt) binop_mapping
-       return $ map (\(a,b,c,d,e) -> (d,e)) l
-
-unop_mapping = [
-{-
- cmt_op     e_type   res_type  ir_op
--}
- (A.Neg,    A.Int,   A.Int,    IR.Neg),
- (A.Not,    A.Bool,  A.Bool,   IR.Not)
- ]
-
-find_matching_unop :: A.UnOp -> A.Type -> TM [(A.Type, IR.UnOp)]
-find_matching_unop op e_typ =
-    do let l = filter (\(o, et, rt, ir_op) ->
-                op == o && tmatch e_typ et) unop_mapping
-       return $ map (\(a,b,c,d) -> (c,d)) l

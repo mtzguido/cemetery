@@ -3,7 +3,11 @@
 module Builtins where
 
 import AST
+import TMonad
+
+e :: EnvV
+e = EnvV { typ = Invalid, ir_name = "" }
 
 builtins = [
- ("even", Fun [Int] Bool, "__cmt_even")
+ ("even", e { typ = Fun [Int] Bool, ir_name = "__cmt_even"})
  ]

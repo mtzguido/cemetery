@@ -19,7 +19,7 @@ indent :: String -> String
 indent s = unlines $ map ('\t':) $ lines s
 
 -- Single stub error, should be expanded later on
-data CmtError = CmtErr
+data CmtError = CmtErr String
   deriving Show
 
 instance Error CmtError where
