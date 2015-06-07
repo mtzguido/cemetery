@@ -58,6 +58,9 @@ p_stmt (Seq l r) =
     do p_stmt l
        p_stmt r
 
+p_stmt Skip =
+    do return ()
+
 p_stmt (If c t e) =
     do cc <- p_expr c
        line ("if (" ++ cc ++ ") {")
@@ -66,13 +69,45 @@ p_stmt (If c t e) =
        indent $ p_block e
        line "}"
 
-p_stmt (_) =
-    do comment "stmt"
+p_stmt (Assign n e) =
+    do ee <- p_expr e
+       line $ n ++ " = " ++ ee ++ ";"
+
+p_stmt (Return e) =
+    do ee <- p_expr e
+       line $ "return " ++ ee ++ ";"
 
 p_typ Int = do return "int"
 p_typ Bool = do return "bool"
 
-p_expr _ = do return "magic expr"
+p_expr (BinOp op l r) =
+    do oo <- p_binop op
+       ll <- p_expr l
+       rr <- p_expr r
+       return $ paren (ll ++ " " ++ oo ++ " " ++ rr)
+
+p_expr (UnOp op l) =
+    do oo <- p_unop op
+       ll <- p_expr l
+       return $ paren (oo ++ " " ++ ll)
+
+p_expr (ConstInt i) =
+    do return $ show i
+
+p_expr (ConstBool b) =
+    do return $ if b == True then "true" else "false"
+
+p_expr (ConstFloat f) =
+    do return $ show f
+
+p_expr (Call s args) =
+    do as <- mapM p_expr args
+       return $ paren (s ++ "(" ++ concat (intersperse "," as) ++ ")")
+
+p_expr (Var s) =
+    do return s
+
+paren s = "(" ++ s ++ ")"
 
 p_args l =
     do as <- mapM p_arg l
@@ -81,3 +116,15 @@ p_args l =
 p_arg (n, t) =
     do tt <- p_typ t
        return $ tt ++ " " ++ n
+
+p_binop Plus  = do return "+"
+p_binop Minus = do return "-"
+p_binop Prod  = do return "*"
+p_binop Div   = do return "/"
+p_binop Eq    = do return "=="
+p_binop Mod   = do return "%"
+p_binop And   = do return "&&"
+p_binop Or    = do return "||"
+
+p_unop NegateNum = do return "-"
+p_unop Not       = do return "!"

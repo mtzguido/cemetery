@@ -85,11 +85,13 @@ g_expr (I.ConstBool b) =
 g_expr (I.BinOp op l r) =
     do ll <- g_expr l
        rr <- g_expr r
-       return $ C.BinOp C.Plus ll rr -- FIXME
+       oo <- g_binop op
+       return $ C.BinOp oo ll rr -- FIXME
 
 g_expr (I.UnOp op l) =
     do ll <- g_expr l
-       return $ C.UnOp C.NegateNum ll -- FIXME
+       oo <- g_unop op
+       return $ C.UnOp oo ll -- FIXME
 
 g_expr (I.Var n) =
     do return $ C.Var n
@@ -104,3 +106,15 @@ g_expr (I.ESeq s e) =
 
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
+
+g_binop I.Plus  = do return C.Plus
+g_binop I.Minus = do return C.Minus
+g_binop I.Div   = do return C.Div
+g_binop I.Prod  = do return C.Prod
+g_binop I.Eq    = do return C.Eq
+g_binop I.Mod   = do return C.Mod
+g_binop I.And   = do return C.And
+g_binop I.Or    = do return C.Or
+
+g_unop I.Neg = do return C.NegateNum
+g_unop I.Not = do return C.Not

@@ -44,17 +44,17 @@ data Expr = BinOp BinOp Expr Expr
           | Call String [Expr]
           | Var String
           | ConstBool Bool
-          | ConstStr String
-          | ConstArr [Word8]
-          | StructVal [(String, Expr)]
-          | PtrTo String
+--          | ConstStr String
+--          | ConstArr [Word8]
+--          | StructVal [(String, Expr)]
+--          | PtrTo String
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod
-           | Eq | Mod
+           | Eq | Mod | And | Or
   deriving (Eq, Show)
 
-data UnOp = NegateNum
+data UnOp = NegateNum | Not
   deriving (Eq, Show)
 
 data Type = Int | Bool
