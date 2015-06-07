@@ -11,7 +11,7 @@ import Control.Monad.Identity
 
 cgen :: I.IR -> C.Prog
 cgen ir = let (units, ()) = runGM (g_ir ir)
-           in C.Prog { C.includes = [], C.units = units}
+           in C.Prog { C.includes = ["stdio"], C.units = units}
 
 type GM = WriterT [C.Unit] (
            Identity
