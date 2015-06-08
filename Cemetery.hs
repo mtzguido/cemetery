@@ -145,4 +145,6 @@ work = do (opts, basename) <- ask
           lift $ putStrLn "C text:"
           lift $ putStrLn ctext
 
+          lift $ writeFile outC ctext
+
           return ()
