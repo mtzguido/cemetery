@@ -31,6 +31,10 @@ g_ir p = do bs <- mapM g_unit p
             return ()
 
 g_unit :: I.Unit -> GM ()
+g_unit (I.Decl d) =
+    do d' <- g_decl d
+       tell [C.Decl d']
+
 g_unit (I.FunDef (I.Funtype { I.name = name,
                               I.args = args,
                               I.ret  = ret}) body) =
@@ -39,9 +43,6 @@ g_unit (I.FunDef (I.Funtype { I.name = name,
        c_body <- g_body body
        let ft = C.Funtype { C.name = name, C.args = c_args, C.ret = c_ret }
        tell [C.FunDef ft c_body]
-
-g_unit (I.UnitScaf) =
-    do tell [C.Comment "UnitScaf"]
 
 g_arg :: (String, I.Type) -> GM (String, C.Type)
 g_arg (n, t) =

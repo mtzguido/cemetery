@@ -15,8 +15,8 @@ import IR
 optimize :: IR -> IR
 optimize p = map o_unit p
 
-o_unit UnitScaf = UnitScaf
 o_unit (FunDef ft body) = FunDef ft (o_body body)
+o_unit x = x
 
 o_body (d, s) = (d, o_stmt s)
 

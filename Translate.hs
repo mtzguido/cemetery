@@ -59,10 +59,13 @@ translate prog = do -- Push a first level and add builtins to it
 fun_t args ret = A.Fun (map snd args) ret
 
 translate1 :: A.Decl -> TM IR.Unit
-translate1 (A.VarDecl _ _ _ _) =
-    do return IR.UnitScaf
+translate1 d@(A.VarDecl _ _ _ _) =
+    do d' <- tr_decl d
+       return $ IR.Decl d'
+
 translate1 (A.Struct) =
-    do return IR.UnitScaf
+    do error "structs are not supported"
+
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret
@@ -111,7 +114,8 @@ tr_stmt (A.Seq l r) =
        return $ sseq ll rr
 
 tr_stmt (A.Decl d) =
-    do tr_decl d
+    do d' <- tr_decl d
+       addDecl d'
        return IR.Skip
 
 tr_stmt (A.If c t e) =
@@ -137,8 +141,7 @@ tr_decl (A.VarDecl n mods mt me) =
        n' <- requestSimilar n
        addToEnv n (EnvV { typ = rt, ir_name = n' })
        ir_t <- tmap rt
-       addDecl (IR.DeclareVar n' ir_t)
-       return ()
+       return $ IR.DeclareVar n' ir_t
 
 tr_expr :: A.Expr -> TM (A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =

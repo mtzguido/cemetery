@@ -34,8 +34,8 @@ p_inc f = line ("#include <" ++ f ++ ".h>")
 
 comment s = line ("/* " ++ s ++ " */")
 
-p_unit (Decl _) =
-    do comment "Decl"
+p_unit (Decl d@(VarDecl n t me _)) =
+    do p_decl d
 
 p_unit (FunDecl _) =
     do comment "FunDecl"
@@ -57,7 +57,12 @@ p_block (decls, stmt) =
 
 p_decl (VarDecl n t me mods) =
     do t <- p_typ t
-       line $ t ++ " " ++ n ++ ";"
+       init <- case me of
+                 Nothing -> do return ""
+                 Just e -> do e' <- p_expr e
+                              return $ " = " ++ e'
+
+       line $ t ++ " " ++ n ++ init ++ ";"
 
 p_stmt (Seq l r) =
     do p_stmt l

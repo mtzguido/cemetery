@@ -19,7 +19,7 @@ data Type = Int | Bool
   deriving (Eq, Show)
 
 data Unit = FunDef Funtype Block
-          | UnitScaf
+          | Decl Decl
   deriving (Eq, Show)
 
 data Funtype = Funtype { name :: String,

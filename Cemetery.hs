@@ -75,14 +75,8 @@ get_toks = do c <- alexMonadScan
                         return (c ++ cs)
 
 showIRUnit :: IR.Unit -> App ()
-showIRUnit UnitScaf =
-    do lift $ putStrLn "UnitScaf"
-
-showIRUnit (FunDef (Funtype { IR.name = name,
-                              IR.args = args,
-                              IR.ret = ret }) body) =
-    do lift $ putStrLn $ "function: " ++ name ++ "(" ++ show (length args) ++ ")"
-       lift $ putStrLn $ show body
+showIRUnit ir =
+    do lift $ putStrLn $ show ir
 
 work :: App ()
 work = do (opts, basename) <- ask
