@@ -139,6 +139,6 @@ work = do (opts, basename) <- ask
           lift $ putStrLn "C text:"
           lift $ putStrLn ctext
 
-          lift $ writeFile outC ctext
+          lift $ writeFile outC (cprologue ++ ctext)
 
           return ()
