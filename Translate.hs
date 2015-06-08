@@ -87,7 +87,7 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
        let ft = IR.Funtype { IR.name = name,
                              IR.args = ir_args,
                              IR.ret = ir_ret }
-       return $ IR.FunDef ft (decls l, ir_body_s)
+       return $ IR.FunDef ft (reverse $ decls l, ir_body_s)
 
 tr_body :: A.Stmt -> TM IR.Block
 tr_body b = do s <- tr_stmt b
