@@ -5,3 +5,8 @@
 
 - Fix initialization of declared variables. Currently they're ignored
   by the translator.
+
+- Pretty print continued if-then-else's so we don't get a huge
+  indent. Test 16 is an example of this
+
+- Be smart with parenthesis
