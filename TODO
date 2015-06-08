@@ -2,3 +2,6 @@
   a one-to-one map? If not, what can we assume?
 
 - Fix every FIXME
+
+- Fix initialization of declared variables. Currently they're ignored
+  by the translator.
