@@ -66,6 +66,12 @@ p_stmt (Seq l r) =
 p_stmt Skip =
     do return ()
 
+p_stmt (If c t (_, Skip)) =
+    do cc <- p_expr c
+       line ("if (" ++ cc ++ ") {")
+       indent $ p_block t
+       line "}"
+
 p_stmt (If c t e) =
     do cc <- p_expr c
        line ("if (" ++ cc ++ ") {")

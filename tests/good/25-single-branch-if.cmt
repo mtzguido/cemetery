@@ -1,0 +1,6 @@
+fun crap(x : int) : int
+	var y = x*x + x
+	if y == 0
+		y = 1
+
+	return y
