@@ -14,7 +14,7 @@ module Translate where
 import qualified AST as A
 import qualified IR as IR
 import Builtins
-import Infer
+import Type
 import TMonad
 
 import Common
