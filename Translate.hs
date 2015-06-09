@@ -130,7 +130,7 @@ tr_decl (A.VarDecl n mods Nothing  Nothing) =
     do error "Variables need either a type or an initializer"
 
 tr_decl (A.VarDecl n mods (Just t) Nothing) =
-    do tr_vdecl n mods t Nothing
+    do tr_vdecl n mods t (Just $ default_initializer t)
 
 -- TODO: Prevent function calls on global initializers
 tr_decl (A.VarDecl n mods (Just t) (Just e)) =

@@ -48,3 +48,7 @@ find_matching_unop op e_typ =
     do let l = filter (\(o, et, rt, ir_op) ->
                 op == o && tmatch e_typ et) unop_mapping
        return $ map (\(a,b,c,d) -> (c,d)) l
+
+default_initializer :: Type -> IR.Expr
+default_initializer Int  = IR.ConstInt 0
+default_initializer Bool = IR.ConstBool False
