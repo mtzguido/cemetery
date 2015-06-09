@@ -18,6 +18,13 @@ traceM s = trace s (return ())
 indent :: String -> String
 indent s = unlines $ map ('\t':) $ lines s
 
+-- Suposedly in package Maybes, but let's not introduce
+-- dependencies
+fmapM_maybe :: Monad m => (a -> m b) -> Maybe a -> m (Maybe b)
+fmapM_maybe f Nothing  = do return Nothing
+fmapM_maybe f (Just a) = do v <- f a
+                            return (Just v)
+
 -- Single stub error, should be expanded later on
 data CmtError = CmtErr String
   deriving Show

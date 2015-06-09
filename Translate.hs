@@ -126,22 +126,29 @@ tr_stmt (A.If c t e) =
        ee <- tr_body e
        return $ IR.If c_ir tt ee
 
-tr_decl (A.VarDecl n mods mt me) =
-    do rt <- if me /= Nothing
-             then if mt /= Nothing
-                  then do inf <- infer (fromJust me)
-                          when (not (tmatch (fromJust mt) inf))
-                           (error "Type an initializer don't match")
-                          return inf
-                  else infer (fromJust me)
-             else if mt /= Nothing
-                  then return (fromJust mt)
-                  else
-                   error "Variables need either a type or an initializer"
-       n' <- requestSimilar n
-       addToEnv n (EnvV { typ = rt, ir_name = n' })
-       ir_t <- tmap rt
-       return $ IR.DeclareVar n' ir_t
+tr_decl (A.VarDecl n mods Nothing  Nothing) =
+    do error "Variables need either a type or an initializer"
+
+tr_decl (A.VarDecl n mods (Just t) Nothing) =
+    do tr_vdecl n mods t Nothing
+
+-- TODO: Prevent function calls on global initializers
+tr_decl (A.VarDecl n mods (Just t) (Just e)) =
+    do (e_t, e_ir) <- tr_expr e
+       when (not (tmatch e_t t))
+         (error "Type an initializer don't match")
+       tr_vdecl n mods e_t (Just e_ir)
+
+tr_decl (A.VarDecl n mods Nothing  (Just e)) =
+    do (e_t, e_ir) <- tr_expr e
+       tr_vdecl n mods e_t (Just e_ir)
+
+tr_vdecl :: String -> [A.VarModifiers] -> A.Type -> Maybe IR.Expr -> TM IR.Decl
+tr_vdecl n mods typ ir =
+    do n' <- requestSimilar n   -- TODO: use requestName when global decl
+       addToEnv n (EnvV { typ = typ, ir_name = n' })
+       ir_t <- tmap typ
+       return $ IR.DeclareVar n' ir_t ir
 
 tr_expr :: A.Expr -> TM (A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =

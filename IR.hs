@@ -47,7 +47,7 @@ data Expr = ConstInt   Int
 
 type Block = ([Decl], Stmt)
 
-data Decl = DeclareVar  String Type
+data Decl = DeclareVar  String Type (Maybe Expr)
   deriving (Eq, Show)
 
 data Stmt = Assign      LValue Expr

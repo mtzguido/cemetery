@@ -56,9 +56,10 @@ g_body (d, s) =
        return (d', s')
 
 g_decl :: I.Decl -> GM C.Decl
-g_decl (I.DeclareVar n t) =
+g_decl (I.DeclareVar n t me) =
     do tt <- g_type t
-       return $ C.VarDecl n tt Nothing []
+       me_c <- fmapM_maybe g_expr me
+       return $ C.VarDecl n tt me_c []
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =
