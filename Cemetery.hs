@@ -17,13 +17,14 @@ import CGen
 import CPrint
 
 data Opts = StopLexer | StopParse | StopTranslate
-          | StopGen
+          | StopGen | NoOutput
           | Verbose deriving (Eq, Show)
 
 -- Monadic type for the program logic
 type App = ReaderT ([Opts], String) IO
 
 options = [
+ Option ['n'] ["no-output"] (NoArg NoOutput) "don't output to files",
  Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
  Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
  Option [] ["translate", "trans"] (NoArg StopTranslate) "stop after translation",
@@ -51,11 +52,17 @@ main = do args <- getArgs
 
 do1Work flags file = runReaderT work (flags, file)
 
-breakIf f = do (opts, _) <- ask
-               if elem f opts then
-                 lift exitSuccess
-               else
-                 return ()
+ifNotOpt f m = do (opts, _) <- ask
+                  if elem f opts
+                    then return ()
+                    else m
+
+ifOpt f m = do (opts, _) <- ask
+               if elem f opts
+                 then m
+                 else return ()
+
+breakIf f = ifOpt f (lift exitSuccess)
 
 dbg s   = do (v, _) <- ask
              when (elem Verbose v) $ lift (putStr s)
@@ -139,6 +146,6 @@ work = do (opts, basename) <- ask
           lift $ putStrLn "C text:"
           lift $ putStrLn ctext
 
-          lift $ writeFile outC (cprologue ++ ctext)
+          ifNotOpt NoOutput $ lift $ writeFile outC (cprologue ++ ctext)
 
           return ()
