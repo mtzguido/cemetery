@@ -71,19 +71,8 @@ p_stmt (Seq l r) =
 p_stmt Skip =
     do return ()
 
-p_stmt (If c t (_, Skip)) =
-    do cc <- p_expr c
-       line ("if (" ++ cc ++ ") {")
-       indent $ p_block t
-       line "}"
-
-p_stmt (If c t e) =
-    do cc <- p_expr c
-       line ("if (" ++ cc ++ ") {")
-       indent $ p_block t
-       line "} else {"
-       indent $ p_block e
-       line "}"
+p_stmt s@(If _ _ _) =
+    do p_if "" s
 
 p_stmt (Assign n e) =
     do ee <- p_expr e
@@ -132,6 +121,27 @@ p_args l =
 p_arg (n, t) =
     do tt <- p_typ t
        return $ tt ++ " " ++ n
+
+p_if lead (If c t (_, Skip)) =
+    do cc <- p_expr c
+       line (lead ++ "if (" ++ cc ++ ") {")
+       indent $ p_block t
+       line "}"
+
+p_if lead (If c t ([], i@(If _ _ _))) =
+    do cc <- p_expr c
+       line (lead ++ "if (" ++ cc ++ ") {")
+       indent $ p_block t
+       p_if "} else " i
+
+p_if lead (If c t e) =
+    do cc <- p_expr c
+       line (lead ++ "if (" ++ cc ++ ") {")
+       indent $ p_block t
+       line "} else {"
+       indent $ p_block e
+       line "}"
+
 
 p_binop Plus  = do return "+"
 p_binop Minus = do return "-"
