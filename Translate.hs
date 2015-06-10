@@ -178,6 +178,9 @@ tr_expr (A.Call f args) =
        as <- mapM tr_expr args
        let (actual_t, args_ir) = unzip as
 
+       when (length actual_t /= length expected_t)
+           (error "wrong number of arguments")
+
        let ok = zipWith tmatch actual_t expected_t
        when (not (all id ok)) (error "ill typed function argument")
 
