@@ -166,7 +166,7 @@ backslash (p,_,_,_) _ = do (inds, ll) <- getIndentInfo
                            setIndentInfo (inds, ll+1)
                            return []
 
-data Token = Tok Sym AlexPosn | EOF | NoTok
+data Token = Tok Sym AlexPosn | EOF
   deriving (Show)
 
 simple = ind.simple'
