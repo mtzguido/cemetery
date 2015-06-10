@@ -34,6 +34,7 @@ data UnOp = Neg | Not
   deriving (Eq, Show)
 
 data LValue = LVar String
+            | Temp Int
   deriving (Eq, Show)
 
 data Expr = ConstInt   Int
@@ -41,13 +42,14 @@ data Expr = ConstInt   Int
           | BinOp      BinOp Expr Expr
           | UnOp       UnOp Expr
           | Call       String [Expr]
-          | Var        String
+          | LV         LValue
           | ESeq       Stmt Expr
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)
 
 data Decl = DeclareVar  String Type (Maybe Expr)
+          | DeclareTemp Int    Type
   deriving (Eq, Show)
 
 data Stmt = Assign      LValue Expr

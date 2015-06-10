@@ -74,6 +74,11 @@ g_stmt (I.Assign (I.LVar s) e) =
     do c_e <- g_expr e
        return (C.Assign s c_e)
 
+g_stmt (I.Assign (I.Temp i) e) =
+    do c_e <- g_expr e
+       let v = "cmt_temp_" ++ show i
+       return (C.Assign v c_e)
+
 g_stmt (I.If c t e) =
     do c_c <- g_expr c
        c_t <- g_body t
@@ -102,8 +107,11 @@ g_expr (I.UnOp op l) =
        oo <- g_unop op
        return $ C.UnOp oo ll
 
-g_expr (I.Var n) =
+g_expr (I.LV (I.LVar n)) =
     do return $ C.Var n
+
+g_expr (I.LV (I.Temp i)) =
+    do return $ C.Var ("cmt_temp_" ++ show i)
 
 g_expr (I.Call n args) =
     do c_args <- mapM g_expr args

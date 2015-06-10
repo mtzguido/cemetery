@@ -170,7 +170,7 @@ tr_expr (A.UnOp op l) =
 
 tr_expr (A.Var n) =
     do d <- env_lookup n
-       return (typ d, IR.Var (ir_name d))
+       return (typ d, IR.LV (IR.LVar (ir_name d)))
 
 tr_expr (A.Call f args) =
     do d <- env_lookup f
