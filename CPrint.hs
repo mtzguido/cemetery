@@ -9,10 +9,10 @@ import Control.Monad.Identity
 
 type PM = WriterT [String] Identity
 
-cprint :: Prog -> String
-cprint p = let m' = runWriterT (p_prog p)
-               (r, lines) = runIdentity m'
-            in concat (intersperse "\n" lines)
+cprint :: String -> Prog -> String
+cprint prologue p = let m' = runWriterT (p_prog prologue p)
+                        (r, lines) = runIdentity m'
+                     in concat (intersperse "\n" lines)
 
 line s = tell [s]
 
@@ -22,9 +22,11 @@ indent (WriterT { runWriterT = r }) =
                               let w' = map ('\t':) w
                               return (a, w') }
 
-p_prog :: Prog -> PM ()
-p_prog p =
+p_prog :: String -> Prog -> PM ()
+p_prog prologue p =
     do mapM p_inc (includes p)
+       line ""
+       tell (lines prologue)
        line ""
        mapM p_unit (units p)
        return ()

@@ -142,10 +142,10 @@ work = do (opts, basename) <- ask
 
           breakIf StopGen
 
-          let ctext = cprint cast
+          let ctext = cprint cprologue cast
           lift $ putStrLn "C text:"
           lift $ putStrLn ctext
 
-          ifNotOpt NoOutput $ lift $ writeFile outC (cprologue ++ ctext)
+          ifNotOpt NoOutput $ lift $ writeFile outC ctext
 
           return ()
