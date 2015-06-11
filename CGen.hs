@@ -113,7 +113,7 @@ g_expr (I.LV (I.LVar n)) =
 g_expr (I.LV (I.Temp i)) =
     do return $ C.Var ("cmt_temp_" ++ show i)
 
-g_expr (I.Call n args) =
+g_expr (I.Call n args _) =
     do c_args <- mapM g_expr args
        return $ C.Call n c_args
 

@@ -41,7 +41,7 @@ data Expr = ConstInt   Int
           | ConstBool  Bool
           | BinOp      BinOp Expr Expr
           | UnOp       UnOp Expr
-          | Call       String [Expr]
+          | Call       String [Expr] Type
           | LV         LValue
           | ESeq       Stmt Expr
   deriving (Eq, Show)

@@ -184,7 +184,9 @@ tr_expr (A.Call f args) =
        let ok = zipWith tmatch actual_t expected_t
        when (not (all id ok)) (error "ill typed function argument")
 
-       return (ret, IR.Call (ir_name d) args_ir)
+       ir_ret <- tmap ret
+
+       return (ret, IR.Call (ir_name d) args_ir ir_ret)
 
 tr_expr (A.ConstFloat _) =
     do error "Floats unsupported"
