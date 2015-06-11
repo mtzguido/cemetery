@@ -56,6 +56,5 @@ data Stmt = Assign      LValue Expr
           | Return      Expr
           | Seq         Stmt Stmt
           | Skip                         -- Simply discard this
-          | Expr        Expr
           | If          Expr Block Block -- C-like semantics
   deriving (Eq, Show)
