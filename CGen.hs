@@ -56,6 +56,11 @@ g_body (d, s) =
        return (d', s')
 
 g_decl :: I.Decl -> GM C.Decl
+g_decl (I.DeclareTemp i t) =
+    do let v = "cmt_temp_" ++ show i
+       tt <- g_type t
+       return $ C.VarDecl v tt Nothing []
+
 g_decl (I.DeclareVar n t me) =
     do tt <- g_type t
        me_c <- fmapM_maybe g_expr me
