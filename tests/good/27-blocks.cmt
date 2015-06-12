@@ -1,0 +1,8 @@
+fun a(x : int) : int
+	x = a(x)
+	if (x == 0)
+		x = a(a(x))
+	else
+		x = a(a(a(x)))
+
+	return x

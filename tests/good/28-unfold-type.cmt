@@ -1,0 +1,11 @@
+fun s(x : bool) : int
+	if x
+		return 25
+	else
+		return 17
+
+fun add(x y : int) : bool
+	return x == y;
+
+fun test2(x : int) : int
+	return s(add(s(add(x,x)), s(add(x,x))))

@@ -1,0 +1,11 @@
+fun s(x : int) : int
+	return x + 1
+
+fun add(x y : int) : int
+	return x + y;
+
+fun test(x : int) : int
+	return s(s(s(s(s(x)))))
+
+fun test2(x : int) : int
+	return s(add(s(add(x,x)), s(add(x,x))))
