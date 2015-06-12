@@ -122,10 +122,6 @@ g_expr (I.Call n args _) =
     do c_args <- mapM g_expr args
        return $ C.Call n c_args
 
--- ESeqs should be completely removed by the canonizer/optimizer
-g_expr (I.ESeq s e) =
-    do error "Internal error"
-
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
 

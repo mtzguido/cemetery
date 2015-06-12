@@ -43,7 +43,6 @@ data Expr = ConstInt   Int
           | UnOp       UnOp Expr
           | Call       String [Expr] Type
           | LV         LValue
-          | ESeq       Stmt Expr
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)
