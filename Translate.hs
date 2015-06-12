@@ -90,23 +90,26 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
        return $ IR.FunDef ft (reverse $ decls l, ir_body_s)
 
 tr_body :: A.Stmt -> TM IR.Block
-tr_body b = do s <- tr_stmt b
-               return ([], s)
+tr_body b = do pushLevel
+               s <- tr_stmt b
+               l <- popLevel
+               return (reverse $ decls l, s)
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt A.Skip =
     do return IR.Skip
+
 tr_stmt (A.Assign n e) =
     do d <- env_lookup n
-       (t_e, ir_e) <- tr_expr e
+       (p_e, t_e, ir_e) <- tr_expr e
        when (not (tmatch t_e (typ d))) (error "type mismatch")
-       return $ IR.Assign (IR.LVar (ir_name d)) (ir_e)
+       return $ sseq p_e (IR.Assign (IR.LVar (ir_name d)) (ir_e))
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
-       (t_e, ir_e) <- tr_expr e
+       (p_e, t_e, ir_e) <- tr_expr e
        when (not (tmatch rt t_e)) (error "invalid return")
-       return (IR.Return ir_e)
+       return $ sseq p_e (IR.Return ir_e)
 
 tr_stmt (A.Seq l r) =
     do ll <- tr_stmt l
@@ -119,12 +122,12 @@ tr_stmt (A.Decl d) =
        return IR.Skip
 
 tr_stmt (A.If c t e) =
-    do (c_t, c_ir) <- tr_expr c
+    do (prep, c_t, c_ir) <- tr_expr c
        when (not (tmatch c_t A.Bool))
         (error "If conditions have to be of type Bool")
        tt <- tr_body t
        ee <- tr_body e
-       return $ IR.If c_ir tt ee
+       return $ sseq prep (IR.If c_ir tt ee)
 
 tr_decl (A.VarDecl n mods Nothing  Nothing) =
     do error "Variables need either a type or an initializer"
@@ -134,13 +137,13 @@ tr_decl (A.VarDecl n mods (Just t) Nothing) =
 
 -- TODO: Prevent function calls on global initializers
 tr_decl (A.VarDecl n mods (Just t) (Just e)) =
-    do (e_t, e_ir) <- tr_expr e
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
        when (not (tmatch e_t t))
          (error "Type an initializer don't match")
        tr_vdecl n mods e_t (Just e_ir)
 
 tr_decl (A.VarDecl n mods Nothing  (Just e)) =
-    do (e_t, e_ir) <- tr_expr e
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
        tr_vdecl n mods e_t (Just e_ir)
 
 tr_vdecl :: String -> [A.VarModifiers] -> A.Type -> Maybe IR.Expr -> TM IR.Decl
@@ -150,33 +153,36 @@ tr_vdecl n mods typ ir =
        ir_t <- tmap typ
        return $ IR.DeclareVar n' ir_t ir
 
-tr_expr :: A.Expr -> TM (A.Type, IR.Expr)
+tr_expr :: A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =
-    do return (A.Int, IR.ConstInt i)
+    do return (IR.Skip, A.Int, IR.ConstInt i)
 
 tr_expr (A.ConstBool b) =
-    do return (A.Bool, IR.ConstBool b)
+    do return (IR.Skip, A.Bool, IR.ConstBool b)
 
 tr_expr (A.BinOp op l r) =
-    do (l_t, l_ir) <- tr_expr l
-       (r_t, r_ir) <- tr_expr r
+    do (l_p, l_t, l_ir) <- tr_expr l
+       (r_p, r_t, r_ir) <- tr_expr r
        (e_t, ir_op) <- liftM head (find_matching_binop op l_t r_t)
-       return (e_t, IR.BinOp ir_op l_ir r_ir)
+       return (sseq l_p r_p, e_t, IR.BinOp ir_op l_ir r_ir)
 
 tr_expr (A.UnOp op l) =
-    do (l_t, l_ir) <- tr_expr l
+    do (l_p, l_t, l_ir) <- tr_expr l
        (e_t, ir_op) <- liftM head (find_matching_unop op l_t)
-       return (e_t, IR.UnOp ir_op l_ir)
+       return (l_p, e_t, IR.UnOp ir_op l_ir)
 
 tr_expr (A.Var n) =
     do d <- env_lookup n
-       return (typ d, IR.LV (IR.LVar (ir_name d)))
+       return (IR.Skip, typ d, IR.LV (IR.LVar (ir_name d)))
 
 tr_expr (A.Call f args) =
     do d <- env_lookup f
        let A.Fun expected_t ret = typ d
+       ir_ret <- tmap ret
+       temp <- fresh ir_ret
+
        as <- mapM tr_expr args
-       let (actual_t, args_ir) = unzip as
+       let (args_prep, actual_t, args_ir) = unzip3 as
 
        when (length actual_t /= length expected_t)
            (error "wrong number of arguments")
@@ -184,9 +190,11 @@ tr_expr (A.Call f args) =
        let ok = zipWith tmatch actual_t expected_t
        when (not (all id ok)) (error "ill typed function argument")
 
-       ir_ret <- tmap ret
+       let prep = IR.Assign temp (IR.Call (ir_name d) args_ir ir_ret)
 
-       return (ret, IR.Call (ir_name d) args_ir ir_ret)
+       return (sseq (foldl sseq IR.Skip args_prep) prep,
+               ret,
+               IR.LV temp)
 
 tr_expr (A.ConstFloat _) =
     do error "Floats unsupported"

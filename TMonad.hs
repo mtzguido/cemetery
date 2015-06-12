@@ -29,14 +29,19 @@ data LevelState =
 
       -- Declarations that should be made at the beginning
       -- of the current block
-      decls :: [I.Decl]
+      decls :: [I.Decl],
+
+      -- Counter for fresh variables
+      fresh_count :: Int
   }
   deriving (Show)
 
 blank_level :: LevelState
 blank_level = LevelState { env = M.empty,
                            ret_type = A.Invalid,
-                           decls = [] }
+                           decls = [],
+                           fresh_count = 0
+                         }
 
 -- The monad state is a stack of LevelStates so we can
 -- drop the names when moving out of a function.
@@ -57,8 +62,9 @@ setData es = do s <- get
 
 pushLevel :: TM ()
 pushLevel = do e <- getData
-               -- duplicate the current level
-               let l = (head e)
+               -- duplicate the current level, except for the
+               -- declarations which are already made
+               let l = (head e) { decls = [] }
                setData (l : e)
 
 popLevel :: TM LevelState
@@ -104,6 +110,14 @@ addToEnv :: String -> EnvV -> TM ()
 addToEnv n d = do e <- getEnv
                   let e' = M.insert n d e
                   setEnv e'
+
+fresh :: I.Type -> TM I.LValue
+fresh typ =
+    do s <- getLevel
+       setLevel (s { fresh_count = fresh_count s + 1})
+       addDecl (I.DeclareTemp (fresh_count s) typ)
+       return $ I.Temp (fresh_count s)
+
 
 -- Translator Monad definition
 type TM =

@@ -11,42 +11,36 @@
 module Optimize where
 
 import Control.Monad
+import Control.Monad.State
 import Control.Monad.Identity
 
 import IR
 
-type OM = Identity
+data OMState =
+  OMState {
+    -- Counter to get fresh temp variables
+    counter :: Int
+  }
+
+init_state = OMState { counter = 0 }
+
+type OM = StateT OMState Identity
+
+runOM :: OM a -> a
+runOM m = let m' = runStateT m init_state
+              (a, _s) = runIdentity m'
+           in a
 
 optimize :: IR -> IR
-optimize p = runIdentity $ mapM o_unit p
+optimize p = map (runOM.o_unit) p
 
-o_unit :: Unit -> OM Unit
 o_unit (FunDef ft b) =
     do b' <- o_body b
        return $ FunDef ft b'
-o_unit x =
-    do return x
 
-o_body :: Block -> OM Block
-o_body (d, s) =
-    do s' <- o_stmt s
-       return $ (d, s')
+o_unit (Decl d) = -- do nothing with declarations
+    do return $ Decl d
 
-o_stmt :: Stmt -> OM Stmt
-o_stmt (Assign l e) =
-    do e' <- o_expr e
-       return $ Assign l e'
+o_body b =
+    do return b
 
-o_stmt (Return e) =
-    do e' <- o_expr e
-       return $ Return e'
-
-o_stmt x =
-    do return x
-
-o_expr :: Expr -> OM Expr
-o_expr (BinOp Plus (ConstInt l) (ConstInt r)) =
-    do return $ ConstInt (l + r)
-
-o_expr e =
-    do return e
