@@ -6,4 +6,7 @@
 - Fix initialization of declared variables. Currently they're ignored
   by the translator.
 
-- Be smart with parenthesis
+- Be smart with parenthesis when generating C code
+
+- Think about how to allow for newlines on array declarations,
+  like in the DES goal.
