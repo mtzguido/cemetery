@@ -192,6 +192,11 @@ tr_expr (A.Call f args) =
 
        let prep = IR.Assign temp (IR.Call (ir_name d) args_ir ir_ret)
 
+       -- We unconditionally assign the result of the call to a
+       -- temporary variable and then return the variable. This allows
+       -- to keep track of all objects which need to be freed. We could
+       -- later only do this for buffers and such, since this tracking
+       -- isn't necessary for ints,bools, etc.
        return (sseq (foldl sseq IR.Skip args_prep) prep,
                ret,
                IR.LV temp)
