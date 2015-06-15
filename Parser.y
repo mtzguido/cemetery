@@ -40,7 +40,6 @@ import qualified AST as A
 	RETURN		{ L.Tok L.Return _ }
 	SLASH		{ L.Tok L.Slash _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
-	STRUCT		{ L.Tok L.Struct _ }
 	TYPE		{ L.Tok (L.Type _) _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
@@ -104,7 +103,6 @@ stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | if			{ $1 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
 
-
 if : IF expr stmt_group	{ A.If $2 $3 A.Skip }
    | IF expr stmt_group ELSE stmt_group
 				{ A.If $2 $3 $5 }
@@ -127,12 +125,6 @@ var_typ : {- empty -}		{ Nothing }
         | COLON type		{ Just $2 }
 
 decl : vardecl				{ $1 }
-     | STRUCT id BRACE fields UNBRACE	{ A.Struct }
-
-fields : field			{ $1 : [] }
-       | field fields		{ $1 : $2 }
-
-field : id COLON type BREAK	{ 1 }
 
 binlit : LANGLE bytes RANGLE	{ $2 }
 

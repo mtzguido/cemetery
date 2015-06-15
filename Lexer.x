@@ -178,7 +178,7 @@ floatLit  (p,_,_,s) l = return $ Tok (FloatLit (read (take l s) :: Double)) p
 
 data Sym =
   Fun | Var | Const |
-  Extern | Struct |
+  Extern |
 
   Return | If | Else |
 
@@ -215,7 +215,6 @@ keywords = [ ("fun", Fun),
              ("var", Var),
              ("const", Const),
              ("external", Extern),
-             ("struct", Struct),
              ("return", Return),
              ("if", If),
              ("else", Else)

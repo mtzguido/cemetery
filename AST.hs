@@ -53,7 +53,6 @@ data Decl = VarDecl String [VarModifiers] (Maybe Type) (Maybe Expr)
                       ret :: Type,
                       args :: [(String, Type)],
                       body :: Stmt }
-          | Struct
           deriving (Eq, Show)
 
 type Prog = [Decl]

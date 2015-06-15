@@ -63,9 +63,6 @@ translate1 d@(A.VarDecl _ _ _ _) =
     do d' <- tr_decl d
        return $ IR.Decl d'
 
-translate1 (A.Struct) =
-    do error "structs are not supported"
-
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret

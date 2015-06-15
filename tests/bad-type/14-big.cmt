@@ -7,10 +7,6 @@ var use_something_else = false
 
 external var prog_name : string
 
-struct cbc_status
-	offset : int
-	buf : bytes
-
 fun collatz (x : int) : int
 	if x == 1
 		return 1
