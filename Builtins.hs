@@ -5,8 +5,7 @@ module Builtins where
 import AST
 import TMonad
 
-e :: EnvV
-e = EnvV { typ = Invalid, ir_name = "" }
+e = envv
 
 builtins = [
  ("even", e { typ = Fun [Int] Bool, ir_name = "__cmt_even"})

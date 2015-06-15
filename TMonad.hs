@@ -10,9 +10,15 @@ import qualified IR as I
 
 -- Monad definition
 
+data Attr = RO
+  deriving (Eq, Show)
+
+envv = EnvV { typ = A.Invalid, ir_name = "", attrs = [] }
+
 type EnvT = M.Map A.VarName EnvV
 data EnvV = EnvV { typ :: A.Type, 
-                   ir_name :: String
+                   ir_name :: String,
+                   attrs :: [Attr]
                  }
   deriving (Show)
 

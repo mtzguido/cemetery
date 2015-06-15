@@ -1,0 +1,5 @@
+const var a = 8
+
+fun f(x : int) : int
+	a = a + 1
+	return a

@@ -67,10 +67,10 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret
        requestName name
-       addToEnv name (EnvV { typ = fun_t args ret, ir_name = name })
+       addToEnv name (envv { typ = fun_t args ret, ir_name = name })
        let tr_arg (s, t) = do s' <- requestSimilar s
                               t' <- tmap t
-                              addToEnv s (EnvV { typ = t,
+                              addToEnv s (envv { typ = t,
                                                  ir_name = s' })
                               return (s', t')
 
@@ -99,6 +99,8 @@ tr_stmt A.Skip =
 tr_stmt (A.Assign n e) =
     do d <- env_lookup n
        (p_e, t_e, ir_e) <- tr_expr e
+       when (elem RO (attrs d))
+        (error "can't assign to const")
        when (not (tmatch t_e (typ d))) (error "type mismatch")
        return $ sseq p_e (IR.Assign (IR.LVar (ir_name d)) (ir_e))
 
@@ -146,7 +148,11 @@ tr_decl (A.VarDecl n mods Nothing  (Just e)) =
 tr_vdecl :: String -> [A.VarModifiers] -> A.Type -> Maybe IR.Expr -> TM IR.Decl
 tr_vdecl n mods typ ir =
     do n' <- requestSimilar n   -- TODO: use requestName when global decl
-       addToEnv n (EnvV { typ = typ, ir_name = n' })
+       let attrs = if elem A.Const mods
+                   then [RO]
+                   else []
+
+       addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
        ir_t <- tmap typ
        return $ IR.DeclareVar n' ir_t ir
 
