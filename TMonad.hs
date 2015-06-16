@@ -14,14 +14,14 @@ import qualified IR as I
 data Attr = RO
   deriving (Eq, Show)
 
-envv = EnvV { typ = A.Invalid, ir_name = "", attrs = [] }
-
 type EnvT = M.Map A.VarName EnvV
 data EnvV = EnvV { typ :: A.Type, 
                    ir_name :: String,
                    attrs :: [Attr]
                  }
   deriving (Show)
+
+envv = EnvV { typ = A.Invalid, ir_name = "", attrs = [] }
 
 -- State at each level inside the AST
 data LevelState =
@@ -39,7 +39,9 @@ data LevelState =
       decls :: [I.Decl],
 
       -- Counter for fresh variables
-      fresh_count :: Int
+      fresh_count :: Int,
+
+      depth :: Int
   }
   deriving (Show)
 
@@ -47,7 +49,8 @@ blank_level :: LevelState
 blank_level = LevelState { env = M.empty,
                            ret_type = A.Invalid,
                            decls = [],
-                           fresh_count = 0
+                           fresh_count = 0,
+                           depth = 0
                          }
 
 -- The monad state is a stack of LevelStates so we can
@@ -71,7 +74,7 @@ pushLevel :: TM ()
 pushLevel = do e <- getData
                -- duplicate the current level, except for the
                -- declarations which are already made
-               let l = (head e) { decls = [] }
+               let l = (head e) { decls = [], depth = depth (head e) + 1 }
                setData (l : e)
 
 popLevel :: TM LevelState
@@ -124,7 +127,6 @@ fresh typ =
        setLevel (s { fresh_count = fresh_count s + 1})
        addDecl (I.DeclareTemp (fresh_count s) typ)
        return $ I.Temp (fresh_count s)
-
 
 -- Translator Monad definition
 type TM =

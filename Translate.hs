@@ -99,15 +99,16 @@ tr_stmt A.Skip =
 tr_stmt (A.Assign n e) =
     do d <- env_lookup n
        (p_e, t_e, ir_e) <- tr_expr e
-       when (elem RO (attrs d))
-        (error "can't assign to const")
-       when (not (tmatch t_e (typ d))) (error "type mismatch")
+
+       failIf (elem RO (attrs d)) "Can't assign to const"
+       failIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
+
        return $ sseq p_e (IR.Assign (IR.LVar (ir_name d)) (ir_e))
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
        (p_e, t_e, ir_e) <- tr_expr e
-       when (not (tmatch rt t_e)) (error "invalid return")
+       failIf (not (tmatch rt t_e)) "Invalid return"
        return $ sseq p_e (IR.Return ir_e)
 
 tr_stmt (A.Seq l r) =
@@ -122,8 +123,8 @@ tr_stmt (A.Decl d) =
 
 tr_stmt (A.If c t e) =
     do (prep, c_t, c_ir) <- tr_expr c
-       when (not (tmatch c_t A.Bool))
-        (error "If conditions have to be of type Bool")
+       failIf (not (tmatch c_t A.Bool))
+           "If conditions have to be of type Bool"
        tt <- tr_body t
        ee <- tr_body e
        return $ sseq prep (IR.If c_ir tt ee)
@@ -159,11 +160,12 @@ tr_expr (A.Call f args) =
        as <- mapM tr_expr args
        let (args_prep, actual_t, args_ir) = unzip3 as
 
-       when (length actual_t /= length expected_t)
-           (error "wrong number of arguments")
+       failIf (length actual_t /= length expected_t)
+           "Wrong number of arguments on function call"
 
        let ok = zipWith tmatch actual_t expected_t
-       when (not (all id ok)) (error "ill typed function argument")
+       failIf (not (all id ok))
+           "Ill typed function argument on call"
 
        let prep = IR.Assign temp (IR.Call (ir_name d) args_ir ir_ret)
 
