@@ -74,9 +74,9 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                                                  ir_name = s' })
                               return (s', t')
 
+       pushLevel
        ir_args <- mapM tr_arg args
 
-       pushLevel
        setRetType ret
        ir_body_s <- tr_stmt body
        l <- popLevel
