@@ -127,8 +127,8 @@ tr_stmt (A.If c t e) =
        return $ sseq prep (IR.If c_ir tt ee)
 
 
--- The bool represents wether we're translating
--- an initializer, so function calls are prohibited.
+-- The bool represents wether we're translating a global initializer, so
+-- function calls are prohibited.
 tr_expr = tr_expr' False
 tr_init = tr_expr' True
 tr_expr' :: Bool -> A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
@@ -158,7 +158,7 @@ tr_expr' i (A.Var n) =
        return (IR.Skip, typ d, IR.LV (IR.LVar (ir_name d)))
 
 tr_expr' i (A.Call f args) =
-    do abortIf i "Can't call functions in initializers"
+    do abortIf i "Can't call functions in global initializers"
        d <- env_lookup f
        let A.Fun expected_t ret = typ d
        ir_ret <- tmap ret
