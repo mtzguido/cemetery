@@ -1,4 +1,4 @@
-fun repkeyxor(message key : bytes) : bytes
+fun repkeyxor(message key : bits) : bits
 	-- Repeat the key as wide as the message length
 	var rkey = repeat(key, length(message));
 	var cipher = message ^ rkey;

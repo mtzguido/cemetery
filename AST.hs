@@ -9,7 +9,7 @@ type VarName = String
 data Type = Int
           | Bool
           | String
-          | Bytes
+          | Bits
           | Void
           | Double
           | Fun [Type] Type
@@ -18,7 +18,7 @@ data Type = Int
           deriving (Eq, Show)
 
 cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
-                ("bytes", Bytes), ("void", Void), ("double", Double)]
+                ("bits", Bits), ("void", Void), ("double", Double)]
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod
            | Xor | And | Or

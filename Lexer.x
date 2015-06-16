@@ -182,7 +182,7 @@ data Sym =
 
   Return | If | Else |
 
-  Int | Bool | Float | Bytes |
+  Int | Bool | Float | Bits |
   Ident String |
 
 
