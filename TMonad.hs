@@ -113,7 +113,7 @@ addDecl d = do l <- getLevel
 env_lookup :: String -> TM EnvV
 env_lookup s = do e <- getEnv
                   case M.lookup s e of
-                    Nothing -> error $ "undefined variable: " ++ s
+                    Nothing -> abort $ "undefined variable: " ++ s
                     Just i -> return i
 
 addToEnv :: String -> EnvV -> TM ()

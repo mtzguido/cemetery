@@ -141,12 +141,16 @@ tr_expr' i (A.ConstBool b) =
 tr_expr' i (A.BinOp op l r) =
     do (l_p, l_t, l_ir) <- tr_expr' i l
        (r_p, r_t, r_ir) <- tr_expr' i r
-       (e_t, ir_op) <- liftM head (find_matching_binop op l_t r_t)
+       ops <- find_matching_binop op l_t r_t
+       abortIf (ops == []) $ "Error on binary operator: " ++ show op
+       let (e_t, ir_op) = head ops
        return (sseq l_p r_p, e_t, IR.BinOp ir_op l_ir r_ir)
 
 tr_expr' i (A.UnOp op l) =
     do (l_p, l_t, l_ir) <- tr_expr' i l
-       (e_t, ir_op) <- liftM head (find_matching_unop op l_t)
+       ops <- find_matching_unop op l_t
+       abortIf (ops == []) $ "Error on unary operator: " ++ show op
+       let (e_t, ir_op) = head ops
        return (l_p, e_t, IR.UnOp ir_op l_ir)
 
 tr_expr' i (A.Var n) =
@@ -182,18 +186,18 @@ tr_expr' i (A.Call f args) =
                IR.LV temp)
 
 tr_expr' i (A.ConstFloat _) =
-    do error "Floats unsupported"
+    do abort "Floats unsupported"
 
 tr_expr' i (A.ConstStr _) =
-    do error "Strings unsupported"
+    do abort "Strings unsupported"
 
 tr_expr' i (A.BinLit _) =
-    do error "Binary literals unsupported"
+    do abort "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
-tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
+tmap t = abort $ "Can't map that type (" ++ (show t) ++ ")"
 
 -- Declaration translation
 
