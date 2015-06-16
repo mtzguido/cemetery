@@ -131,7 +131,7 @@ p_args l =
 p_typed_var n Int =
     do return $ "int " ++ n
 p_typed_var n Bool =
-    do return $ "int " ++ n
+    do return $ "bool " ++ n
 p_typed_var n (Custom s) =
     do return $ s ++ " " ++ n
 p_typed_var n (ArrT t) =
