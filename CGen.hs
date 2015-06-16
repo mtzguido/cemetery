@@ -122,8 +122,15 @@ g_expr (I.Call n args _) =
     do c_args <- mapM g_expr args
        return $ C.Call n c_args
 
+g_expr (I.Arr es) =
+    do es' <- mapM g_expr es
+       return $ C.Arr es'
+
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
+g_type (I.ArrT t) =
+    do t' <- g_type t
+       return (C.ArrT t')
 
 g_binop I.Plus  = do return C.Plus
 g_binop I.Minus = do return C.Minus

@@ -185,6 +185,15 @@ tr_expr' i (A.Call f args) =
                ret,
                IR.LV temp)
 
+tr_expr' i (A.Arr es) =
+    do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr' i) es
+       abortIf (not $ all (== head es_types) es_types)
+         "All elements of the array need to have the same type"
+
+       return (foldl sseq IR.Skip es_preps,
+               A.ArrT (head es_types),
+               IR.Arr es_irs)
+
 tr_expr' i (A.ConstFloat _) =
     do abort "Floats unsupported"
 
@@ -195,9 +204,18 @@ tr_expr' i (A.BinLit _) =
     do abort "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type
-tmap A.Int  = do return IR.Int
-tmap A.Bool = do return IR.Bool
-tmap t = abort $ "Can't map that type (" ++ (show t) ++ ")"
+tmap A.Int =
+    do return IR.Int
+
+tmap A.Bool =
+    do return IR.Bool
+
+tmap (A.ArrT t) =
+    do t' <- tmap t
+       return (IR.ArrT t')
+
+tmap t =
+    do abort $ "Can't map that type (" ++ (show t) ++ ")"
 
 -- Declaration translation
 

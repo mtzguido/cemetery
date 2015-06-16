@@ -39,10 +39,12 @@ import qualified AST as A
 	RANGLE		{ L.Tok L.Rangle _ }
 	RETURN		{ L.Tok L.Return _ }
 	SLASH		{ L.Tok L.Slash _ }
+	SQUARE		{ L.Tok L.Square _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
 	TYPE		{ L.Tok (L.Type _) _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
+	UNSQUARE	{ L.Tok L.Unsquare _ }
 	VAR		{ L.Tok L.Var _ }
 
 	PLUSASSIGN	{ L.Tok L.PlusAssign _ }
@@ -151,6 +153,11 @@ expr : intlit			{ A.ConstInt $1 }
      | NOT expr %prec NEG	{ A.UnOp A.Not $2 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
+     | SQUARE arr UNSQUARE	{ A.Arr $2 }
+
+arr : {- empty -}		{ [] }
+    | expr			{ [$1] }
+    | expr COMMA arr		{ $1 : $3 }
 
 argv : {- empty -}		{ [] }
      | expr			{ [$1] }

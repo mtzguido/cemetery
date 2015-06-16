@@ -13,6 +13,7 @@ data Type = Int
           | Void
           | Double
           | Fun [Type] Type
+          | ArrT Type
           | Invalid -- Dummy type
           deriving (Eq, Show)
 
@@ -35,6 +36,7 @@ data Expr = ConstInt Int
           | Var VarName
           | ConstStr String
           | BinLit B.ByteString
+          | Arr [Expr]
           deriving (Eq, Show)
 
 data Stmt = Skip

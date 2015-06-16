@@ -15,7 +15,7 @@ import Data.List
 
 type IR = [Unit]
 
-data Type = Int | Bool
+data Type = Int | Bool | ArrT Type
   deriving (Eq, Show)
 
 data Unit = FunDef Funtype Block
@@ -43,6 +43,7 @@ data Expr = ConstInt   Int
           | UnOp       UnOp Expr
           | Call       String [Expr] Type
           | LV         LValue
+          | Arr        [Expr]
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)

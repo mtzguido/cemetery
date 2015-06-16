@@ -58,13 +58,13 @@ p_block (decls, stmt) =
        p_stmt stmt
 
 p_decl (VarDecl n t me mods) =
-    do t <- p_typ t
-       init <- case me of
+    do init <- case me of
                  Nothing -> do return ""
                  Just e -> do e' <- p_expr e
                               return $ " = " ++ e'
 
-       line $ t ++ " " ++ n ++ init ++ ";"
+       tv <- p_typed_var n t
+       line $ tv ++ init ++ ";"
 
 p_stmt (Seq l r) =
     do p_stmt l
@@ -109,20 +109,31 @@ p_expr (ConstFloat f) =
 
 p_expr (Call s args) =
     do as <- mapM p_expr args
-       return $ paren (s ++ "(" ++ concat (intersperse "," as) ++ ")")
+       return $ paren (s ++ "(" ++ commas as ++ ")")
 
 p_expr (Var s) =
     do return s
 
+p_expr (Arr es) =
+    do p_es <- mapM p_expr es
+       return $ brace $ commas p_es
+
 paren s = "(" ++ s ++ ")"
+brace s = "{" ++ s ++ "}"
+
+commas ss = concat $ intersperse ", " ss
 
 p_args l =
-    do as <- mapM p_arg l
-       return $ concat (intersperse ", " as)
+    do as <- mapM (uncurry p_typed_var) l
+       return $ commas as
 
-p_arg (n, t) =
-    do tt <- p_typ t
-       return $ tt ++ " " ++ n
+p_typed_var n Int =
+    do return $ "int " ++ n
+p_typed_var n Bool =
+    do return $ "int " ++ n
+p_typed_var n (ArrT t) =
+    do tv <- p_typed_var n t
+       return $ tv ++ "[]"
 
 p_if lead (If c t (_, Skip)) =
     do cc <- p_expr c
