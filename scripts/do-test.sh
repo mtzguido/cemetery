@@ -64,8 +64,6 @@ for i in ${DIR}/*.cmt; do
 	fi
 
 	if $build; then
-		indent -kr -i8 "${i/.cmt/.c}"
-		rm -f "${i/.cmt/.c~}"
 		gcc -c "${i/.cmt/.c}" -o /dev/null
 	fi
 	echo -n '.'
