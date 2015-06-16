@@ -144,5 +144,5 @@ runTranslate m = let a = runErrorT m
                        Right a' -> (s, Right a')
 
 
-failIf b s = when b (error s)
-fail     s = error s
+abort     s = throwError $ CmtErr s
+abortIf b s = when b (abort s)

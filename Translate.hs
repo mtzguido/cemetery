@@ -97,15 +97,15 @@ tr_stmt (A.Assign n e) =
     do d <- env_lookup n
        (p_e, t_e, ir_e) <- tr_expr e
 
-       failIf (elem RO (attrs d)) "Can't assign to const"
-       failIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
+       abortIf (elem RO (attrs d)) "Can't assign to const"
+       abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
 
        return $ sseq p_e (IR.Assign (IR.LVar (ir_name d)) (ir_e))
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
        (p_e, t_e, ir_e) <- tr_expr e
-       failIf (not (tmatch rt t_e)) "Invalid return"
+       abortIf (not (tmatch rt t_e)) "Invalid return"
        return $ sseq p_e (IR.Return ir_e)
 
 tr_stmt (A.Seq l r) =
@@ -120,7 +120,7 @@ tr_stmt (A.Decl d) =
 
 tr_stmt (A.If c t e) =
     do (prep, c_t, c_ir) <- tr_expr c
-       failIf (not (tmatch c_t A.Bool))
+       abortIf (not (tmatch c_t A.Bool))
            "If conditions have to be of type Bool"
        tt <- tr_body t
        ee <- tr_body e
@@ -157,11 +157,11 @@ tr_expr (A.Call f args) =
        as <- mapM tr_expr args
        let (args_prep, actual_t, args_ir) = unzip3 as
 
-       failIf (length actual_t /= length expected_t)
+       abortIf (length actual_t /= length expected_t)
            "Wrong number of arguments on function call"
 
        let ok = zipWith tmatch actual_t expected_t
-       failIf (not (all id ok))
+       abortIf (not (all id ok))
            "Ill typed function argument on call"
 
        let prep = IR.Assign temp (IR.Call (ir_name d) args_ir ir_ret)
@@ -192,24 +192,24 @@ tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
 -- Declaration translation
 
 tr_gdecl (A.VarDecl n mods _      Nothing) =
-    do TMonad.fail "Global constants need an initializer"
+    do abort "Global constants need an initializer"
 
 -- TODO: Prevent function calls on global initializers
 tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
     do (prep, e_t, e_ir) <- tr_expr e
-       failIf (prep /= IR.Skip) "Internal error"
-       failIf (not (tmatch e_t t)) "Type and initializer don't match"
+       abortIf (prep /= IR.Skip) "Internal error"
+       abortIf (not (tmatch e_t t)) "Type and initializer don't match"
        tr_gdecl' n mods e_t e_ir
 
 tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
     do (prep, e_t, e_ir) <- tr_expr e
-       failIf (prep /= IR.Skip) "Internal error"
+       abortIf (prep /= IR.Skip) "Internal error"
        tr_gdecl' n mods e_t e_ir
 
 tr_gdecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
 tr_gdecl' n mods typ ir =
     do requestName n
-       failIf (not (elem A.Const mods))
+       abortIf (not (elem A.Const mods))
            "Global variables can only be constants"
 
        addToEnv n (envv { typ = typ, ir_name = n, attrs = [RO] })
@@ -217,15 +217,15 @@ tr_gdecl' n mods typ ir =
        return $ IR.DeclareVar n ir_t ir
 
 tr_ldecl (A.VarDecl n mods Nothing Nothing) =
-    do TMonad.fail "Variables need a type or an initializer"
+    do abort "Variables need a type or an initializer"
 
 tr_ldecl (A.VarDecl n mods (Just t) Nothing) =
-    do failIf (elem A.Const mods) "Constants need an initializer"
+    do abortIf (elem A.Const mods) "Constants need an initializer"
        tr_ldecl' n mods t (default_initializer t)
 
 tr_ldecl (A.VarDecl n mods (Just t) (Just e)) =
     do (IR.Skip, e_t, e_ir) <- tr_expr e
-       failIf (not (tmatch e_t t)) "Type and initializer don't match"
+       abortIf (not (tmatch e_t t)) "Type and initializer don't match"
        tr_ldecl' n mods e_t e_ir
 
 tr_ldecl (A.VarDecl n mods Nothing  (Just e)) =
@@ -241,7 +241,7 @@ tr_ldecl' n mods typ ir =
                    then [RO]
                    else []
 
-       failIf (elem A.Extern mods) "External on local scope?"
+       abortIf (elem A.Extern mods) "External on local scope?"
 
        addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
        ir_t <- tmap typ

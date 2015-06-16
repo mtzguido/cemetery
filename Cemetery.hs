@@ -121,7 +121,7 @@ work = do (opts, basename) <- ask
           dbgLn ""
 
           case ir of
-            Left e -> do dbg $ "ERROR: " ++ show e
+            Left e -> do lift $ putStrLn $ "ERROR: " ++ show e
                          lift exitFailure
             Right t -> do lift $ putStrLn "IR Tree: "
                           mapM showIRUnit t
