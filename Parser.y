@@ -116,6 +116,7 @@ abbrev_op : PLUSASSIGN		{ A.Plus }
 
 mods : VAR			{ [] }
      | CONST mods		{ A.Const : $2 }
+     | CONST			{ [A.Const] }
      | EXTERN mods		{ A.Extern : $2 }
 
 var_init : {- empty -}		{ Nothing }
@@ -124,7 +125,7 @@ var_init : {- empty -}		{ Nothing }
 var_typ : {- empty -}		{ Nothing }
         | COLON type		{ Just $2 }
 
-decl : vardecl				{ $1 }
+decl : vardecl			{ $1 }
 
 binlit : LANGLE bytes RANGLE	{ $2 }
 
