@@ -36,7 +36,7 @@ fi
 if $build; then
 	msg="BUILDING"
 else
-	msg="Running"
+	msg="Running "
 fi
 
 if $fail; then
@@ -45,7 +45,7 @@ else
 	goodbad="good"
 fi
 
-printf "%-35s" "${msg} ${goodbad} tests with <${FLAGS}>:"
+printf "%-40s" "${msg} ${goodbad} tests with <${FLAGS}>:"
 
 for i in ${DIR}/*.cmt; do
 	if ! [ -f "$i" ] ; then continue ; fi
