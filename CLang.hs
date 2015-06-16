@@ -58,7 +58,7 @@ data BinOp = Plus | Minus | Div | Prod
 data UnOp = NegateNum | Not
   deriving (Eq, Show)
 
-data Type = Int | Bool | ArrT Type
+data Type = Int | Bool | ArrT Type | Custom String
   deriving (Eq, Show)
 
 sseq Skip s = s
