@@ -126,35 +126,41 @@ tr_stmt (A.If c t e) =
        ee <- tr_body e
        return $ sseq prep (IR.If c_ir tt ee)
 
-tr_expr :: A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
-tr_expr (A.ConstInt i) =
-    do return (IR.Skip, A.Int, IR.ConstInt i)
 
-tr_expr (A.ConstBool b) =
+-- The bool represents wether we're translating
+-- an initializer, so function calls are prohibited.
+tr_expr = tr_expr' False
+tr_init = tr_expr' True
+tr_expr' :: Bool -> A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
+tr_expr' i (A.ConstInt ii) =
+    do return (IR.Skip, A.Int, IR.ConstInt ii)
+
+tr_expr' i (A.ConstBool b) =
     do return (IR.Skip, A.Bool, IR.ConstBool b)
 
-tr_expr (A.BinOp op l r) =
-    do (l_p, l_t, l_ir) <- tr_expr l
-       (r_p, r_t, r_ir) <- tr_expr r
+tr_expr' i (A.BinOp op l r) =
+    do (l_p, l_t, l_ir) <- tr_expr' i l
+       (r_p, r_t, r_ir) <- tr_expr' i r
        (e_t, ir_op) <- liftM head (find_matching_binop op l_t r_t)
        return (sseq l_p r_p, e_t, IR.BinOp ir_op l_ir r_ir)
 
-tr_expr (A.UnOp op l) =
-    do (l_p, l_t, l_ir) <- tr_expr l
+tr_expr' i (A.UnOp op l) =
+    do (l_p, l_t, l_ir) <- tr_expr' i l
        (e_t, ir_op) <- liftM head (find_matching_unop op l_t)
        return (l_p, e_t, IR.UnOp ir_op l_ir)
 
-tr_expr (A.Var n) =
+tr_expr' i (A.Var n) =
     do d <- env_lookup n
        return (IR.Skip, typ d, IR.LV (IR.LVar (ir_name d)))
 
-tr_expr (A.Call f args) =
-    do d <- env_lookup f
+tr_expr' i (A.Call f args) =
+    do abortIf i "Can't call functions in initializers"
+       d <- env_lookup f
        let A.Fun expected_t ret = typ d
        ir_ret <- tmap ret
        temp <- fresh ir_ret
 
-       as <- mapM tr_expr args
+       as <- mapM (tr_expr' i) args
        let (args_prep, actual_t, args_ir) = unzip3 as
 
        abortIf (length actual_t /= length expected_t)
@@ -175,13 +181,13 @@ tr_expr (A.Call f args) =
                ret,
                IR.LV temp)
 
-tr_expr (A.ConstFloat _) =
+tr_expr' i (A.ConstFloat _) =
     do error "Floats unsupported"
 
-tr_expr (A.ConstStr _) =
+tr_expr' i (A.ConstStr _) =
     do error "Strings unsupported"
 
-tr_expr (A.BinLit _) =
+tr_expr' i (A.BinLit _) =
     do error "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type
@@ -196,13 +202,13 @@ tr_gdecl (A.VarDecl n mods _      Nothing) =
 
 -- TODO: Prevent function calls on global initializers
 tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
-    do (prep, e_t, e_ir) <- tr_expr e
+    do (prep, e_t, e_ir) <- tr_init e
        abortIf (prep /= IR.Skip) "Internal error"
        abortIf (not (tmatch e_t t)) "Type and initializer don't match"
        tr_gdecl' n mods e_t e_ir
 
 tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
-    do (prep, e_t, e_ir) <- tr_expr e
+    do (prep, e_t, e_ir) <- tr_init e
        abortIf (prep /= IR.Skip) "Internal error"
        tr_gdecl' n mods e_t e_ir
 
@@ -214,6 +220,13 @@ tr_gdecl' n mods typ ir =
 
        addToEnv n (envv { typ = typ, ir_name = n, attrs = [RO] })
        ir_t <- tmap typ
+
+       -- At this point, we'll need to simplify ir
+       -- to a "static" form, since it's allowed
+       -- to initialize a variable with || (concatenation)
+       -- (once that's done) but that will likely result in a
+       -- function call. Either reduce everything or prepare
+       -- to do so in a cmt_init().
        return $ IR.DeclareVar n ir_t ir
 
 tr_ldecl (A.VarDecl n mods Nothing Nothing) =
