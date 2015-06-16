@@ -10,6 +10,7 @@ import qualified IR as I
 
 -- Monad definition
 
+
 data Attr = RO
   deriving (Eq, Show)
 
@@ -139,3 +140,7 @@ runTranslate m = let a = runErrorT m
                   in case c of
                        Left e -> (s, Left e)
                        Right a' -> (s, Right a')
+
+
+failIf b s = when b (error s)
+fail     s = error s

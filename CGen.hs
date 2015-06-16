@@ -61,10 +61,10 @@ g_decl (I.DeclareTemp i t) =
        tt <- g_type t
        return $ C.VarDecl v tt Nothing []
 
-g_decl (I.DeclareVar n t me) =
+g_decl (I.DeclareVar n t e) =
     do tt <- g_type t
-       me_c <- fmapM_maybe g_expr me
-       return $ C.VarDecl n tt me_c []
+       e_c <- g_expr e
+       return $ C.VarDecl n tt (Just e_c) []
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =

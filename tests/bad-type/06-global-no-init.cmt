@@ -1,8 +1,6 @@
-const B = 2
+const B : int
 
 fun test(x : int) : int
 	var b = 2
 	var c : int
 	var d : int = 4
-
-const D : int = 4

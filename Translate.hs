@@ -60,7 +60,7 @@ fun_t args ret = A.Fun (map snd args) ret
 
 translate1 :: A.Decl -> TM IR.Unit
 translate1 d@(A.VarDecl _ _ _ _) =
-    do d' <- tr_decl d
+    do d' <- tr_gdecl d
        return $ IR.Decl d'
 
 translate1 (A.FunDecl {A.name = name, A.ret = ret,
@@ -116,7 +116,7 @@ tr_stmt (A.Seq l r) =
        return $ sseq ll rr
 
 tr_stmt (A.Decl d) =
-    do d' <- tr_decl d
+    do d' <- tr_ldecl d
        addDecl d'
        return IR.Skip
 
@@ -127,34 +127,6 @@ tr_stmt (A.If c t e) =
        tt <- tr_body t
        ee <- tr_body e
        return $ sseq prep (IR.If c_ir tt ee)
-
-tr_decl (A.VarDecl n mods Nothing  Nothing) =
-    do error "Variables need either a type or an initializer"
-
-tr_decl (A.VarDecl n mods (Just t) Nothing) =
-    do tr_vdecl n mods t (Just $ default_initializer t)
-
--- TODO: Prevent function calls on global initializers
-tr_decl (A.VarDecl n mods (Just t) (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
-       when (not (tmatch e_t t))
-         (error "Type an initializer don't match")
-       tr_vdecl n mods e_t (Just e_ir)
-
-tr_decl (A.VarDecl n mods Nothing  (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
-       tr_vdecl n mods e_t (Just e_ir)
-
-tr_vdecl :: String -> [A.VarModifiers] -> A.Type -> Maybe IR.Expr -> TM IR.Decl
-tr_vdecl n mods typ ir =
-    do n' <- requestSimilar n   -- TODO: use requestName when global decl
-       let attrs = if elem A.Const mods
-                   then [RO]
-                   else []
-
-       addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
-       ir_t <- tmap typ
-       return $ IR.DeclareVar n' ir_t ir
 
 tr_expr :: A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
 tr_expr (A.ConstInt i) =
@@ -217,3 +189,59 @@ tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap t = error $ "Can't map that type (" ++ (show t) ++ ")"
+
+-- Declaration translation
+
+tr_gdecl (A.VarDecl n mods _      Nothing) =
+    do TMonad.fail "Global constants need an initializer"
+
+-- TODO: Prevent function calls on global initializers
+tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
+       failIf (not (tmatch e_t t)) "Type and initializer don't match"
+       tr_gdecl' n mods e_t e_ir
+
+tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
+       tr_gdecl' n mods e_t e_ir
+
+tr_gdecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
+tr_gdecl' n mods typ ir =
+    do requestName n
+       failIf (not (elem A.Const mods))
+           "Global variables can only be constants"
+
+       addToEnv n (envv { typ = typ, ir_name = n, attrs = [RO] })
+       ir_t <- tmap typ
+       return $ IR.DeclareVar n ir_t ir
+
+tr_ldecl (A.VarDecl n mods Nothing Nothing) =
+    do TMonad.fail "Variables need a type or an initializer"
+
+tr_ldecl (A.VarDecl n mods (Just t) Nothing) =
+    do failIf (elem A.Const mods) "Constants need an initializer"
+       tr_ldecl' n mods t (default_initializer t)
+
+tr_ldecl (A.VarDecl n mods (Just t) (Just e)) =
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
+       failIf (not (tmatch e_t t)) "Type and initializer don't match"
+       tr_ldecl' n mods e_t e_ir
+
+tr_ldecl (A.VarDecl n mods Nothing  (Just e)) =
+    do (IR.Skip, e_t, e_ir) <- tr_expr e
+       tr_ldecl' n mods e_t e_ir
+
+-- declared
+tr_ldecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
+tr_ldecl' n mods typ ir =
+    do n' <- requestSimilar n
+
+       let attrs = if elem A.Const mods
+                   then [RO]
+                   else []
+
+       failIf (elem A.Extern mods) "External on local scope?"
+
+       addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
+       ir_t <- tmap typ
+       return $ IR.DeclareVar n' ir_t ir

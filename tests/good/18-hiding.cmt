@@ -1,4 +1,4 @@
-var x : bool
+const x : bool = true
 
 fun f (y : int) : int
 	var x : int

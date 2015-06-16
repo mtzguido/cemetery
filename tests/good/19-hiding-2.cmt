@@ -1,4 +1,4 @@
-var x : int
+const x : int = 99
 
 fun f (y : int) : int
 	var x : int
