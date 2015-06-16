@@ -1,0 +1,6 @@
+fun s(x : int) : int
+	return x + 1
+
+const X = s(8)
+
+const Y = 9

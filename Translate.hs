@@ -31,9 +31,6 @@ sseq (IR.Skip) r = r
 sseq l (IR.Skip) = l
 sseq l r = IR.Seq l r
 
-irlist :: [IR.Stmt] -> IR.Stmt
-irlist l = foldl sseq IR.Skip l
-
 add_builtins =
     do mapM (uncurry addToEnv) builtins
 
@@ -199,12 +196,14 @@ tr_gdecl (A.VarDecl n mods _      Nothing) =
 
 -- TODO: Prevent function calls on global initializers
 tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
+    do (prep, e_t, e_ir) <- tr_expr e
+       failIf (prep /= IR.Skip) "Internal error"
        failIf (not (tmatch e_t t)) "Type and initializer don't match"
        tr_gdecl' n mods e_t e_ir
 
 tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
+    do (prep, e_t, e_ir) <- tr_expr e
+       failIf (prep /= IR.Skip) "Internal error"
        tr_gdecl' n mods e_t e_ir
 
 tr_gdecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
