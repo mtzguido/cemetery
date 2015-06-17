@@ -16,6 +16,7 @@ import Data.List
 type IR = [Unit]
 
 data Type = Int | Bool | ArrT Type
+          | Bits
   deriving (Eq, Show)
 
 data Unit = FunDef Funtype Block
@@ -28,9 +29,10 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
+           | Band | Bor
   deriving (Eq, Show)
 
-data UnOp = Neg | Not
+data UnOp = Neg | Not | Bnot
   deriving (Eq, Show)
 
 data LValue = LVar String
@@ -48,8 +50,9 @@ data Expr = ConstInt   Int
 
 type Block = ([Decl], Stmt)
 
-data Decl = DeclareVar  String Type Expr
-          | DeclareTemp Int    Type
+data Decl = DeclareVar    String Type
+          | DeclareGlobal String Type Expr
+          | DeclareTemp   Int    Type
   deriving (Eq, Show)
 
 data Stmt = Assign      LValue Expr

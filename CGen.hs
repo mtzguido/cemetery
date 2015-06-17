@@ -9,6 +9,8 @@ import Common
 import Control.Monad.Writer
 import Control.Monad.Identity
 
+bitsType = C.Custom "cmt_bits_t"
+
 cgen :: I.IR -> C.Prog
 cgen ir = let (units, ()) = runGM (g_ir ir)
            in C.Prog { C.includes = ["stdbool"], C.units = units}
@@ -61,10 +63,14 @@ g_decl (I.DeclareTemp i t) =
        tt <- g_type t
        return $ C.VarDecl v tt Nothing []
 
-g_decl (I.DeclareVar n t e) =
+g_decl (I.DeclareGlobal n t e) =
     do tt <- g_type t
        e_c <- g_expr e
        return $ C.VarDecl n tt (Just e_c) []
+
+g_decl (I.DeclareVar n t) =
+    do tt <- g_type t
+       return $ C.VarDecl n tt Nothing []
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =
@@ -104,13 +110,11 @@ g_expr (I.ConstBool b) =
 g_expr (I.BinOp op l r) =
     do ll <- g_expr l
        rr <- g_expr r
-       oo <- g_binop op
-       return $ C.BinOp oo ll rr
+       g_binop op ll rr
 
 g_expr (I.UnOp op l) =
     do ll <- g_expr l
-       oo <- g_unop op
-       return $ C.UnOp oo ll
+       g_unop op ll
 
 g_expr (I.LV (I.LVar n)) =
     do return $ C.Var n
@@ -128,18 +132,22 @@ g_expr (I.Arr es) =
 
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
+g_type I.Bits = do return bitsType
 g_type (I.ArrT t) =
     do t' <- g_type t
        return (C.ArrT t')
 
-g_binop I.Plus  = do return C.Plus
-g_binop I.Minus = do return C.Minus
-g_binop I.Div   = do return C.Div
-g_binop I.Prod  = do return C.Prod
-g_binop I.Eq    = do return C.Eq
-g_binop I.Mod   = do return C.Mod
-g_binop I.And   = do return C.And
-g_binop I.Or    = do return C.Or
+g_binop I.Plus  l r = do return $ C.BinOp C.Plus  l r
+g_binop I.Minus l r = do return $ C.BinOp C.Minus l r
+g_binop I.Div   l r = do return $ C.BinOp C.Div   l r
+g_binop I.Prod  l r = do return $ C.BinOp C.Prod  l r
+g_binop I.Eq    l r = do return $ C.BinOp C.Eq    l r
+g_binop I.Mod   l r = do return $ C.BinOp C.Mod   l r
+g_binop I.And   l r = do return $ C.BinOp C.And   l r
+g_binop I.Or    l r = do return $ C.BinOp C.Or    l r
+g_binop I.Band  l r = do return $ C.Call "__cmt_band" [l, r]
+g_binop I.Bor   l r = do return $ C.Call "__cmt_bor" [l, r]
 
-g_unop I.Neg = do return C.NegateNum
-g_unop I.Not = do return C.Not
+g_unop  I.Neg   e   = do return $ C.UnOp C.NegateNum e
+g_unop  I.Not   e   = do return $ C.UnOp C.Not       e
+g_unop  I.Bnot  e   = do return $ C.Call "__cmt_bnot" [e]

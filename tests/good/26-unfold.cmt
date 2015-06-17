@@ -1,11 +1,11 @@
-fun s(x : int) : int
-	return x + 1
+fun s(x : bits) : bits
+	return ~x
 
-fun add(x y : int) : int
-	return x + y;
+fun add(x y : bits) : bits
+	return x;
 
-fun test(x : int) : int
+fun test(x : bits) : bits
 	return s(s(s(s(s(x)))))
 
-fun test2(x : int) : int
+fun test2(x : bits) : bits
 	return s(add(s(add(x,x)), s(add(x,x))))

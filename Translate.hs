@@ -114,9 +114,9 @@ tr_stmt (A.Seq l r) =
        return $ sseq ll rr
 
 tr_stmt (A.Decl d) =
-    do d' <- tr_ldecl d
+    do (p, d') <- tr_ldecl d
        addDecl d'
-       return IR.Skip
+       return p
 
 tr_stmt (A.If c t e) =
     do (prep, c_t, c_ir) <- tr_expr c
@@ -139,51 +139,17 @@ tr_expr' i (A.ConstBool b) =
     do return (IR.Skip, A.Bool, IR.ConstBool b)
 
 tr_expr' i (A.BinOp op l r) =
-    do (l_p, l_t, l_ir) <- tr_expr' i l
-       (r_p, r_t, r_ir) <- tr_expr' i r
-       ops <- find_matching_binop op l_t r_t
-       abortIf (ops == []) $ "Error on binary operator: " ++ show op
-       let (e_t, ir_op) = head ops
-       return (sseq l_p r_p, e_t, IR.BinOp ir_op l_ir r_ir)
+    do tr_save $ tr_binop i op l r
 
-tr_expr' i (A.UnOp op l) =
-    do (l_p, l_t, l_ir) <- tr_expr' i l
-       ops <- find_matching_unop op l_t
-       abortIf (ops == []) $ "Error on unary operator: " ++ show op
-       let (e_t, ir_op) = head ops
-       return (l_p, e_t, IR.UnOp ir_op l_ir)
+tr_expr' i (A.UnOp op e) =
+    do tr_save $ tr_unop i op e
 
 tr_expr' i (A.Var n) =
     do d <- env_lookup n
        return (IR.Skip, typ d, IR.LV (IR.LVar (ir_name d)))
 
 tr_expr' i (A.Call f args) =
-    do abortIf i "Can't call functions in global initializers"
-       d <- env_lookup f
-       let A.Fun expected_t ret = typ d
-       ir_ret <- tmap ret
-       temp <- fresh ir_ret
-
-       as <- mapM (tr_expr' i) args
-       let (args_prep, actual_t, args_ir) = unzip3 as
-
-       abortIf (length actual_t /= length expected_t)
-           "Wrong number of arguments on function call"
-
-       let ok = zipWith tmatch actual_t expected_t
-       abortIf (not (all id ok))
-           "Ill typed function argument on call"
-
-       let prep = IR.Assign temp (IR.Call (ir_name d) args_ir)
-
-       -- We unconditionally assign the result of the call to a
-       -- temporary variable and then return the variable. This allows
-       -- to keep track of all objects which need to be freed. We could
-       -- later only do this for buffers and such, since this tracking
-       -- isn't necessary for ints,bools, etc.
-       return (sseq (foldl sseq IR.Skip args_prep) prep,
-               ret,
-               IR.LV temp)
+    do tr_save $ tr_call i f args
 
 tr_expr' i (A.Arr es) =
     do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr' i) es
@@ -204,11 +170,9 @@ tr_expr' i (A.BinLit _) =
     do abort "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type
-tmap A.Int =
-    do return IR.Int
-
-tmap A.Bool =
-    do return IR.Bool
+tmap A.Int  = do return IR.Int
+tmap A.Bool = do return IR.Bool
+tmap A.Bits = do return IR.Bits
 
 tmap (A.ArrT t) =
     do t' <- tmap t
@@ -249,27 +213,27 @@ tr_gdecl' n mods typ ir =
        -- (once that's done) but that will likely result in a
        -- function call. Either reduce everything or prepare
        -- to do so in a cmt_init().
-       return $ IR.DeclareVar n ir_t ir
+       return $ IR.DeclareGlobal n ir_t ir
 
 tr_ldecl (A.VarDecl n mods Nothing Nothing) =
     do abort "Variables need a type or an initializer"
 
 tr_ldecl (A.VarDecl n mods (Just t) Nothing) =
     do abortIf (elem A.Const mods) "Constants need an initializer"
-       tr_ldecl' n mods t (default_initializer t)
+       tr_ldecl' n mods IR.Skip t (default_initializer t)
 
 tr_ldecl (A.VarDecl n mods (Just t) (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
+    do (p, e_t, e_ir) <- tr_expr e
        abortIf (not (tmatch e_t t)) "Type and initializer don't match"
-       tr_ldecl' n mods e_t e_ir
+       tr_ldecl' n mods p e_t e_ir
 
 tr_ldecl (A.VarDecl n mods Nothing  (Just e)) =
-    do (IR.Skip, e_t, e_ir) <- tr_expr e
-       tr_ldecl' n mods e_t e_ir
+    do (p, e_t, e_ir) <- tr_expr e
+       tr_ldecl' n mods p e_t e_ir
 
--- declared
-tr_ldecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
-tr_ldecl' n mods typ ir =
+tr_ldecl' :: String -> [A.VarModifiers] -> IR.Stmt -> A.Type -> IR.Expr
+          -> TM (IR.Stmt, IR.Decl)
+tr_ldecl' n mods p typ ir =
     do n' <- requestSimilar n
 
        let attrs = if elem A.Const mods
@@ -280,4 +244,62 @@ tr_ldecl' n mods typ ir =
 
        addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
        ir_t <- tmap typ
-       return $ IR.DeclareVar n' ir_t ir
+       return $ (sseq p (IR.Assign (IR.LVar n') ir),
+                 IR.DeclareVar n' ir_t)
+
+tr_binop' A.Plus  = do return (A.Int,  A.Int,  A.Int,  IR.Plus)
+tr_binop' A.Minus = do return (A.Int,  A.Int,  A.Int,  IR.Minus)
+tr_binop' A.Div   = do return (A.Int,  A.Int,  A.Int,  IR.Div)
+tr_binop' A.Prod  = do return (A.Int,  A.Int,  A.Int,  IR.Prod)
+tr_binop' A.Mod   = do return (A.Int,  A.Int,  A.Int,  IR.Mod)
+tr_binop' A.Eq    = do return (A.Bool, A.Int,  A.Int , IR.Eq)
+tr_binop' A.And   = do return (A.Bool, A.Bool, A.Bool, IR.And)
+tr_binop' A.Or    = do return (A.Bool, A.Bool, A.Bool, IR.Or)
+tr_binop' A.Band  = do return (A.Bits, A.Bits, A.Bits, IR.Band)
+tr_binop' A.Bor   = do return (A.Bits, A.Bits, A.Bits, IR.Bor)
+
+tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
+tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)
+tr_unop'  A.Bnot  = do return (A.Bits, A.Bits, IR.Bnot)
+
+tr_binop i op l r =
+    do (l_p, l_t, l_ir) <- tr_expr' i l
+       (r_p, r_t, r_ir) <- tr_expr' i r
+       (e_t, l_tt, r_tt, op_ir) <- tr_binop' op
+       abortIf (not $ tmatch l_tt l_t) "Error on binop, left operand"
+       abortIf (not $ tmatch r_tt r_t) "Error on binop, right operand"
+       return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
+
+tr_unop i op e =
+    do (e_p, e_t, e_ir) <- tr_expr' i e
+       (r_t, e_tt, op_ir) <- tr_unop' op
+       abortIf (not $ tmatch e_tt e_t) "Error on unop"
+       return (e_p, r_t, IR.UnOp op_ir e_ir)
+
+tr_save :: TM (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
+tr_save m =
+    do (p, t, e) <- m
+       case t of
+           A.Bits ->
+               do t' <- tmap t
+                  v <- fresh t'
+                  return (sseq p (IR.Assign v e), t, IR.LV v)
+           _ ->
+               do return (p, t, e)
+
+tr_call i f args =
+    do abortIf i "Can't call functions in global initializers"
+       d <- env_lookup f
+       let A.Fun expected_t ret = typ d
+
+       as <- mapM (tr_expr' i) args
+       let (args_prep, actual_t, args_ir) = unzip3 as
+
+       abortIf (length actual_t /= length expected_t)
+           "Wrong number of arguments on function call"
+
+       let ok = zipWith tmatch actual_t expected_t
+       abortIf (not (all id ok))
+           "Ill typed function argument on call"
+
+       return (foldl sseq IR.Skip args_prep, ret, IR.Call (ir_name d) args_ir)

@@ -21,10 +21,10 @@ cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
                 ("bits", Bits), ("void", Void), ("double", Double)]
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod
-           | Xor | And | Or
+           | Xor | And | Or | Band | Bor
           deriving (Eq, Show)
 
-data UnOp = Neg | Not
+data UnOp = Neg | Not | Bnot
           deriving (Eq, Show)
 
 data Expr = ConstInt Int

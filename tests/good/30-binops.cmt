@@ -1,0 +1,2 @@
+fun test(x : bits) : bits
+	return (x & ~x) | x

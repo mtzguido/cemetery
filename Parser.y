@@ -11,6 +11,7 @@ import qualified AST as A
 %error { \s -> error $ "Parse error near token: " ++ show (head s) }
 
 %token
+	AMP		{ L.Tok L.Amp _ }
 	AND		{ L.Tok L.And _ }
 	ASTERISK	{ L.Tok L.Asterisk _ }
 	BOOL		{ L.Tok (L.BoolLit _) _ }
@@ -35,12 +36,14 @@ import qualified AST as A
 	OR		{ L.Tok L.Or _ }
 	PAREN		{ L.Tok L.Paren _ }
 	PERC		{ L.Tok L.Perc _ }
+	PIPE		{ L.Tok L.Pipe _ }
 	PLUS		{ L.Tok L.Plus _ }
 	RANGLE		{ L.Tok L.Rangle _ }
 	RETURN		{ L.Tok L.Return _ }
 	SLASH		{ L.Tok L.Slash _ }
 	SQUARE		{ L.Tok L.Square _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
+	TILDE		{ L.Tok L.Tilde _ }
 	TYPE		{ L.Tok (L.Type _) _ }
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
@@ -56,11 +59,12 @@ import qualified AST as A
 	EOF		{ L.EOF }
 
 %left AND OR
+%left PIPE AMP
 %left PLUS DASH
 %left ASTERISK SLASH
 %left EQ2 PERC CIRC
 %left ELSE
-%left NEG
+%left NEG TILDE
 %%
 
 Prog : EOF		{ [] }
@@ -147,10 +151,13 @@ expr : intlit			{ A.ConstInt $1 }
      | expr CIRC	expr	{ A.BinOp A.Xor		$1 $3 }
      | expr AND		expr	{ A.BinOp A.And		$1 $3 }
      | expr OR		expr	{ A.BinOp A.Or		$1 $3 }
+     | expr AMP		expr	{ A.BinOp A.Band	$1 $3 }
+     | expr PIPE	expr	{ A.BinOp A.Bor		$1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.Neg $2 }
      | NOT expr %prec NEG	{ A.UnOp A.Not $2 }
+     | TILDE expr %prec NEG	{ A.UnOp A.Bnot $2 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
      | SQUARE arr UNSQUARE	{ A.Arr $2 }
