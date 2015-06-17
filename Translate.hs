@@ -174,7 +174,7 @@ tr_expr' i (A.Call f args) =
        abortIf (not (all id ok))
            "Ill typed function argument on call"
 
-       let prep = IR.Assign temp (IR.Call (ir_name d) args_ir ir_ret)
+       let prep = IR.Assign temp (IR.Call (ir_name d) args_ir)
 
        -- We unconditionally assign the result of the call to a
        -- temporary variable and then return the variable. This allows
