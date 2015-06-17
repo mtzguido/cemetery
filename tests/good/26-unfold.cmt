@@ -2,7 +2,7 @@ fun s(x : bits) : bits
 	return ~x
 
 fun add(x y : bits) : bits
-	return x;
+	return x ||| y;
 
 fun test(x : bits) : bits
 	return s(s(s(s(s(x)))))

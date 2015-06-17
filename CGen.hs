@@ -147,6 +147,7 @@ g_binop I.And   l r = do return $ C.BinOp C.And   l r
 g_binop I.Or    l r = do return $ C.BinOp C.Or    l r
 g_binop I.Band  l r = do return $ C.Call "__cmt_band" [l, r]
 g_binop I.Bor   l r = do return $ C.Call "__cmt_bor" [l, r]
+g_binop I.BConcat l r = do return $ C.Call "__cmt_bconcat" [l, r]
 
 g_unop  I.Neg   e   = do return $ C.UnOp C.NegateNum e
 g_unop  I.Not   e   = do return $ C.UnOp C.Not       e

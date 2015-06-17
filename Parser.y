@@ -20,6 +20,7 @@ import qualified AST as A
 	CIRC		{ L.Tok L.Circ _ }
 	COLON		{ L.Tok L.Colon _ }
 	COMMA		{ L.Tok L.Comma _ }
+	CONCAT		{ L.Tok L.Concat _ }
 	CONST		{ L.Tok L.Const _ }
 	DASH		{ L.Tok L.Dash _ }
 	ELSE		{ L.Tok L.Else _ }
@@ -58,6 +59,7 @@ import qualified AST as A
 
 	EOF		{ L.EOF }
 
+%left CONCAT
 %left AND OR
 %left PIPE AMP
 %left PLUS DASH
@@ -153,6 +155,7 @@ expr : intlit			{ A.ConstInt $1 }
      | expr OR		expr	{ A.BinOp A.Or		$1 $3 }
      | expr AMP		expr	{ A.BinOp A.Band	$1 $3 }
      | expr PIPE	expr	{ A.BinOp A.Bor		$1 $3 }
+     | expr CONCAT	expr	{ A.BinOp A.BConcat	$1 $3 }
      | id PAREN argv UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.Neg $2 }

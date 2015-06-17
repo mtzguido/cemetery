@@ -10,6 +10,7 @@ int __cmt_even(int x)
 
 cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r);
 cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r);
+cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r);
 cmt_bits_t __cmt_bnot(cmt_bits_t e);
 
 /* / Cemetery prologue */

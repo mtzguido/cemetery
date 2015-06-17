@@ -46,6 +46,7 @@ tokens :-
   "&"			{ simple Amp }
   "|"			{ simple Pipe }
   "~"			{ simple Tilde }
+  "|||"			{ simple Concat }
 
   "&&"			{ simple And }
   "||"			{ simple Or }
@@ -190,7 +191,7 @@ data Sym =
 
 
   Plus | Dash | Asterisk | Slash | Circ | Perc |
-  Amp | Pipe | Tilde |
+  Amp | Pipe | Tilde | Concat |
   Eq | Eq2 | Dot |
 
   Type AST.Type |
