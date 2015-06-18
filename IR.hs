@@ -30,6 +30,7 @@ data Funtype = Funtype { name :: String,
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
            | Band | Bor | BConcat | Xor
+           | LShift | RShift | LRot | RRot
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot
@@ -62,4 +63,5 @@ data Stmt = Assign      LValue Expr
           | Seq         Stmt Stmt
           | Skip                         -- Simply discard this
           | If          Expr Block Block -- C-like semantics
+          | For         LValue Expr Expr Block
   deriving (Eq, Show)

@@ -126,6 +126,32 @@ tr_stmt (A.If c t e) =
        ee <- tr_body e
        return $ sseq prep (IR.If c_ir tt ee)
 
+tr_stmt (A.For v f t b) =
+    do it <- fresh IR.Int
+       f_save <- fresh IR.Int
+       t_save <- fresh IR.Int
+       (f_p, f_t, f_ir) <- tr_expr f
+       (t_p, t_t, t_ir) <- tr_expr t
+
+       abortIf (not $ tmatch f_t A.Int)
+           "For bound have to be of type Int (low)"
+       abortIf (not $ tmatch t_t A.Int)
+           "For bound have to be of type Int (high)"
+
+       let prep_f = IR.Assign f_save f_ir
+       pushLevel
+       addToEnv v (envv {typ = A.Int, attrs = [RO]})
+       b' <- tr_body b
+       popLevel
+
+       return $ foldl1 sseq $
+           [f_p,
+            IR.Assign f_save f_ir,
+            t_p,
+            IR.Assign t_save t_ir,
+            IR.For it (IR.LV f_save) (IR.LV t_save) b'
+           ]
+
 
 -- The bool represents wether we're translating a global initializer, so
 -- function calls are prohibited.
@@ -276,6 +302,10 @@ tr_binop' A.Band  = do return (A.Bits, A.Bits, A.Bits, IR.Band)
 tr_binop' A.Bor   = do return (A.Bits, A.Bits, A.Bits, IR.Bor)
 tr_binop' A.BConcat = do return (A.Bits, A.Bits, A.Bits, IR.BConcat)
 tr_binop' A.Xor   = do return (A.Bits, A.Bits, A.Bits, IR.Xor)
+tr_binop' A.LShift  = do return (A.Bits, A.Bits, A.Int, IR.LShift)
+tr_binop' A.RShift  = do return (A.Bits, A.Bits, A.Int, IR.RShift)
+tr_binop' A.LRot    = do return (A.Bits, A.Bits, A.Int, IR.LRot)
+tr_binop' A.RRot    = do return (A.Bits, A.Bits, A.Int, IR.RRot)
 
 tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
 tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)
