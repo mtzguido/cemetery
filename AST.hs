@@ -37,6 +37,8 @@ data Expr = ConstInt Int
           | ConstStr String
           | BinLit B.ByteString
           | Arr [Expr]
+          | Slice Expr Expr Expr -- Array, From, To
+          | Access Expr Expr -- Array, Pos
           deriving (Eq, Show)
 
 data Stmt = Skip

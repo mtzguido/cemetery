@@ -166,14 +166,14 @@ fun S(b : bits) : bits
 	f7 = b[37, 42]
 	f8 = b[43, 48]
 
-	f1 = S1[int(f1)]
-	f2 = S2[int(f2)]
-	f3 = S3[int(f3)]
-	f4 = S4[int(f4)]
-	f5 = S5[int(f5)]
-	f6 = S6[int(f6)]
-	f7 = S7[int(f7)]
-	f8 = S8[int(f8)]
+	f1 = S1[toint(f1)]
+	f2 = S2[toint(f2)]
+	f3 = S3[toint(f3)]
+	f4 = S4[toint(f4)]
+	f5 = S5[toint(f5)]
+	f6 = S6[toint(f6)]
+	f7 = S7[toint(f7)]
+	f8 = S8[toint(f8)]
 
 	return f1 ||| f2 ||| f3 ||| f4 ||| f5 ||| f6 ||| f7 ||| f8
 

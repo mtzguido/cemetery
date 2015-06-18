@@ -46,6 +46,8 @@ data Expr = ConstInt   Int
           | Call       String [Expr]
           | LV         LValue
           | Arr        [Expr]
+          | Slice      Expr Expr Expr
+          | Access     Expr Expr
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)

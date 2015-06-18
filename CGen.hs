@@ -130,6 +130,17 @@ g_expr (I.Arr es) =
     do es' <- mapM g_expr es
        return $ C.Arr es'
 
+g_expr (I.Access a i) =
+    do aa <- g_expr a
+       ii <- g_expr i
+       return $ C.Access aa ii
+
+g_expr (I.Slice a f t) =
+    do aa <- g_expr a
+       ff <- g_expr f
+       tt <- g_expr t
+       return $ C.Call "__cmt_slice" [aa, ff, tt]
+
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
 g_type I.Bits = do return bitsType

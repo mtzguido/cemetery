@@ -119,8 +119,14 @@ p_expr (Arr es) =
     do p_es <- mapM p_expr es
        return $ brace $ commas p_es
 
+p_expr (Access a i) =
+    do aa <- p_expr a
+       ii <- p_expr i
+       return $ aa ++ square ii
+
 paren s = "(" ++ s ++ ")"
 brace s = "{" ++ s ++ "}"
+square s = "[" ++ s ++ "]"
 
 commas ss = concat $ intersperse ", " ss
 

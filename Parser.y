@@ -67,11 +67,12 @@ import qualified AST as A
 %left EQ2 PERC CIRC
 %left ELSE
 %left NEG TILDE
+%left SQUARE
 %%
 
 Prog : EOF		{ [] }
      | fun Prog		{ $1 : $2 }
-     | decl Prog	{ $1 : $2 }
+     | decl Prog	{ $1 ++ $2 }
      | BREAK Prog	{ $2 }
 
 id : ID { readIdent $1 }
@@ -102,11 +103,13 @@ stmts : {- empty -}		{ A.Skip }
 
 stmt_group : BRACE stmts UNBRACE	{ $2 }
 
-vardecl : mods id var_typ var_init BREAK	{ A.VarDecl $2 $1 $3 $4 }
+vardecl : mods idents var_typ var_init BREAK
+				{ map (\n -> A.VarDecl n $1 $3 $4) $2 }
+
 stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
-     | vardecl			{ A.Decl $1 }
+     | vardecl			{ foldl1 A.Seq (map A.Decl $1) }
      | BRACE stmts UNBRACE	{ $2 }
      | if			{ $1 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
@@ -164,6 +167,10 @@ expr : intlit			{ A.ConstInt $1 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
      | SQUARE exprs UNSQUARE	{ A.Arr $2 }
+     | expr SQUARE expr UNSQUARE
+				{ A.Access $1 $3 }
+     | expr SQUARE expr COMMA expr UNSQUARE
+				{ A.Slice $1 $3 $5 }
 
 exprs : {- empty -}		{ [] }
       | expr			{ [$1] }

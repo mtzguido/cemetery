@@ -160,6 +160,23 @@ tr_expr' i (A.Arr es) =
                A.ArrT (head es_types),
                IR.Arr es_irs)
 
+tr_expr' i (A.Slice a f t) =
+    tr_save (tr_slice i a f t)
+
+tr_expr' i (A.Access a idx) =
+    do (a_p, a_t, a_ir) <- tr_expr' i a
+       (i_p, i_t, i_ir) <- tr_expr' i idx
+       t <- case a_t of
+                A.ArrT e -> return e
+                _ -> abort "Accesses can only be used on arrays"
+
+       abortIf (not $ tmatch i_t A.Int)
+           "Access index has to be of type int"
+
+       return (sseq a_p i_p,
+               t,
+               IR.Access a_ir i_ir)
+
 tr_expr' i (A.ConstFloat _) =
     do abort "Floats unsupported"
 
@@ -304,3 +321,20 @@ tr_call i f args =
            "Ill typed function argument on call"
 
        return (foldl sseq IR.Skip args_prep, ret, IR.Call (ir_name d) args_ir)
+
+tr_slice i a f t =
+    do (a_p, a_t, a_ir) <- tr_expr' i a
+       (f_p, f_t, f_ir) <- tr_expr' i f
+       (t_p, t_t, t_ir) <- tr_expr' i t
+       case a_t of
+           A.Bits -> return ()
+           x -> abort "Slices can only be used on bitseqs"
+
+       abortIf (not $ tmatch f_t A.Int)
+           "Slice's 'from' has to be of type int"
+       abortIf (not $ tmatch t_t A.Int)
+           "Slice's 'to' has to be of type int"
+
+       return (sseq (sseq a_p f_p) t_p,
+               A.Bits,
+               IR.Slice a_ir f_ir t_ir)

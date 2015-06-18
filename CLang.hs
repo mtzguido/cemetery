@@ -45,6 +45,7 @@ data Expr = BinOp BinOp Expr Expr
           | Var String
           | ConstBool Bool
           | Arr [Expr]
+          | Access Expr Expr
 --          | ConstStr String
 --          | ConstArr [Word8]
 --          | StructVal [(String, Expr)]
