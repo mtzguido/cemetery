@@ -85,6 +85,14 @@ p_stmt (Return e) =
     do ee <- p_expr e
        line $ "return " ++ ee ++ ";"
 
+p_stmt (For s c i b) =
+    do ss <- return "init"
+       cc <- p_expr c
+       ii <- return "incr"
+       line $ "for (" ++ ss ++ "; " ++ cc ++ "; " ++ ii ++ ") {"
+       indent $ p_block b
+       line "}"
+
 p_typ Int = do return "int"
 p_typ Bool = do return "bool"
 p_typ (Custom s) = do return s
@@ -175,6 +183,10 @@ p_binop Eq    = do return "=="
 p_binop Mod   = do return "%"
 p_binop And   = do return "&&"
 p_binop Or    = do return "||"
+p_binop Lt    = do return "<"
+p_binop Gt    = do return ">"
+p_binop Le    = do return "<="
+p_binop Ge    = do return ">="
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"

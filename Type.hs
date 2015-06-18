@@ -11,3 +11,4 @@ tmatch p q = p == q
 default_initializer :: Type -> IR.Expr
 default_initializer Int  = IR.ConstInt 0
 default_initializer Bool = IR.ConstBool False
+default_initializer Bits = IR.ConstBool False --PURE CRAP

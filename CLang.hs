@@ -38,6 +38,7 @@ data Stmt = Assign LValue Expr
           | Seq Stmt Stmt
           | Return Expr
           | Skip
+          | For Stmt Expr Stmt Block
   deriving (Eq, Show)
 
 data Expr = BinOp BinOp Expr Expr
@@ -57,6 +58,7 @@ data Expr = BinOp BinOp Expr Expr
 
 data BinOp = Plus | Minus | Div | Prod
            | Eq | Mod | And | Or
+           | Lt | Gt | Le | Ge
   deriving (Eq, Show)
 
 data UnOp = NegateNum | Not

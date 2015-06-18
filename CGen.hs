@@ -96,6 +96,16 @@ g_stmt (I.Return e) =
     do c_e <- g_expr e
        return (C.Return c_e)
 
+g_stmt (I.For lv fr to b) =
+    do i <- g_lvalue lv
+       f <- g_expr fr
+       t <- g_expr to
+       let init = C.Assign i t
+       let cond = C.BinOp C.Le (C.LV i) t
+       let inc = C.Assign i (C.BinOp C.Plus (C.LV i) (C.ConstInt 1))
+       body <- g_body b
+       return $ C.For init cond inc body
+
 g_expr :: I.Expr -> GM C.Expr
 g_expr (I.ConstInt i) =
     do return $ C.ConstInt i
