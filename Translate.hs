@@ -275,6 +275,7 @@ tr_binop' A.Or    = do return (A.Bool, A.Bool, A.Bool, IR.Or)
 tr_binop' A.Band  = do return (A.Bits, A.Bits, A.Bits, IR.Band)
 tr_binop' A.Bor   = do return (A.Bits, A.Bits, A.Bits, IR.Bor)
 tr_binop' A.BConcat = do return (A.Bits, A.Bits, A.Bits, IR.BConcat)
+tr_binop' A.Xor   = do return (A.Bits, A.Bits, A.Bits, IR.Xor)
 
 tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
 tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)

@@ -29,7 +29,7 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
-           | Band | Bor | BConcat
+           | Band | Bor | BConcat | Xor
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot

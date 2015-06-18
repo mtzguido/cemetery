@@ -157,23 +157,23 @@ fun P(b : bits) : bits
 	return permute(b, p_map)
 
 fun S(b : bits) : bits
-	f1 = b[ 1,  6]
-	f2 = b[ 7, 12]
-	f3 = b[13, 18]
-	f4 = b[19, 24]
-	f5 = b[25, 30]
-	f6 = b[31, 36]
-	f7 = b[37, 42]
-	f8 = b[43, 48]
+	var f1 = b[ 1,  6]
+	var f2 = b[ 7, 12]
+	var f3 = b[13, 18]
+	var f4 = b[19, 24]
+	var f5 = b[25, 30]
+	var f6 = b[31, 36]
+	var f7 = b[37, 42]
+	var f8 = b[43, 48]
 
-	f1 = S1[toint(f1)]
-	f2 = S2[toint(f2)]
-	f3 = S3[toint(f3)]
-	f4 = S4[toint(f4)]
-	f5 = S5[toint(f5)]
-	f6 = S6[toint(f6)]
-	f7 = S7[toint(f7)]
-	f8 = S8[toint(f8)]
+	f1 = tobits(S1[toint(f1)])
+	f2 = tobits(S2[toint(f2)])
+	f3 = tobits(S3[toint(f3)])
+	f4 = tobits(S4[toint(f4)])
+	f5 = tobits(S5[toint(f5)])
+	f6 = tobits(S6[toint(f6)])
+	f7 = tobits(S7[toint(f7)])
+	f8 = tobits(S8[toint(f8)])
 
 	return f1 ||| f2 ||| f3 ||| f4 ||| f5 ||| f6 ||| f7 ||| f8
 
