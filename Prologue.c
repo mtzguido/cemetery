@@ -11,6 +11,14 @@ int __cmt_even(int x)
 cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r);
 cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r);
 cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r);
+cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r);
+cmt_bits_t __cmt_slice(cmt_bits_t l, int, int);
 cmt_bits_t __cmt_bnot(cmt_bits_t e);
+
+cmt_bits_t __cmt_permute(cmt_bits_t e, int[]);
+cmt_bits_t __cmt_permute_inv(cmt_bits_t e, int[]);
+
+cmt_bits_t __cmt_tobits(int);
+int __cmt_toint(cmt_bits_t);
 
 /* / Cemetery prologue */
