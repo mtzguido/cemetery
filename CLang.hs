@@ -30,7 +30,10 @@ data Funtype = Funtype { name :: String,
                          ret :: Type }
   deriving (Eq, Show)
 
-data Stmt = Assign String Expr
+data LValue = LVar String
+  deriving (Eq, Show)
+
+data Stmt = Assign LValue Expr
           | If Expr Block Block
           | Seq Stmt Stmt
           | Return Expr
@@ -42,7 +45,7 @@ data Expr = BinOp BinOp Expr Expr
           | ConstInt Int
           | ConstFloat Double
           | Call String [Expr]
-          | Var String
+          | LV LValue
           | ConstBool Bool
           | Arr [Expr]
           | Access Expr Expr

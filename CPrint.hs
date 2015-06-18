@@ -76,9 +76,10 @@ p_stmt Skip =
 p_stmt s@(If _ _ _) =
     do p_if "" s
 
-p_stmt (Assign n e) =
-    do ee <- p_expr e
-       line $ n ++ " = " ++ ee ++ ";"
+p_stmt (Assign lv e) =
+    do lvs <- p_lvalue lv
+       ee <- p_expr e
+       line $ lvs ++ " = " ++ ee ++ ";"
 
 p_stmt (Return e) =
     do ee <- p_expr e
@@ -112,8 +113,9 @@ p_expr (Call s args) =
     do as <- mapM p_expr args
        return $ paren (s ++ "(" ++ commas as ++ ")")
 
-p_expr (Var s) =
-    do return s
+p_expr (LV lv) =
+    do lvs <- p_lvalue lv
+       return lvs
 
 p_expr (Arr es) =
     do p_es <- mapM p_expr es
@@ -176,3 +178,6 @@ p_binop Or    = do return "||"
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
+
+p_lvalue (LVar s) =
+    do return s

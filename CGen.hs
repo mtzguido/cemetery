@@ -81,14 +81,10 @@ g_stmt (I.Seq l r) =
 g_stmt I.Skip =
     do return C.Skip
 
-g_stmt (I.Assign (I.LVar s) e) =
+g_stmt (I.Assign lv e) =
     do c_e <- g_expr e
-       return (C.Assign s c_e)
-
-g_stmt (I.Assign (I.Temp i) e) =
-    do c_e <- g_expr e
-       let v = "cmt_temp_" ++ show i
-       return (C.Assign v c_e)
+       c_lv <- g_lvalue lv
+       return (C.Assign c_lv c_e)
 
 g_stmt (I.If c t e) =
     do c_c <- g_expr c
@@ -116,11 +112,9 @@ g_expr (I.UnOp op l) =
     do ll <- g_expr l
        g_unop op ll
 
-g_expr (I.LV (I.LVar n)) =
-    do return $ C.Var n
-
-g_expr (I.LV (I.Temp i)) =
-    do return $ C.Var ("cmt_temp_" ++ show i)
+g_expr (I.LV lv) =
+    do lv_c <- g_lvalue lv
+       return $ C.LV lv_c
 
 g_expr (I.Call n args) =
     do c_args <- mapM g_expr args
@@ -164,3 +158,9 @@ g_binop I.BConcat l r = do return $ C.Call "__cmt_bconcat" [l, r]
 g_unop  I.Neg   e   = do return $ C.UnOp C.NegateNum e
 g_unop  I.Not   e   = do return $ C.UnOp C.Not       e
 g_unop  I.Bnot  e   = do return $ C.Call "__cmt_bnot" [e]
+
+g_lvalue (I.LVar n) =
+    do return $ C.LVar n
+
+g_lvalue (I.Temp i) =
+    do return $ C.LVar ("cmt_temp_" ++ show i)
