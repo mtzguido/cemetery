@@ -189,6 +189,7 @@ fun shifts(round : int) : int
 fun des(b k : bits) : bits
 	var l r : bits
 	var K : bits -- round key
+	var C D : bits
 
 	b = IP(b)
 	l = b[ 1, 31]
@@ -199,6 +200,7 @@ fun des(b k : bits) : bits
 	D = k[28, 55]
 
 	for i in 1..16
+		var T : bits
 		-- rotate the partial keys
 		C = C <<< shifts(i)
 		D = D <<< shifts(i)
@@ -207,7 +209,9 @@ fun des(b k : bits) : bits
 		K = PC2(C ||| D)
 
 		-- apply the round function and do the Feistel flip
-		l, r = r, l ^ des_f(C ||| D, r)
+		T = l ^ des_f(C ||| D, r)
+		l = r
+		r = T
 	b = l ||| r
 
 	b = FP(b)

@@ -36,6 +36,11 @@ tokens :-
   "<"			{ simple Langle }
   ">"			{ simple Rangle }
 
+  "<<"			{ simple LShift }
+  ">>"			{ simple RShift }
+  "<<<"			{ simple LRot }
+  ">>>"			{ simple RRot }
+
 
   "+"			{ simple Plus }
   "-"			{ simple Dash }
@@ -58,6 +63,8 @@ tokens :-
   ":"			{ simple Colon }
   ";"			{ simple Break }
   "."			{ simple Dot }
+  "::"			{ simple Colon2 }
+  ".."			{ simple Dot2 }
 
   "+="			{ simple PlusAssign }
   "-="			{ simple MinusAssign }
@@ -184,7 +191,7 @@ data Sym =
   Fun | Var | Const |
   Extern |
 
-  Return | If | Else |
+  Return | If | Else | For | In |
 
   Int | Bool | Float | Bits |
   Ident String |
@@ -192,7 +199,7 @@ data Sym =
 
   Plus | Dash | Asterisk | Slash | Circ | Perc |
   Amp | Pipe | Tilde | Concat |
-  Eq | Eq2 | Dot |
+  Eq | Eq2 | Dot | Dot2 |
 
   Type AST.Type |
 
@@ -202,7 +209,8 @@ data Sym =
   Square | Unsquare |
   Brace | Unbrace | Break |
   Langle | Rangle |
-  Comma | Colon |
+  LShift | RShift | LRot | RRot |
+  Comma | Colon | Colon2 |
 
   PlusAssign | MinusAssign |
   ProdAssign | DivAssign |
@@ -222,7 +230,9 @@ keywords = [ ("fun", Fun),
              ("external", Extern),
              ("return", Return),
              ("if", If),
-             ("else", Else)
+             ("else", Else),
+             ("for", For),
+             ("in", In)
            ]
 
 ident_or_keyword' (p,_,_,s) l = return $ Tok (ident_or_keyword (take l s)) p

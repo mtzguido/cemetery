@@ -23,16 +23,22 @@ import qualified AST as A
 	CONCAT		{ L.Tok L.Concat _ }
 	CONST		{ L.Tok L.Const _ }
 	DASH		{ L.Tok L.Dash _ }
+	DOT2		{ L.Tok L.Dot2 _ }
+	DOT		{ L.Tok L.Dot _ }
 	ELSE		{ L.Tok L.Else _ }
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
 	EXTERN		{ L.Tok L.Extern _ }
 	FLOAT		{ L.Tok (L.FloatLit _) _ }
+	FOR		{ L.Tok L.For _ }
 	FUN		{ L.Tok L.Fun _ }
 	ID		{ L.Tok (L.Ident _) _ }
 	IF		{ L.Tok L.If _ }
+	IN		{ L.Tok L.In _ }
 	INT		{ L.Tok (L.IntLit _) _ }
 	LANGLE		{ L.Tok L.Langle _ }
+	LROT		{ L.Tok L.LRot _ }
+	LSHIFT		{ L.Tok L.LShift _ }
 	NOT		{ L.Tok L.Not _ }
 	OR		{ L.Tok L.Or _ }
 	PAREN		{ L.Tok L.Paren _ }
@@ -41,6 +47,8 @@ import qualified AST as A
 	PLUS		{ L.Tok L.Plus _ }
 	RANGLE		{ L.Tok L.Rangle _ }
 	RETURN		{ L.Tok L.Return _ }
+	RROT		{ L.Tok L.RRot _ }
+	RSHIFT		{ L.Tok L.RShift _ }
 	SLASH		{ L.Tok L.Slash _ }
 	SQUARE		{ L.Tok L.Square _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
@@ -62,6 +70,7 @@ import qualified AST as A
 %left CONCAT
 %left AND OR
 %left PIPE AMP
+%left LSHIFT RSHIFT LROT RROT
 %left PLUS DASH
 %left ASTERISK SLASH
 %left EQ2 PERC CIRC
@@ -110,9 +119,11 @@ stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
      | vardecl			{ foldl1 A.Seq (map A.Decl $1) }
-     | BRACE stmts UNBRACE	{ $2 }
+     | stmt_group		{ $1 }
      | if			{ $1 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
+     | FOR id IN expr DOT2 expr
+	stmt_group		{ A.For $2 $4 $6 $7 }
 
 if : IF expr stmt_group	{ A.If $2 $3 A.Skip }
    | IF expr stmt_group ELSE stmt_group
@@ -159,6 +170,10 @@ expr : intlit			{ A.ConstInt $1 }
      | expr AMP		expr	{ A.BinOp A.Band	$1 $3 }
      | expr PIPE	expr	{ A.BinOp A.Bor		$1 $3 }
      | expr CONCAT	expr	{ A.BinOp A.BConcat	$1 $3 }
+     | expr LSHIFT	expr	{ A.BinOp A.LShift	$1 $3 }
+     | expr RSHIFT	expr	{ A.BinOp A.RShift	$1 $3 }
+     | expr LROT	expr	{ A.BinOp A.LRot	$1 $3 }
+     | expr RROT	expr	{ A.BinOp A.RRot	$1 $3 }
      | id PAREN exprs UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.Neg $2 }

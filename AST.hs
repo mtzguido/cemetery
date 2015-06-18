@@ -22,6 +22,7 @@ cmtTypeTable = [("int", Int), ("bool", Bool), ("string", String),
 
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod
            | Xor | And | Or | Band | Bor | BConcat
+           | LShift | RShift | LRot | RRot
           deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot
@@ -47,6 +48,7 @@ data Stmt = Skip
           | Seq Stmt Stmt
           | Return Expr
           | Decl Decl
+          | For VarName Expr Expr Stmt
           deriving (Eq, Show)
 
 data VarModifiers = Const | Extern
