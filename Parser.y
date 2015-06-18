@@ -156,22 +156,18 @@ expr : intlit			{ A.ConstInt $1 }
      | expr AMP		expr	{ A.BinOp A.Band	$1 $3 }
      | expr PIPE	expr	{ A.BinOp A.Bor		$1 $3 }
      | expr CONCAT	expr	{ A.BinOp A.BConcat	$1 $3 }
-     | id PAREN argv UNPAREN	{ A.Call $1 $3 }
+     | id PAREN exprs UNPAREN	{ A.Call $1 $3 }
      | PAREN expr UNPAREN	{ $2 }
      | DASH expr %prec NEG	{ A.UnOp A.Neg $2 }
      | NOT expr %prec NEG	{ A.UnOp A.Not $2 }
      | TILDE expr %prec NEG	{ A.UnOp A.Bnot $2 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
-     | SQUARE arr UNSQUARE	{ A.Arr $2 }
+     | SQUARE exprs UNSQUARE	{ A.Arr $2 }
 
-arr : {- empty -}		{ [] }
-    | expr			{ [$1] }
-    | expr COMMA arr		{ $1 : $3 }
-
-argv : {- empty -}		{ [] }
-     | expr			{ [$1] }
-     | expr COMMA argv		{ $1 : $3 }
+exprs : {- empty -}		{ [] }
+      | expr			{ [$1] }
+      | expr COMMA exprs	{ $1 : $3 }
 
 {
 
