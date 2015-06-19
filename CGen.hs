@@ -100,7 +100,7 @@ g_stmt (I.For lv fr to b) =
     do i <- g_lvalue lv
        f <- g_expr fr
        t <- g_expr to
-       let init = C.Assign i t
+       let init = C.Assign i f
        let cond = C.BinOp C.Le (C.LV i) t
        let inc = C.Assign i (C.BinOp C.Plus (C.LV i) (C.ConstInt 1))
        body <- g_body b
