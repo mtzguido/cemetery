@@ -21,4 +21,9 @@ cmt_bits_t __cmt_permute_inv(cmt_bits_t e, int[]);
 cmt_bits_t __cmt_tobits(int);
 int __cmt_toint(cmt_bits_t);
 
+cmt_bits_t __cmt_shiftl(cmt_bits_t, int);
+cmt_bits_t __cmt_shiftr(cmt_bits_t, int);
+cmt_bits_t __cmt_rotl(cmt_bits_t, int);
+cmt_bits_t __cmt_rotr(cmt_bits_t, int);
+
 /* / Cemetery prologue */

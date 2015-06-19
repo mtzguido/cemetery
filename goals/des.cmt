@@ -209,7 +209,7 @@ fun des(b k : bits) : bits
 		K = PC2(C ||| D)
 
 		-- apply the round function and do the Feistel flip
-		T = l ^ des_f(C ||| D, r)
+		T = l ^ des_f(K, r)
 		l = r
 		r = T
 	b = l ||| r
