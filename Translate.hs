@@ -64,11 +64,11 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret
        requestName name
-       addToEnv name (envv { typ = fun_t args ret, ir_name = name })
+       addToEnv name (envv { typ = fun_t args ret, ir_lv = IR.LVar name })
        let tr_arg (s, t) = do s' <- requestSimilar s
                               t' <- tmap t
                               addToEnv s (envv { typ = t,
-                                                 ir_name = s' })
+                                                 ir_lv = IR.LVar s' })
                               return (s', t')
 
        pushLevel
@@ -100,7 +100,7 @@ tr_stmt (A.Assign n e) =
        abortIf (elem RO (attrs d)) "Can't assign to const"
        abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
 
-       return $ sseq p_e (IR.Assign (IR.LVar (ir_name d)) (ir_e))
+       return $ sseq p_e (IR.Assign (ir_lv d) (ir_e))
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
@@ -140,7 +140,7 @@ tr_stmt (A.For v f t b) =
 
        let prep_f = IR.Assign f_save f_ir
        pushLevel
-       addToEnv v (envv {typ = A.Int, attrs = [RO]})
+       addToEnv v (envv {typ = A.Int, attrs = [RO], ir_lv = it})
        b' <- tr_body b
        popLevel
 
@@ -172,7 +172,7 @@ tr_expr' i (A.UnOp op e) =
 
 tr_expr' i (A.Var n) =
     do d <- env_lookup n
-       return (IR.Skip, typ d, IR.LV (IR.LVar (ir_name d)))
+       return (IR.Skip, typ d, IR.LV (ir_lv d))
 
 tr_expr' i (A.Call f args) =
     do tr_save $ tr_call i f args
@@ -247,7 +247,7 @@ tr_gdecl' n mods typ ir =
        abortIf (not (elem A.Const mods))
            "Global variables can only be constants"
 
-       addToEnv n (envv { typ = typ, ir_name = n, attrs = [RO] })
+       addToEnv n (envv { typ = typ, ir_lv = IR.LVar n, attrs = [RO] })
        ir_t <- tmap typ
 
        -- At this point, we'll need to simplify ir
@@ -285,7 +285,7 @@ tr_ldecl' n mods p typ ir =
 
        abortIf (elem A.Extern mods) "External on local scope?"
 
-       addToEnv n (envv { typ = typ, ir_name = n', attrs = attrs })
+       addToEnv n (envv { typ = typ, ir_lv = IR.LVar n', attrs = attrs })
        ir_t <- tmap typ
        return $ (sseq p (IR.Assign (IR.LVar n') ir),
                  IR.DeclareVar n' ir_t)
@@ -351,7 +351,11 @@ tr_call i f args =
        abortIf (not (all id ok))
            "Ill typed function argument on call"
 
-       return (foldl sseq IR.Skip args_prep, ret, IR.Call (ir_name d) args_ir)
+       name  <- case ir_lv d of
+                   IR.LVar n -> return n
+                   _ -> abort "Internal error"
+
+       return (foldl sseq IR.Skip args_prep, ret, IR.Call name args_ir)
 
 tr_slice i a f t =
     do (a_p, a_t, a_ir) <- tr_expr' i a

@@ -16,12 +16,12 @@ data Attr = RO
 
 type EnvT = M.Map A.VarName EnvV
 data EnvV = EnvV { typ :: A.Type, 
-                   ir_name :: String,
+                   ir_lv :: I.LValue,
                    attrs :: [Attr]
                  }
   deriving (Show)
 
-envv = EnvV { typ = A.Invalid, ir_name = "", attrs = [] }
+envv = EnvV { typ = A.Invalid, ir_lv = I.LVar "wat", attrs = [] }
 
 -- State at each level inside the AST
 data LevelState =
