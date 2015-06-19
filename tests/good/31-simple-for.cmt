@@ -1,0 +1,7 @@
+fun f(x : int) : int
+	var i r : int
+
+	for i in 1..x
+		r = r + i
+
+	return r

@@ -33,15 +33,16 @@ data Funtype = Funtype { name :: String,
 data LValue = LVar String
   deriving (Eq, Show)
 
-data Stmt = Assign LValue Expr
-          | If Expr Block Block
+data Stmt = If Expr Block Block
           | Seq Stmt Stmt
           | Return Expr
           | Skip
-          | For Stmt Expr Stmt Block
+          | For Expr Expr Expr Block
+          | Expr Expr
   deriving (Eq, Show)
 
 data Expr = BinOp BinOp Expr Expr
+          | Assign LValue Expr
           | UnOp UnOp Expr
           | ConstInt Int
           | ConstFloat Double

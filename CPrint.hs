@@ -76,19 +76,18 @@ p_stmt Skip =
 p_stmt s@(If _ _ _) =
     do p_if "" s
 
-p_stmt (Assign lv e) =
-    do lvs <- p_lvalue lv
-       ee <- p_expr e
-       line $ lvs ++ " = " ++ ee ++ ";"
+p_stmt (Expr e) =
+    do e' <- p_expr e
+       line $ e' ++ ";"
 
 p_stmt (Return e) =
     do ee <- p_expr e
        line $ "return " ++ ee ++ ";"
 
 p_stmt (For s c i b) =
-    do ss <- return "init"
+    do ss <- p_expr s
        cc <- p_expr c
-       ii <- return "incr"
+       ii <- p_expr i
        line $ "for (" ++ ss ++ "; " ++ cc ++ "; " ++ ii ++ ") {"
        indent $ p_block b
        line "}"
@@ -107,6 +106,11 @@ p_expr (UnOp op l) =
     do oo <- p_unop op
        ll <- p_expr l
        return $ paren (oo ++ " " ++ ll)
+
+p_expr (Assign lv e) =
+    do lvs <- p_lvalue lv
+       ee <- p_expr e
+       return $ lvs ++ " = " ++ ee
 
 p_expr (ConstInt i) =
     do return $ show i

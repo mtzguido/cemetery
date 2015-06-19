@@ -84,7 +84,7 @@ g_stmt I.Skip =
 g_stmt (I.Assign lv e) =
     do c_e <- g_expr e
        c_lv <- g_lvalue lv
-       return (C.Assign c_lv c_e)
+       return (C.Expr $ C.Assign c_lv c_e)
 
 g_stmt (I.If c t e) =
     do c_c <- g_expr c
