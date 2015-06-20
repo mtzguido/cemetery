@@ -24,7 +24,6 @@ import qualified AST as A
 	CONST		{ L.Tok L.Const _ }
 	DASH		{ L.Tok L.Dash _ }
 	DOT2		{ L.Tok L.Dot2 _ }
-	DOT		{ L.Tok L.Dot _ }
 	ELSE		{ L.Tok L.Else _ }
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
