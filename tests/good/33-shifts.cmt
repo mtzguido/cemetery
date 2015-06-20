@@ -1,0 +1,12 @@
+fun weird(b : bits) : bits
+	b ^= b >>> 3
+	b ^= b <<< 3
+	b ^= b << 3
+	b ^= b >> 3
+	b = b & b
+	b = b | b
+	b = ~b
+	b = b ||| b
+	b = b[5, 9]
+	b = b >>> toint(b)
+	return b

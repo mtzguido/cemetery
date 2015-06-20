@@ -232,7 +232,6 @@ tmap t =
 tr_gdecl (A.VarDecl n mods _      Nothing) =
     do abort "Global constants need an initializer"
 
--- TODO: Prevent function calls on global initializers
 tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
     do (prep, e_t, e_ir) <- tr_init e
        abortIf (prep /= IR.Skip) "Internal error"

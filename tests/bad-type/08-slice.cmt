@@ -1,0 +1,2 @@
+fun f(x : int) : bits
+	return x[1,2]
