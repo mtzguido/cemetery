@@ -31,6 +31,7 @@ data Funtype = Funtype { name :: String,
 data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
            | Band | Bor | BConcat | Xor
            | LShift | RShift | LRot | RRot
+           | Le | Lt | Gt | Ge
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot

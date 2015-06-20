@@ -90,6 +90,9 @@ tr_body b = do pushLevel
                return (reverse $ decls l, s)
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
+tr_stmt (A.Err _) =
+    do return IR.Skip
+
 tr_stmt A.Skip =
     do return IR.Skip
 
@@ -306,6 +309,11 @@ tr_binop' A.LShift  = do return (A.Bits, A.Bits, A.Int, IR.LShift)
 tr_binop' A.RShift  = do return (A.Bits, A.Bits, A.Int, IR.RShift)
 tr_binop' A.LRot    = do return (A.Bits, A.Bits, A.Int, IR.LRot)
 tr_binop' A.RRot    = do return (A.Bits, A.Bits, A.Int, IR.RRot)
+
+tr_binop' A.Le    = do return (A.Bool, A.Int, A.Int, IR.Le)
+tr_binop' A.Lt    = do return (A.Bool, A.Int, A.Int, IR.Lt)
+tr_binop' A.Ge    = do return (A.Bool, A.Int, A.Int, IR.Ge)
+tr_binop' A.Gt    = do return (A.Bool, A.Int, A.Int, IR.Gt)
 
 tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
 tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)

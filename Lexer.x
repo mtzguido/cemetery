@@ -35,6 +35,8 @@ tokens :-
   "]"			{ simple Unsquare }
   "<"			{ simple Langle }
   ">"			{ simple Rangle }
+  "<="			{ simple Le }
+  ">="			{ simple Ge }
 
   "<<"			{ simple LShift }
   ">>"			{ simple RShift }
@@ -208,7 +210,7 @@ data Sym =
   Paren | Unparen |
   Square | Unsquare |
   Brace | Unbrace | Break |
-  Langle | Rangle |
+  Langle | Rangle | Le | Ge |
   LShift | RShift | LRot | RRot |
   Comma | Colon | Colon2 |
 
@@ -219,7 +221,9 @@ data Sym =
   And | Or | Not |
 
   IntLit Int | StringLit String | FloatLit Double |
-  BoolLit Bool
+  BoolLit Bool |
+
+  Error
   deriving (Show)
 
 qstrip = tail . init
@@ -232,7 +236,8 @@ keywords = [ ("fun", Fun),
              ("if", If),
              ("else", Else),
              ("for", For),
-             ("in", In)
+             ("in", In),
+             ("error", Error)
            ]
 
 ident_or_keyword' (p,_,_,s) l = return $ Tok (ident_or_keyword (take l s)) p

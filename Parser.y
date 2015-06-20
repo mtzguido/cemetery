@@ -25,17 +25,20 @@ import qualified AST as A
 	DASH		{ L.Tok L.Dash _ }
 	DOT2		{ L.Tok L.Dot2 _ }
 	ELSE		{ L.Tok L.Else _ }
+	ERROR		{ L.Tok L.Error _ }
 	EQ2		{ L.Tok L.Eq2 _ }
 	EQ		{ L.Tok L.Eq _ }
 	EXTERN		{ L.Tok L.Extern _ }
 	FLOAT		{ L.Tok (L.FloatLit _) _ }
 	FOR		{ L.Tok L.For _ }
 	FUN		{ L.Tok L.Fun _ }
+	GE		{ L.Tok L.Ge _ }
 	ID		{ L.Tok (L.Ident _) _ }
 	IF		{ L.Tok L.If _ }
 	IN		{ L.Tok L.In _ }
 	INT		{ L.Tok (L.IntLit _) _ }
 	LANGLE		{ L.Tok L.Langle _ }
+	LE		{ L.Tok L.Le _ }
 	LROT		{ L.Tok L.LRot _ }
 	LSHIFT		{ L.Tok L.LShift _ }
 	NOT		{ L.Tok L.Not _ }
@@ -66,13 +69,14 @@ import qualified AST as A
 
 	EOF		{ L.EOF }
 
+%left EQ2 LANGLE RANGLE LE GE
 %left CONCAT
 %left AND OR
 %left PIPE AMP
 %left LSHIFT RSHIFT LROT RROT
 %left PLUS DASH
 %left ASTERISK SLASH
-%left EQ2 PERC CIRC
+%left PERC CIRC
 %left ELSE
 %left NEG TILDE
 %left SQUARE
@@ -123,6 +127,7 @@ stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
      | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
      | FOR id IN expr DOT2 expr
 	stmt_group		{ A.For $2 $4 $6 $7 }
+     | ERROR strlit		{ A.Err $2 }
 
 if : IF expr stmt_group	{ A.If $2 $3 A.Skip }
    | IF expr stmt_group ELSE stmt_group
@@ -162,6 +167,10 @@ expr : intlit			{ A.ConstInt $1 }
      | expr SLASH	expr	{ A.BinOp A.Div		$1 $3 }
      | expr ASTERISK	expr	{ A.BinOp A.Prod	$1 $3 }
      | expr EQ2		expr	{ A.BinOp A.Eq		$1 $3 }
+     | expr LE		expr	{ A.BinOp A.Le		$1 $3 }
+     | expr GE		expr	{ A.BinOp A.Ge		$1 $3 }
+     | expr LANGLE	expr	{ A.BinOp A.Lt		$1 $3 }
+     | expr RANGLE	expr	{ A.BinOp A.Gt		$1 $3 }
      | expr PERC	expr	{ A.BinOp A.Mod		$1 $3 }
      | expr CIRC	expr	{ A.BinOp A.Xor		$1 $3 }
      | expr AND		expr	{ A.BinOp A.And		$1 $3 }
