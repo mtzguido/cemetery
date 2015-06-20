@@ -69,9 +69,9 @@ import qualified AST as A
 
 	EOF		{ L.EOF }
 
+%left AND OR
 %left EQ2 LANGLE RANGLE LE GE
 %left CONCAT
-%left AND OR
 %left PIPE AMP
 %left LSHIFT RSHIFT LROT RROT
 %left PLUS DASH
