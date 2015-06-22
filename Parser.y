@@ -18,6 +18,7 @@ import qualified AST as A
 	BRACE		{ L.Tok L.Brace _ }
 	BREAK		{ L.Tok L.Break _ }
 	CIRC		{ L.Tok L.Circ _ }
+	COLON2		{ L.Tok L.Colon2 _ }
 	COLON		{ L.Tok L.Colon _ }
 	COMMA		{ L.Tok L.Comma _ }
 	CONCAT		{ L.Tok L.Concat _ }
@@ -153,7 +154,8 @@ var_typ : {- empty -}		{ Nothing }
 
 decl : vardecl			{ $1 }
 
-binlit : LANGLE bytes RANGLE	{ $2 }
+binlit : LANGLE bytes COLON2 intlit RANGLE
+				{ A.BinLit $2 $4 }
 
 bytes : intlit bytes		{ $1 : $2 }
       | {- empty -}		{ [] }
@@ -161,7 +163,7 @@ bytes : intlit bytes		{ $1 : $2 }
 expr : intlit			{ A.ConstInt $1 }
      | floatlit			{ A.ConstFloat $1 }
      | id			{ A.Var $1 }
-     | binlit			{ A.BinLit $ B.pack $ map fromIntegral $1 }
+     | binlit			{ $1 }
      | expr PLUS	expr	{ A.BinOp A.Plus	$1 $3 }
      | expr DASH	expr	{ A.BinOp A.Minus	$1 $3 }
      | expr SLASH	expr	{ A.BinOp A.Div		$1 $3 }

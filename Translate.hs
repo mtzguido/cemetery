@@ -212,7 +212,7 @@ tr_expr' i (A.ConstFloat _) =
 tr_expr' i (A.ConstStr _) =
     do abort "Strings unsupported"
 
-tr_expr' i (A.BinLit _) =
+tr_expr' i (A.BinLit _ _) =
     do abort "Binary literals unsupported"
 
 tmap :: A.Type -> TM IR.Type

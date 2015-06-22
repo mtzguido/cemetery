@@ -37,7 +37,7 @@ data Expr = ConstInt Int
           | Call VarName [Expr]
           | Var VarName
           | ConstStr String
-          | BinLit B.ByteString
+          | BinLit [Int] Int  -- bytes and length in *bits*
           | Arr [Expr]
           | Slice Expr Expr Expr -- Array, From, To
           | Access Expr Expr -- Array, Pos

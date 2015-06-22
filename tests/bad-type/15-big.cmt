@@ -52,7 +52,7 @@ fun repKeyXor(p k : bits) : bits
 {- Type inferences -}
 fun literals() : void
 	var a = "blah blah blah" -- Should be inferred to "string"
-	var b = < 0x41 0x42 0x43 > -- Should be inferred to bits
+	var b = < 0x41 0x42 0x43 :: 24 > -- Should be inferred to bits
 				     -- even though it's "ABC" in ascii
 	var c = 25	-- Int
 	var d = 2.0	-- Double (no float for now)
