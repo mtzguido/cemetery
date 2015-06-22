@@ -74,7 +74,11 @@ fun sha1(m : bits) : bits
 
 	for i in 1..N
 		var Mi = m[i * 512, i * 512 + 511]
-		a, b, c, d, e = A, B, C, D, E
+		a = A
+		b = B
+		c = C
+		d = D
+		e = E
 
 		for t in 0..79
 			-- here, addition should be interpreted as
