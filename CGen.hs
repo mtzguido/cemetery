@@ -13,7 +13,9 @@ bitsType = C.Custom "cmt_bits_t"
 
 cgen :: I.IR -> C.Prog
 cgen ir = let (units, ()) = runGM (g_ir ir)
-           in C.Prog { C.includes = ["stdbool"], C.units = units}
+           in C.Prog { C.includes = ["stdbool", "stdlib", "stdio"],
+                       C.units = units
+                     }
 
 type GM = WriterT [C.Unit] (
            Identity
@@ -105,6 +107,12 @@ g_stmt (I.For lv fr to b) =
        let inc = C.Assign i (C.BinOp C.Plus (C.LV i) (C.ConstInt 1))
        body <- g_body b
        return $ C.For init cond inc body
+
+g_stmt (I.Error s) =
+    do let c = C.Call "fprintf" [C.LV (C.LVar "stderr"),
+                                 C.ConstStr $ "Cemetery error: " ++ s]
+       let a = C.Call "abort" []
+       return (C.Seq (C.Expr c) (C.Expr a))
 
 g_expr :: I.Expr -> GM C.Expr
 g_expr (I.ConstInt i) =

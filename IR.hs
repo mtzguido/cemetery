@@ -65,4 +65,5 @@ data Stmt = Assign      LValue Expr
           | Skip                         -- Simply discard this
           | If          Expr Block Block -- C-like semantics
           | For         LValue Expr Expr Block
+          | Error       String
   deriving (Eq, Show)

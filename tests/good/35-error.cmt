@@ -1,0 +1,6 @@
+fun f(x : int) : int
+	-- x needs to be > 0
+	if x <= 0
+		error "bad value for x"
+
+	return x + 1

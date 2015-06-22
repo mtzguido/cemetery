@@ -138,6 +138,9 @@ p_expr (Access a i) =
        ii <- p_expr i
        return $ aa ++ square ii
 
+p_expr (ConstStr s) =
+    do return $ "\"" ++ s ++ "\""
+
 paren s = "(" ++ s ++ ")"
 brace s = "{" ++ s ++ "}"
 square s = "[" ++ s ++ "]"

@@ -90,8 +90,8 @@ tr_body b = do pushLevel
                return (reverse $ decls l, s)
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
-tr_stmt (A.Err _) =
-    do return IR.Skip
+tr_stmt (A.Err s) =
+    do return $ IR.Error s
 
 tr_stmt A.Skip =
     do return IR.Skip
