@@ -157,7 +157,7 @@ decl : vardecl			{ $1 }
 binlit : LANGLE bytes COLON2 intlit RANGLE
 				{ A.BinLit $2 $4 }
 
-bytes : intlit bytes		{ $1 : $2 }
+bytes : intlit bytes		{ (explode $1) ++ $2 }
       | {- empty -}		{ [] }
 
 expr : intlit			{ A.ConstInt $1 }
@@ -209,5 +209,8 @@ readInt		(L.Tok (L.IntLit i) _) = i
 readFloat	(L.Tok (L.FloatLit d) _) = d
 readStr		(L.Tok (L.StringLit s) _) = s
 readBool	(L.Tok (L.BoolLit b) _) = b
+
+explode i | i >= 0 && i < 256 = [i]
+explode i = explode (i `div` 256) ++ explode (i `mod` 256)
 
 }
