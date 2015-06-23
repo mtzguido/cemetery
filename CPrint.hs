@@ -141,6 +141,14 @@ p_expr (Access a i) =
 p_expr (ConstStr s) =
     do return $ "\"" ++ s ++ "\""
 
+p_expr (StructVal attrs) =
+    do ts <- mapM p_attr attrs
+       return $ brace (commas ts)
+
+p_attr (name, expr) =
+    do e <- p_expr expr
+       return $ "." ++ name ++ " = " ++ e
+
 paren s = "(" ++ s ++ ")"
 brace s = "{" ++ s ++ "}"
 square s = "[" ++ s ++ "]"
@@ -197,6 +205,7 @@ p_binop Ge    = do return ">="
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
+p_unop Address   = do return "&"
 
 p_lvalue (LVar s) =
     do return s

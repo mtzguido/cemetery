@@ -52,6 +52,7 @@ data Expr = BinOp BinOp Expr Expr
           | Arr [Expr]
           | Access Expr Expr
           | ConstStr String
+          | StructVal [(String, Expr)]
 --          | ConstArr [Word8]
 --          | StructVal [(String, Expr)]
 --          | PtrTo String
@@ -62,7 +63,7 @@ data BinOp = Plus | Minus | Div | Prod
            | Lt | Gt | Le | Ge
   deriving (Eq, Show)
 
-data UnOp = NegateNum | Not
+data UnOp = NegateNum | Not | Address
   deriving (Eq, Show)
 
 data Type = Int | Bool | ArrT Type | Custom String

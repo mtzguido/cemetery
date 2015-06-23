@@ -10,6 +10,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Identity
 
+bitsType_str = C.Custom "struct cmt_bits"
 bitsType = C.Custom "cmt_bits_t"
 
 cgen :: I.IR -> C.Prog
@@ -18,9 +19,13 @@ cgen ir = let (units, ()) = runGM (g_ir ir)
                        C.units = units
                      }
 
-data CGenState = CGenState { globals :: [C.Decl] }
+data CGenState = CGenState { globals :: [C.Decl],
+                             buflit_counter :: Int
+                           }
 
-initState = CGenState { globals = [] }
+initState = CGenState { globals = [],
+                        buflit_counter = 0
+                      }
 
 type GM = StateT CGenState (
            WriterT [C.Unit] (
@@ -30,6 +35,11 @@ type GM = StateT CGenState (
 add_gdecl d =
     do s <- get
        put (s { globals = globals s ++ [d]})
+
+fresh_buflit_counter =
+    do s <- get
+       put (s { buflit_counter = buflit_counter s + 1})
+       return (buflit_counter s)
 
 sseq C.Skip r = r
 sseq l C.Skip = l
@@ -164,6 +174,14 @@ g_expr (I.Slice a f t) =
        ff <- g_expr f
        tt <- g_expr t
        return $ C.Call "__cmt_slice" [aa, ff, tt]
+
+g_expr (I.ConstBits b l) =
+    do c <- fresh_buflit_counter
+       let name = "__cmt_buf_literal_" ++ show c
+       let arr = map C.ConstInt b
+       let init = C.StructVal [("data", C.Arr arr), ("length", C.ConstInt l)]
+       add_gdecl (C.VarDecl name (bitsType_str) (Just init) [C.Static, C.Const])
+       return $ C.Call "__cmt_init" [C.UnOp C.Address (C.LV (C.LVar name))]
 
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool

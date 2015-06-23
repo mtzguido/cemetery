@@ -1,6 +1,10 @@
 /* Cemetery prologue */
 
-struct cmt_bits;
+struct cmt_bits {
+	int length;
+	unsigned char data[];
+};
+
 typedef struct cmt_bits *cmt_bits_t;
 
 int __cmt_even(int x)
@@ -27,5 +31,7 @@ cmt_bits_t __cmt_rotl(cmt_bits_t, int);
 cmt_bits_t __cmt_rotr(cmt_bits_t, int);
 
 int __cmt_length(cmt_bits_t);
+
+cmt_bits_t __cmt_init(struct cmt_bits*);
 
 /* / Cemetery prologue */
