@@ -32,6 +32,7 @@ data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
            | Band | Bor | BConcat | Xor
            | LShift | RShift | LRot | RRot
            | Le | Lt | Gt | Ge
+           | ModPlus -- Bits addition modulo size
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot
