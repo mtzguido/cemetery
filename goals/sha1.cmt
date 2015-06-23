@@ -83,7 +83,7 @@ fun sha1(m : bits) : bits
 		for t in 0..79
 			-- here, addition should be interpreted as
 			-- modulo 32 bit.
-			T = a <<< 5 + f(t, b, c, d) + e + K(t) + W(Mi, t)
+			T = (a <<< 5) + f(t, b, c, d) + e + K(t) + W(Mi, t)
 			e = d
 			d = c
 			c = b <<< 30
