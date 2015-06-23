@@ -26,4 +26,6 @@ cmt_bits_t __cmt_shiftr(cmt_bits_t, int);
 cmt_bits_t __cmt_rotl(cmt_bits_t, int);
 cmt_bits_t __cmt_rotr(cmt_bits_t, int);
 
+int __cmt_length(cmt_bits_t);
+
 /* / Cemetery prologue */
