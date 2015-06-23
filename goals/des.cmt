@@ -166,14 +166,14 @@ fun S(b : bits) : bits
 	var f7 = b[37, 42]
 	var f8 = b[43, 48]
 
-	f1 = tobits(S1[toint(f1)])
-	f2 = tobits(S2[toint(f2)])
-	f3 = tobits(S3[toint(f3)])
-	f4 = tobits(S4[toint(f4)])
-	f5 = tobits(S5[toint(f5)])
-	f6 = tobits(S6[toint(f6)])
-	f7 = tobits(S7[toint(f7)])
-	f8 = tobits(S8[toint(f8)])
+	f1 = tobits(S1[toint(f1)], 4)
+	f2 = tobits(S2[toint(f2)], 4)
+	f3 = tobits(S3[toint(f3)], 4)
+	f4 = tobits(S4[toint(f4)], 4)
+	f5 = tobits(S5[toint(f5)], 4)
+	f6 = tobits(S6[toint(f6)], 4)
+	f7 = tobits(S7[toint(f7)], 4)
+	f8 = tobits(S8[toint(f8)], 4)
 
 	return f1 ||| f2 ||| f3 ||| f4 ||| f5 ||| f6 ||| f7 ||| f8
 
