@@ -18,7 +18,7 @@ cmt_bits_t __cmt_bnot(cmt_bits_t e);
 cmt_bits_t __cmt_permute(cmt_bits_t e, int[]);
 cmt_bits_t __cmt_permute_inv(cmt_bits_t e, int[]);
 
-cmt_bits_t __cmt_tobits(int);
+cmt_bits_t __cmt_tobits(int, int);
 int __cmt_toint(cmt_bits_t);
 
 cmt_bits_t __cmt_shiftl(cmt_bits_t, int);
