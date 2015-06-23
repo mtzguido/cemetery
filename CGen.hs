@@ -190,26 +190,27 @@ g_type (I.ArrT t) =
     do t' <- g_type t
        return (C.ArrT t')
 
-g_binop I.Plus  l r = do return $ C.BinOp C.Plus  l r
-g_binop I.Minus l r = do return $ C.BinOp C.Minus l r
-g_binop I.Div   l r = do return $ C.BinOp C.Div   l r
-g_binop I.Prod  l r = do return $ C.BinOp C.Prod  l r
-g_binop I.Eq    l r = do return $ C.BinOp C.Eq    l r
-g_binop I.Mod   l r = do return $ C.BinOp C.Mod   l r
-g_binop I.And   l r = do return $ C.BinOp C.And   l r
-g_binop I.Or    l r = do return $ C.BinOp C.Or    l r
-g_binop I.Lt    l r = do return $ C.BinOp C.Lt    l r
-g_binop I.Le    l r = do return $ C.BinOp C.Le    l r
-g_binop I.Gt    l r = do return $ C.BinOp C.Gt    l r
-g_binop I.Ge    l r = do return $ C.BinOp C.Ge    l r
-g_binop I.Band  l r = do return $ C.Call "__cmt_band" [l, r]
-g_binop I.Bor   l r = do return $ C.Call "__cmt_bor" [l, r]
-g_binop I.Xor   l r = do return $ C.Call "__cmt_xor" [l, r]
+g_binop I.Plus    l r = do return $ C.BinOp C.Plus  l r
+g_binop I.Minus   l r = do return $ C.BinOp C.Minus l r
+g_binop I.Div     l r = do return $ C.BinOp C.Div   l r
+g_binop I.Prod    l r = do return $ C.BinOp C.Prod  l r
+g_binop I.Eq      l r = do return $ C.BinOp C.Eq    l r
+g_binop I.Mod     l r = do return $ C.BinOp C.Mod   l r
+g_binop I.And     l r = do return $ C.BinOp C.And   l r
+g_binop I.Or      l r = do return $ C.BinOp C.Or    l r
+g_binop I.Lt      l r = do return $ C.BinOp C.Lt    l r
+g_binop I.Le      l r = do return $ C.BinOp C.Le    l r
+g_binop I.Gt      l r = do return $ C.BinOp C.Gt    l r
+g_binop I.Ge      l r = do return $ C.BinOp C.Ge    l r
+g_binop I.Band    l r = do return $ C.Call "__cmt_band" [l, r]
+g_binop I.Bor     l r = do return $ C.Call "__cmt_bor" [l, r]
+g_binop I.Xor     l r = do return $ C.Call "__cmt_xor" [l, r]
 g_binop I.BConcat l r = do return $ C.Call "__cmt_bconcat" [l, r]
-g_binop I.LShift l r = do return $ C.Call "__cmt_shiftl" [l, r]
-g_binop I.RShift l r = do return $ C.Call "__cmt_shiftr" [l, r]
-g_binop I.LRot l r  = do return $ C.Call "__cmt_rotl" [l, r]
-g_binop I.RRot l r  = do return $ C.Call "__cmt_rotr" [l, r]
+g_binop I.LShift  l r = do return $ C.Call "__cmt_shiftl" [l, r]
+g_binop I.RShift  l r = do return $ C.Call "__cmt_shiftr" [l, r]
+g_binop I.LRot    l r = do return $ C.Call "__cmt_rotl" [l, r]
+g_binop I.RRot    l r = do return $ C.Call "__cmt_rotr" [l, r]
+g_binop I.ModPlus l r = do return $ C.Call "__cmt_modplus" [l, r]
 
 g_unop  I.Neg   e   = do return $ C.UnOp C.NegateNum e
 g_unop  I.Not   e   = do return $ C.UnOp C.Not       e

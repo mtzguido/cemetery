@@ -34,4 +34,6 @@ int __cmt_length(cmt_bits_t);
 
 cmt_bits_t __cmt_init(struct cmt_bits*);
 
+cmt_bits_t __cmt_modplus(cmt_bits_t, cmt_bits_t);
+
 /* / Cemetery prologue */
