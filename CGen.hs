@@ -6,6 +6,7 @@ import qualified IR as I
 import qualified CLang as C
 import Common
 
+import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Identity
 
@@ -17,18 +18,29 @@ cgen ir = let (units, ()) = runGM (g_ir ir)
                        C.units = units
                      }
 
-type GM = WriterT [C.Unit] (
-           Identity
-          )
+data CGenState = CGenState { globals :: [C.Decl] }
+
+initState = CGenState { globals = [] }
+
+type GM = StateT CGenState (
+           WriterT [C.Unit] (
+            Identity
+           ))
+
+add_gdecl d =
+    do s <- get
+       put (s { globals = globals s ++ [d]})
 
 sseq C.Skip r = r
 sseq l C.Skip = l
 sseq l r = C.Seq l r
 
 runGM :: GM t -> ([C.Unit], t)
-runGM m = let m' = runWriterT m
-              (r, units) = runIdentity m'
-           in (units, r)
+runGM m = let m' = runStateT m initState
+              m'' = runWriterT m'
+              ((r, s), units) = runIdentity m''
+              gdecls = map C.Decl (globals s)
+           in (gdecls ++ units, r)
 
 g_ir :: I.IR -> GM ()
 g_ir p = do bs <- mapM g_unit p
