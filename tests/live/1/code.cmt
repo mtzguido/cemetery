@@ -1,0 +1,20 @@
+fun weird() : bits
+	var b = < 0x92 :: 8 >
+
+	b = b >>> 3
+	b = b <<< 3
+	b = b << 3
+	b = b >> 3
+	b = b & b
+	b = b | b
+	b = ~b
+	b = b ||| b
+	b = b[5, 9]
+	b = b >>> toint(b)
+	return b
+
+fun left() : bits
+	return weird()
+
+fun right() : bits
+	return < 21 :: 5 >

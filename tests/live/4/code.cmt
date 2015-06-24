@@ -1,0 +1,6 @@
+fun left() : bits
+	var a = < 0xff 0xff 0xff :: 25 >
+	return a + a
+
+fun right() : bits
+	return < 0xff 0xff 0xff :: 24 > << 1

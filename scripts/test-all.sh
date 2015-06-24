@@ -9,3 +9,4 @@ set -ue
 ./scripts/do-test.sh --fail	tests/bad-type	"--trans"
 ./scripts/do-test.sh		tests/good	""
 ./scripts/do-test.sh --build	tests/good	""
+./scripts/do-live-tests.sh	tests/live
