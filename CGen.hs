@@ -10,12 +10,13 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Identity
 
-bitsType_str = C.Custom "struct cmt_bits"
+bitsType_str = C.Custom "struct cmt_init"
 bitsType = C.Custom "cmt_bits_t"
 
 cgen :: I.IR -> C.Prog
 cgen ir = let (units, ()) = runGM (g_ir ir)
-           in C.Prog { C.includes = ["stdbool", "stdlib", "stdio"],
+           in C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
+                                     "stddef", "string"],
                        C.units = units
                      }
 
@@ -179,7 +180,8 @@ g_expr (I.ConstBits b l) =
     do c <- fresh_buflit_counter
        let name = "__cmt_buf_literal_" ++ show c
        let arr = map C.ConstInt (reverse b)
-       let init = C.StructVal [("data", C.Arr arr), ("length", C.ConstInt l)]
+       let init = C.StructVal [("data", C.Arr arr),
+                               ("length", C.ConstInt l)]
        add_gdecl (C.VarDecl name (bitsType_str) (Just init) [C.Static, C.Const])
        return $ C.Call "__cmt_init" [C.UnOp C.Address (C.LV (C.LVar name))]
 

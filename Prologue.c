@@ -2,7 +2,17 @@
 
 #include <stddef.h>
 
+#define W  (sizeof(unsigned long))
+#define WB (W * 8)
+#define bit(i) ((unsigned long)1 << (i))
+
 struct cmt_bits {
+	int length;
+	int size;
+	unsigned long data[];
+};
+
+struct cmt_init {
 	int length;
 	unsigned char data[];
 };
@@ -21,8 +31,11 @@ static inline int max(int a, int b)
 
 static int __cmt_mod(int a, int b)
 {
-	while (a < 0)
-		a += b;
+	if (a == -1)
+		return b - 1;
+
+	if (a < 0)
+		a += b * (-a/b + 1);
 
 	return a % b;
 }
@@ -36,44 +49,73 @@ static inline __cmt_error(char *s)
 static cmt_bits_t __cmt_alloc(int length)
 {
 	cmt_bits_t ret;
+	int size;
 
-	ret = calloc(1, offsetof(struct cmt_bits, data[length / 8]));
+	size = (length + WB - 1) / WB;
+
+	ret = calloc(1, offsetof(struct cmt_bits, data[size]));
 
 	if (!ret)
 		__cmt_error("allocation failed\n");
 
 	ret->length = length;
+	ret->size = size;
 
 	return ret;
 }
 
-static bool get(cmt_bits_t b, int o)
+static void __cmt_fixup(cmt_bits_t b)
 {
-	if (o > b->length)
-		__cmt_error("wat");
+	unsigned long m;
 
-	return b->data[o/8] & (1 << (o % 8));
-}
-
-static void set(cmt_bits_t b, int o, int v)
-{
-	if (o > b->length)
-		__cmt_error("wat");
-
-	if (v)
-		b->data[o/8] |= (1 << (o % 8));
-	else
-		b->data[o/8] &= ~(1 << (o % 8));
-}
-
-static void __cmt_copy(cmt_bits_t to, int offset, cmt_bits_t from)
-{
-	int i;
-
-	for (i = 0; i < from->length; i++) {
-		if (get(from, i))
-			set(to, offset + i, 1);
+	if (b->length % WB) {
+		m = -1;
+		m <<= b->length % WB;
+		b->data[b->size - 1] &= ~m;
 	}
+}
+
+static bool get_bit(cmt_bits_t b, int o)
+{
+	if (o > b->length)
+		return false;
+
+	return b->data[o / WB] & bit(o % WB);
+}
+
+static void set_bit(cmt_bits_t b, int o)
+{
+	if (o > b->length)
+		__cmt_error("wat");
+
+	b->data[o / WB] |= bit(o % WB);
+}
+
+static unsigned long get_word(cmt_bits_t b, int wi)
+{
+	if (wi < 0)
+		__cmt_error("fuck 1");
+
+	/*
+	 * Allowed for now since it simplies the binops
+	 * but, up for discussion wether we should fail
+	 * hard here.
+	 */
+	if (wi >= b->size)
+		return 0UL;
+
+	return b->data[wi];
+}
+
+static void set_word(cmt_bits_t b, int wi, unsigned long w)
+{
+	if (wi < 0)
+		__cmt_error("fuck 2");
+
+	if (wi >= (b->length + WB - 1)/ WB)
+		__cmt_error("fuck 3");
+
+	b->data[wi] = w;
 }
 
 static cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
@@ -81,12 +123,8 @@ static cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
 
-	for (i = 0; i < ret->length; i++) {
-		if (i > l->length || i > r->length)
-			break;
-
-		set(ret, i, get(l, i) && get(r, i));
-	}
+	for (i = 0; i < ret->size; i++)
+		set_word(ret, i, get_word(l, i) & get_word(r, i));
 
 	return ret;
 }
@@ -96,12 +134,8 @@ static cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
 
-	for (i = 0; i < ret->length; i++) {
-		if (i > l->length || i > r->length)
-			break;
-
-		set(ret, i, get(l, i) || get(r, i));
-	}
+	for (i = 0; i < ret->size; i++)
+		set_word(ret, i, get_word(l, i) | get_word(r, i));
 
 	return ret;
 }
@@ -111,34 +145,46 @@ static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
 
-	for (i = 0; i < ret->length; i++) {
-		if (i > l->length || i > r->length)
-			break;
-
-		set(ret, i, get(l, i) != get(r, i));
-	}
+	for (i = 0; i < ret->size; i++)
+		set_word(ret, i, get_word(l, i) ^ get_word(r, i));
 
 	return ret;
+}
+
+static void __cmt_copy(cmt_bits_t to, int offset, cmt_bits_t from,
+		       int start_bit, int len)
+{
+	int i;
+
+	/* FIXME, TERRIBILY SLOW! */
+	for (i = 0; i < len; i++) {
+		if (get_bit(from, start_bit + i))
+			set_bit(to, offset + i);
+	}
 }
 
 static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(l->length + r->length);
-	__cmt_copy(ret, 0, r);
-	__cmt_copy(ret, r->length, l);
+
+	__cmt_copy(ret, 0,         r, 0, r->length);
+	__cmt_copy(ret, r->length, l, 0, l->length);
 
 	return ret;
 }
 
 cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 {
+	int tob;
 	cmt_bits_t ret = __cmt_alloc(to - from + 1);
-	int i;
 
-	for (i = 0; i < ret->length; i++) {
-		if (get(l, l->length - to - 1 + i))
-			set(ret, i, 1);
-	}
+	/*
+	 * Slice takes bits counted from the left (MSB),
+	 * so turn them into an index from the right (LSB)
+	 */
+	tob = l->length - 1 - to;
+
+	__cmt_copy(ret, 0, l, tob, ret->length);
 
 	return ret;
 }
@@ -148,10 +194,11 @@ cmt_bits_t __cmt_bnot(cmt_bits_t e)
 	cmt_bits_t ret = __cmt_alloc(e->length);
 	int i;
 
-	for (i = 0; i < e->length; i++) {
-		if (!get(e, i))
-			set(ret, i, 1);
-	}
+	for (i = 0; i < ret->size; i++)
+		set_word(ret, i, ~get_word(e, i));
+
+	/* Fixup the trailing bits, they should always be 0 */
+	__cmt_fixup(ret);
 
 	return ret;
 }
@@ -162,8 +209,8 @@ cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[])
 	int i;
 
 	for (i = 0; i < ret->length; i++) {
-		if (get(e, perm[i]))
-			set(ret, i, 1);
+		if (get_bit(e, perm[i]))
+			set_bit(ret, i);
 	}
 
 	return ret;
@@ -175,8 +222,8 @@ cmt_bits_t __cmt_permute_inv(cmt_bits_t e, int perm[])
 	int i;
 
 	for (i = 0; i < ret->length; i++) {
-		if (get(e, i))
-			set(ret, perm[i], 1);
+		if (get_bit(e, i))
+			set_bit(ret, perm[i]);
 	}
 
 	return ret;
@@ -192,7 +239,7 @@ cmt_bits_t __cmt_tobits(int x, int len)
 			break;
 
 		if (x & 1)
-			set(ret, i, 1);
+			set_bit(ret, i);
 
 		x >>= 1;
 	}
@@ -208,7 +255,7 @@ int __cmt_toint(cmt_bits_t b)
 	for (i = b->length - 1; i >= 0; i--) {
 		ret <<= 1;
 
-		if (get(b, i))
+		if (get_bit(b, i))
 			ret += 1;
 	}
 
@@ -217,24 +264,24 @@ int __cmt_toint(cmt_bits_t b)
 
 cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 {
+	if (s < 0)
+		abort();
+
 	cmt_bits_t ret = __cmt_alloc(b->length + s);
-	int i;
-
-	for (i = s; i < ret->length; i++)
-		if (get(b, i - s))
-			set(ret, i, 1);
-
+	__cmt_copy(ret, s, b, 0, b->length);
 	return ret;
 }
 
 cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 {
-	cmt_bits_t ret = __cmt_alloc(b->length - s);
-	int i;
+	if (s < 0)
+		abort;
 
-	for (i = 0; i < ret->length; i++)
-		if (get(b, i + s))
-			set(ret, i, 1);
+	if (s > b->length)
+		return __cmt_alloc(0);
+
+	cmt_bits_t ret = __cmt_alloc(b->length - s);
+	__cmt_copy(ret, 0, b, s, b->length - s);
 
 	return ret;
 }
@@ -242,25 +289,17 @@ cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 {
 	cmt_bits_t ret = __cmt_alloc(b->length);
-	int i;
+	s = __cmt_mod(s, b->length);
 
-	for (i = 0; i < ret->length; i++)
-		if (get(b, __cmt_mod(i - s,  b->length)))
-			set(ret, i, 1);
+	__cmt_copy(ret, 0, b, b->length - s, s);
+	__cmt_copy(ret, s, b, 0, b->length - s);
 
 	return ret;
 }
 
 cmt_bits_t __cmt_rotr(cmt_bits_t b, int s)
 {
-	cmt_bits_t ret = __cmt_alloc(b->length);
-	int i;
-
-	for (i = 0; i < ret->length; i++)
-		if (get(b, __cmt_mod(i + s, b->length)))
-			set(ret, i, 1);
-
-	return ret;
+	return __cmt_rotl(b, b->length - s);
 }
 
 int __cmt_length(cmt_bits_t b)
@@ -268,10 +307,10 @@ int __cmt_length(cmt_bits_t b)
 	return b->length;
 }
 
-cmt_bits_t __cmt_init(struct cmt_bits *t)
+cmt_bits_t __cmt_init(struct cmt_init *t)
 {
 	cmt_bits_t ret = __cmt_alloc(t->length);
-	__cmt_copy(ret, 0, t);
+	memcpy(ret->data, t->data, (t->length + 7) / 8);
 	return ret;
 }
 
@@ -279,19 +318,19 @@ static cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
-	int c = 0;
+	unsigned long c = 0, cc;
 
-	for (i = 0; i < ret->length; i++) {
-		c /= 2;
+	for (i = 0; i < ret->size; i++) {
+		cc = c;
+		c = c + get_word(l, i) + get_word(r, i);
 
-		if (get(l, i))
-			c++;
-		if (get(r, i))
-			c++;
+		set_word(ret, i, c);
 
-		if (c & 1)
-			set(ret, i, 1);
+		if (c < cc)
+			c = 1;
 	}
+
+	__cmt_fixup(ret);
 
 	return ret;
 }
@@ -300,5 +339,8 @@ cmt_bits_t __cmt_zero(int l)
 {
 	return __cmt_alloc(l);
 }
+
+#undef W
+#undef WB
 
 /* / Cemetery prologue */

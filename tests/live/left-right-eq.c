@@ -5,7 +5,7 @@ void dump(cmt_bits_t b)
 	fprintf(stderr, "Length: %i\n", b->length);
 
 	for (i = b->length - 1; i >= 0; i--)
-		fprintf(stderr, "%c", get(b, i) ? '1' : '0');
+		fprintf(stderr, "%c", get_bit(b, i) ? '1' : '0');
 
 	fprintf(stderr, "\n");
 }
@@ -24,7 +24,7 @@ int main()
 	}
 
 	for (i = 0; i < l->length; i++) {
-		if (get(l, i) != get(r, i)) {
+		if (get_bit(l, i) != get_bit(r, i)) {
 			fprintf(stderr, "\nBit sequences differ\n");
 			dump(l);
 			dump(r);

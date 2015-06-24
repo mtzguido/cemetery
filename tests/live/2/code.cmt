@@ -2,6 +2,5 @@ fun left() : bits
 	var b = < 1 :: 1 >
 	return b ||| b ||| b ||| b ||| b
 
-
 fun right() : bits
 	return < 31 :: 5 >
