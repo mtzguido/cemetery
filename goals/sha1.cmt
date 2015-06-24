@@ -72,7 +72,7 @@ fun sha1(m : bits) : bits
 	D = H(3)
 	E = H(4)
 
-	for i in 1..N
+	for i in 1..N-1
 		var Mi = m[i * 512, i * 512 + 511]
 		a = A
 		b = B
