@@ -17,7 +17,7 @@ int main()
 	int i;
 
 	if (l->length != r->length) {
-		fprintf(stderr, "Length mismatch\n");
+		fprintf(stderr, "\nLength mismatch\n");
 		dump(l);
 		dump(r);
 		return 1;
@@ -25,7 +25,7 @@ int main()
 
 	for (i = 0; i < l->length; i++) {
 		if (get(l, i) != get(r, i)) {
-			fprintf(stderr, "Bit sequences differ\n");
+			fprintf(stderr, "\nBit sequences differ\n");
 			dump(l);
 			dump(r);
 			return 1;
