@@ -7,3 +7,6 @@
 
 - Think about how to allow for newlines on array declarations,
   like in the DES goal.
+
+- Check that all possible paths in a function return something or 
+  call "error"

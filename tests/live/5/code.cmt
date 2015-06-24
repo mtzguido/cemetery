@@ -1,5 +1,5 @@
 fun left() : bits
-	var b = < 0x12345678 :: 32 >
+	return < 0x12345678 :: 32 >
 
 fun right() : bits
 	return < 0x12 0x34 0x56 0x78 :: 32 >
