@@ -17,4 +17,4 @@ fun left() : bits
 	return weird()
 
 fun right() : bits
-	return < 21 :: 5 >
+	return < 26 :: 5 >

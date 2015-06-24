@@ -124,8 +124,8 @@ static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(l->length + r->length);
-	__cmt_copy(ret, 0, l);
-	__cmt_copy(ret, l->length, r);
+	__cmt_copy(ret, 0, r);
+	__cmt_copy(ret, r->length, l);
 
 	return ret;
 }
@@ -136,7 +136,7 @@ cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 	int i;
 
 	for (i = 0; i < ret->length; i++) {
-		if (get(l, i + from))
+		if (get(l, l->length - to - 1 + i))
 			set(ret, i, 1);
 	}
 
