@@ -158,6 +158,7 @@ decl : vardecl			{ $1 }
 
 binlit : LANGLE bytes COLON2 intlit RANGLE
 				{ A.BinLit $2 $4 }
+       | LANGLE RANGLE		{ A.BinLit [] 0 }
 
 bytes : intlit bytes		{ (explode $1) ++ $2 }
       | {- empty -}		{ [] }
