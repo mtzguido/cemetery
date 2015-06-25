@@ -94,6 +94,7 @@ p_stmt (For s c i b) =
 
 p_typ Int = do return "int"
 p_typ Bool = do return "bool"
+p_typ UChar = do return "unsigned char"
 p_typ (Custom s) = do return s
 
 p_expr (BinOp op l r) =
@@ -163,6 +164,8 @@ p_typed_var n Int =
     do return $ "int " ++ n
 p_typed_var n Bool =
     do return $ "bool " ++ n
+p_typed_var n UChar =
+    do return $ "unsigned char " ++ n
 p_typed_var n (Custom s) =
     do return $ s ++ " " ++ n
 p_typed_var n (ArrT t) =

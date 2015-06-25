@@ -67,6 +67,7 @@ data UnOp = NegateNum | Not | Address
   deriving (Eq, Show)
 
 data Type = Int | Bool | ArrT Type | Custom String
+          | UChar
   deriving (Eq, Show)
 
 sseq Skip s = s
