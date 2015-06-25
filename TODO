@@ -10,3 +10,15 @@
 
 - Check that all possible paths in a function return something or 
   call "error"
+
+- Make "error" something sane and catcheable
+
+- Free memory when variables go out of scope
+
+- Define precisely what arrays mean, and if they can be composed of more
+  comples types or not
+
+- Maybe add a permutation type
+
+- Coallesce operations made of ~, &, |, ^ and + into a single function,
+  to improve speed. This shouldn't be super hard.
