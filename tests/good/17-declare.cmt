@@ -4,5 +4,6 @@ fun test(x : int) : int
 	var b = 2
 	var c : int
 	var d : int = 4
+	return 0
 
 const D : int = 4

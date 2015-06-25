@@ -149,7 +149,9 @@ work = do (opts, filename) <- ask
 
           breakIf StopTranslate
 
-          let oir = optimize ir'
+          oir <- case runOM (optimize ir') of
+                   (Left e, _) -> throwError e
+                   (Right x,_) -> return x
 
           liftIO $ putStrLn "Optimized IR: "
           mapM showIRUnit oir

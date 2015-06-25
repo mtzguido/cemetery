@@ -2,3 +2,4 @@ fun f (x : int) : int
 	var y : int
 	y = x + 3
 	y = y * 2
+	return y

@@ -3,3 +3,4 @@ const x : int = 99
 fun f (y : int) : int
 	var x : int
 	x = y
+	return y
