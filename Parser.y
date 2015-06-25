@@ -4,6 +4,7 @@ module Parser where
 import qualified Data.ByteString as B
 import qualified Lexer as L
 import qualified AST as A
+
 }
 
 %name cmtParse

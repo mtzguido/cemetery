@@ -1,97 +1,120 @@
 module Main where
 
+import Control.Monad
 import Control.Monad.Reader
+import Control.Monad.Error
 import Data.Either
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
+
 import AST
+import CGen
+import Common
+import CPrint
 import IR
 import Lexer
-import Parser
-import Translate
-import Common
-import Prologue
 import Optimize
-import CGen
-import CPrint
+import Parser
+import Prologue
+import TMonad
+import Translate
 
-data Opts = StopLexer | StopParse | StopTranslate
-          | StopGen | NoOutput
-          | Verbose deriving (Eq, Show)
+data Opts = StopLexer
+          | StopParse
+          | StopTranslate
+          | StopGen
+          | NoOutput
+          | Verbose
+    deriving (Eq, Show)
 
 -- Monadic type for the program logic
-type App = ReaderT ([Opts], String) IO
+type App = ReaderT ([Opts], String) (
+            ErrorT CmtError (
+             IO
+           ))
+
+runApp m r = runErrorT (runReaderT m r)
 
 options = [
- Option ['n'] ["no-output"] (NoArg NoOutput) "don't output to files",
- Option [] ["lexer", "lex", "toks"] (NoArg StopLexer) "stop after lexing stage",
- Option [] ["parse", "ast"] (NoArg StopParse) "stop after parsing stage",
- Option [] ["translate", "trans"] (NoArg StopTranslate) "stop after translation",
- Option [] ["generate"] (NoArg StopGen) "stop after genering a C ast",
- Option ['v'] ["verbose"] (NoArg Verbose) "be more verbose"
+ Option ['n'] ["no-output"]         (NoArg NoOutput)        "don't output to files",
+ Option []    ["lexer", "toks"]     (NoArg StopLexer)       "stop after lexing stage",
+ Option []    ["parse", "ast"]      (NoArg StopParse)       "stop after parsing stage",
+ Option []    ["translate"]         (NoArg StopTranslate)   "stop after translation",
+ Option []    ["generate"]          (NoArg StopGen)         "stop after genering a C ast",
+ Option ['v'] ["verbose"]           (NoArg Verbose)         "be more verbose"
  ]
 
-main = do args <- getArgs
-          let (flags, nonOpts, msgs) = getOpt Permute options args
+main =
+    do args <- getArgs
+       let (flags, nonOpts, msgs) = getOpt Permute options args
 
-          if nonOpts == [] then
-            do putStr (concat msgs ++ usageInfo "fatal: no input files" options)
-               exitFailure
-          else
-            return ()
+       when (nonOpts == []) $
+         do putStr (concat msgs ++ usageInfo "fatal: no input files" options)
+            exitFailure
 
-          let filename = head nonOpts
+       when (length nonOpts > 1) $
+         do putStr (concat msgs ++ usageInfo "fatal: more than one input file" options)
+            exitFailure
 
-          if msgs /= [] || nonOpts == [] then
-            do putStr (concat msgs ++ usageInfo "" options)
-               exitFailure
-          else return ()
+       let filename = head nonOpts
 
-          mapM (do1Work flags) (map base nonOpts)
+       if msgs /= [] || nonOpts == [] then
+         do putStr (concat msgs ++ usageInfo "" options)
+            exitFailure
+       else return ()
 
-do1Work flags file = runReaderT work (flags, file)
+       res <- runApp work (flags, filename)
+       case res of
+           Left e -> do putStrLn $ "An error ocurred: " ++ show e
+                        exitFailure
+           Right _ -> do liftIO exitSuccess
 
-ifNotOpt f m = do (opts, _) <- ask
-                  if elem f opts
-                    then return ()
-                    else m
+ifNotOpt f m =
+    do (opts, _) <- ask
+       when (not $ elem f opts) m
 
-ifOpt f m = do (opts, _) <- ask
-               if elem f opts
-                 then m
-                 else return ()
+ifOpt f m =
+    do (opts, _) <- ask
+       when (elem f opts) m
 
-breakIf f = ifOpt f (lift exitSuccess)
+breakIf f =
+    ifOpt f (liftIO exitSuccess)
 
-dbg s   = do (v, _) <- ask
-             when (elem Verbose v) $ lift (putStr s)
-dbgLn s = do (v, _) <- ask
-             when (elem Verbose v) $ lift (putStrLn s)
+dbg s =
+    do (v, _) <- ask
+       when (elem Verbose v) $ liftIO (putStr s)
 
-base :: String -> String
-base s = if drop (length s - 4) s == ".cmt"
-         then take (length s - 4) s
-         else error "unrecognized file type"
+dbgLn s =
+    do (v, _) <- ask
+       when (elem Verbose v) $ liftIO (putStrLn s)
 
-get_toks = do c <- alexMonadScan
-              case (c, last c) of
-                ([],_) -> get_toks
-                (_, EOF) -> return c
-                _ -> do cs <- get_toks
-                        return (c ++ cs)
+base :: String -> App String
+base s =
+    do if drop (length s - 4) s == ".cmt"
+           then return $ take (length s - 4) s
+           else throwError $ CmtErr "unrecognized file type"
+
+get_toks =
+    do c <- alexMonadScan
+       case (c, last c) of
+         ([],_) -> get_toks
+         (_, EOF) -> return c
+         _ -> do cs <- get_toks
+                 return (c ++ cs)
 
 showIRUnit :: IR.Unit -> App ()
 showIRUnit ir =
-    do lift $ putStrLn $ show ir
+    do liftIO $ putStrLn $ show ir
 
 work :: App ()
-work = do (opts, basename) <- ask
-          let inp  = basename ++ ".cmt"
-          let outC = basename ++ ".c"
-          let outH = basename ++ ".h"
+work = do (opts, filename) <- ask
+          stem <- base filename
+          let inp  = stem ++ ".cmt"
+          let outC = stem ++ ".c"
+          let outH = stem ++ ".h"
 
-          source <- lift $ readFile inp
+          source <- liftIO $ readFile inp
 
           let res = runAlex source get_toks
 
@@ -101,14 +124,10 @@ work = do (opts, basename) <- ask
 
           dbg "Tokens: "
           dbgLn $ concat $ map ((\s -> s ++ "\n").show) toks
-
           breakIf StopLexer
 
           let ast = cmtParse toks
-
-          case ast of
-            [] -> error "File is empty"
-            _  -> return ()
+          when (ast == []) $ throwError (CmtErr "File is empty")
 
           dbg "AST: "
           dbgLn $ show ast
@@ -116,14 +135,14 @@ work = do (opts, basename) <- ask
 
           breakIf StopParse
 
-          let (st, ir) = semanticT ast
+          let (st, ir) = runTranslate (translate ast)
+
           dbgLn $ "Translation final state: " ++ show st
           dbgLn ""
 
           case ir of
-            Left e -> do lift $ putStrLn $ "ERROR: " ++ show e
-                         lift exitFailure
-            Right t -> do lift $ putStrLn "IR Tree: "
+            Left e -> do throwError e
+            Right t -> do liftIO $ putStrLn "IR Tree: "
                           mapM showIRUnit t
 
           let Right ir' = ir
@@ -132,20 +151,20 @@ work = do (opts, basename) <- ask
 
           let oir = optimize ir'
 
-          lift $ putStrLn "Optimized IR: "
+          liftIO $ putStrLn "Optimized IR: "
           mapM showIRUnit oir
 
           let cast = cgen oir
 
-          lift $ putStrLn "C ast:"
-          lift $ putStrLn (show cast)
+          liftIO $ putStrLn "C ast:"
+          liftIO $ putStrLn (show cast)
 
           breakIf StopGen
 
           let ctext = cprint cprologue cast
-          lift $ putStrLn "C text:"
-          lift $ putStrLn ctext
+          liftIO $ putStrLn "C text:"
+          liftIO $ putStrLn ctext
 
-          ifNotOpt NoOutput $ lift $ writeFile outC ctext
+          ifNotOpt NoOutput $ liftIO $ writeFile outC ctext
 
           return ()
