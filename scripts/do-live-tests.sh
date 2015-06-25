@@ -28,7 +28,7 @@ for i in ${DIR}/*; do
 	fi
 
 	cat $i/code.c $i/driver.c > $i/full.c
-	if ! gcc $i/full.c -o $i/full; then
+	if ! gcc -Wsign-compare $i/full.c -o $i/full; then
 		echo
 		echo "TEST $i FAILED TO COMPILE!"
 		exit 1

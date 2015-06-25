@@ -64,7 +64,7 @@ for i in ${DIR}/*.cmt; do
 	fi
 
 	if $build; then
-		gcc -c "${i/.cmt/.c}" -o /dev/null
+		gcc -Wsign-compare -c "${i/.cmt/.c}" -o /dev/null
 	fi
 	echo -n '.'
 done

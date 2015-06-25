@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#define W  (sizeof(unsigned long))
+#define W  ((int)sizeof(unsigned long))
 #define WB (W * 8)
 #define bit(i) ((unsigned long)1 << (i))
 
