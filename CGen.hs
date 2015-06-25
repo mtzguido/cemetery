@@ -179,8 +179,10 @@ g_expr (I.Slice a f t) =
 g_expr (I.ConstBits b l) =
     do c <- fresh_buflit_counter
        let name = "__cmt_buf_literal_" ++ show c
-       let arr = C.Arr $ map C.ConstInt (reverse b)
-       add_gdecl (C.VarDecl name (C.ArrT C.UChar) (Just arr) [C.Static, C.Const])
+       let arr  = map C.ConstInt (reverse b)
+       let arr' = take (div (l+7) 8) (arr ++ repeat (C.ConstInt 0))
+       let carr = C.Arr arr'
+       add_gdecl (C.VarDecl name (C.ArrT C.UChar) (Just carr) [C.Static, C.Const])
        return $ C.Call "__cmt_init" [C.LV (C.LVar name), C.ConstInt l]
 
 g_type I.Int  = do return C.Int
