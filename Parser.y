@@ -43,6 +43,7 @@ import qualified AST as A
 	LE		{ L.Tok L.Le _ }
 	LROT		{ L.Tok L.LRot _ }
 	LSHIFT		{ L.Tok L.LShift _ }
+	NE		{ L.Tok L.Ne _ }
 	NOT		{ L.Tok L.Not _ }
 	OR		{ L.Tok L.Or _ }
 	PAREN		{ L.Tok L.Paren _ }
@@ -72,7 +73,7 @@ import qualified AST as A
 	EOF		{ L.EOF }
 
 %left AND OR
-%left EQ2 LANGLE RANGLE LE GE
+%left EQ2 NE LANGLE RANGLE LE GE
 %left CONCAT
 %left PIPE AMP
 %left LSHIFT RSHIFT LROT RROT
@@ -170,6 +171,7 @@ expr : intlit			{ A.ConstInt $1 }
      | expr SLASH	expr	{ A.BinOp A.Div		$1 $3 }
      | expr ASTERISK	expr	{ A.BinOp A.Prod	$1 $3 }
      | expr EQ2		expr	{ A.BinOp A.Eq		$1 $3 }
+     | expr NE		expr	{ A.UnOp A.Not (A.BinOp A.Eq $1 $3) }
      | expr LE		expr	{ A.BinOp A.Le		$1 $3 }
      | expr GE		expr	{ A.BinOp A.Ge		$1 $3 }
      | expr LANGLE	expr	{ A.BinOp A.Lt		$1 $3 }

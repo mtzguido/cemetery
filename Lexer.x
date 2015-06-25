@@ -62,6 +62,7 @@ tokens :-
   ","			{ simple Comma }
   "="			{ simple Eq }
   "=="			{ simple Eq2 }
+  "!="			{ simple Ne }
   ":"			{ simple Colon }
   ";"			{ simple Break }
   "."			{ simple Dot }
@@ -201,7 +202,7 @@ data Sym =
 
   Plus | Dash | Asterisk | Slash | Circ | Perc |
   Amp | Pipe | Tilde | Concat |
-  Eq | Eq2 | Dot | Dot2 |
+  Ne | Eq | Eq2 | Dot | Dot2 |
 
   Type AST.Type |
 
