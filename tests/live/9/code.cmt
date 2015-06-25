@@ -1,0 +1,5 @@
+fun left() : bits
+	return ~~~<0 :: 500>
+
+fun right() : bits
+	return ~<0 :: 500>
