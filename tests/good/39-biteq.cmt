@@ -1,0 +1,4 @@
+fun succ() : bool
+	var a = <0x1 0x2 :: 16>
+	var b = <0x3 0x4 :: 16>
+	return a == b

@@ -301,6 +301,7 @@ binop_table = [
     ((A.Prod,    A.Int,  A.Int) , (A.Int,  IR.Prod)),
     ((A.Mod,     A.Int,  A.Int) , (A.Int,  IR.Mod)),
     ((A.Eq,      A.Int,  A.Int) , (A.Bool, IR.Eq)),
+    ((A.Eq,      A.Bits, A.Bits), (A.Bool, IR.BitEq)),
     ((A.And,     A.Bool, A.Bool), (A.Bool, IR.And)),
     ((A.Or,      A.Bool, A.Bool), (A.Bool, IR.Or)),
     ((A.Band,    A.Bits, A.Bits), (A.Bits, IR.Band)),

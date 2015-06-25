@@ -19,6 +19,8 @@ struct cmt_init {
 
 typedef struct cmt_bits *cmt_bits_t;
 
+#define __cmt_assert(c) ({ if(!(c)) __cmt_error("ASSERT FAILED: " #c); })
+
 static int __cmt_even(int x)
 {
 	return !(x&1);
@@ -264,8 +266,7 @@ int __cmt_toint(cmt_bits_t b)
 
 cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 {
-	if (s < 0)
-		abort();
+	__cmt_assert(s >= 0);
 
 	cmt_bits_t ret = __cmt_alloc(b->length + s);
 	__cmt_copy(ret, s, b, 0, b->length);
@@ -274,8 +275,7 @@ cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 
 cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 {
-	if (s < 0)
-		abort;
+	__cmt_assert(s >= 0);
 
 	if (s > b->length)
 		return __cmt_alloc(0);
@@ -333,6 +333,15 @@ static cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 	__cmt_fixup(ret);
 
 	return ret;
+}
+
+static bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
+{
+	if (l->length != r->length)
+		return false;
+
+	__cmt_assert(l->size == r->size);
+	return !memcmp(l->data, r->data, l->size);
 }
 
 cmt_bits_t __cmt_zero(int l)

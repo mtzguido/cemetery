@@ -213,6 +213,7 @@ g_binop I.RShift  l r = do return $ C.Call "__cmt_shiftr" [l, r]
 g_binop I.LRot    l r = do return $ C.Call "__cmt_rotl" [l, r]
 g_binop I.RRot    l r = do return $ C.Call "__cmt_rotr" [l, r]
 g_binop I.ModPlus l r = do return $ C.Call "__cmt_modplus" [l, r]
+g_binop I.BitEq   l r = do return $ C.Call "__cmt_eq" [l, r]
 
 g_unop  I.Neg   e   = do return $ C.UnOp C.NegateNum e
 g_unop  I.Not   e   = do return $ C.UnOp C.Not       e
