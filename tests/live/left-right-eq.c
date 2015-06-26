@@ -4,8 +4,14 @@ void dump(cmt_bits_t b)
 
 	fprintf(stderr, "Length: %i\n", b->length);
 
-	for (i = b->length - 1; i >= 0; i--)
-		fprintf(stderr, "%c", get_bit(b, i) ? '1' : '0');
+	for (i = (b->length + 3) / 4; i >= 0; i--) {
+		int t = 0;
+		t = 2 * t + get_bit(b, 4 * i - 1);
+		t = 2 * t + get_bit(b, 4 * i - 2);
+		t = 2 * t + get_bit(b, 4 * i - 3);
+		t = 2 * t + get_bit(b, 4 * i - 4);
+		fprintf(stderr, "%x", t);
+	}
 
 	fprintf(stderr, "\n");
 }
