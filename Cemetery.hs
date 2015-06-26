@@ -4,9 +4,11 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Error
 import Data.Either
+import Data.List
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
+import Text.Regex
 
 import AST
 import CGen
@@ -107,6 +109,23 @@ showIRUnit :: IR.Unit -> App ()
 showIRUnit ir =
     do liftIO $ putStrLn $ show ir
 
+inc_regex = mkRegex "^include ([^ ]*) *$"
+
+check_include b s =
+    do case matchRegex inc_regex s of
+           Nothing -> return s
+           Just [x] -> cmtReadFile (b ++ x)
+           _ -> throwError $ CmtErr "wat?"
+
+dirname s = case elemIndices '/' s of
+              [] -> "./"
+              l -> take (1 + last l) s
+
+cmtReadFile fname =
+    do t <- liftIO $ readFile fname
+       ls <- mapM (check_include (dirname fname)) (lines t)
+       return (unlines ls)
+
 work :: App ()
 work = do (opts, filename) <- ask
           stem <- base filename
@@ -114,7 +133,8 @@ work = do (opts, filename) <- ask
           let outC = stem ++ ".c"
           let outH = stem ++ ".h"
 
-          source <- liftIO $ readFile inp
+          source <- cmtReadFile inp
+          dbgLn $ "Actual source: " ++ source
 
           let res = runAlex source get_toks
 

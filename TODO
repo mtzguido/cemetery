@@ -22,6 +22,3 @@
 
 - Coallesce operations made of ~, &, |, ^ and + into a single function,
   to improve speed. This shouldn't be super hard.
-
-- Allow for cmt file inclusion. The C preprocessor can be a choice, but
-  we need to take care for spaces/tabs
