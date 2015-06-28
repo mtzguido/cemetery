@@ -109,7 +109,13 @@ tr_stmt (A.Return e) =
     do rt <- getRetType
        (p_e, t_e, ir_e) <- tr_expr e
        abortIf (not (tmatch rt t_e)) "Invalid return"
-       return $ sseq p_e (IR.Return ir_e)
+       case ir_e of
+           IR.LV _ -> return $ sseq p_e (IR.Return ir_e)
+           _       -> do ir_t <- tmap rt
+                         t <- fresh ir_t
+                         return $ sseq p_e
+                                 (sseq (IR.Assign t ir_e)
+                                 (IR.Return (IR.LV t)))
 
 tr_stmt (A.Seq l r) =
     do ll <- tr_stmt l
