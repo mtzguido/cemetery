@@ -42,7 +42,7 @@ options = [
  Option ['n'] ["no-output"]         (NoArg NoOutput)        "don't output to files",
  Option []    ["lexer", "toks"]     (NoArg StopLexer)       "stop after lexing stage",
  Option []    ["parse", "ast"]      (NoArg StopParse)       "stop after parsing stage",
- Option []    ["translate"]         (NoArg StopTranslate)   "stop after translation",
+ Option []    ["translate", "ir"]   (NoArg StopTranslate)   "stop after translation",
  Option []    ["generate"]          (NoArg StopGen)         "stop after genering a C ast",
  Option ['v'] ["verbose"]           (NoArg Verbose)         "be more verbose"
  ]
