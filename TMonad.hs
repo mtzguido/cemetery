@@ -125,7 +125,7 @@ fresh :: I.Type -> TM I.LValue
 fresh typ =
     do s <- getLevel
        setLevel (s { fresh_count = fresh_count s + 1})
-       addDecl (I.DeclareTemp (fresh_count s) typ)
+       addDecl (I.DeclLocal (I.Temp $ fresh_count s) typ)
        return $ I.Temp (fresh_count s)
 
 -- Translator Monad definition

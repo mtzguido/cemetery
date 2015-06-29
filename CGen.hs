@@ -83,19 +83,19 @@ g_body (d, s) =
        return (d', s')
 
 g_decl :: I.Decl -> GM C.Decl
-g_decl (I.DeclareTemp i t) =
+g_decl (I.DeclLocal (I.Temp i) t) =
     do let v = "cmt_temp_" ++ show i
        tt <- g_type t
        return $ C.VarDecl v tt Nothing []
 
-g_decl (I.DeclareGlobal n t e) =
+g_decl (I.DeclLocal (I.LVar n) t) =
+    do tt <- g_type t
+       return $ C.VarDecl n tt Nothing []
+
+g_decl (I.DeclGlobal n t e) =
     do tt <- g_type t
        e_c <- g_expr e
        return $ C.VarDecl n tt (Just e_c) []
-
-g_decl (I.DeclareVar n t) =
-    do tt <- g_type t
-       return $ C.VarDecl n tt Nothing []
 
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =

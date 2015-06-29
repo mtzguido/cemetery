@@ -267,7 +267,7 @@ tr_gdecl' n mods typ ir =
        -- (once that's done) but that will likely result in a
        -- function call. Either reduce everything or prepare
        -- to do so in a cmt_init().
-       return $ IR.DeclareGlobal n ir_t ir
+       return $ IR.DeclGlobal n ir_t ir
 
 tr_ldecl (A.VarDecl n mods Nothing Nothing) =
     do abort "Variables need a type or an initializer"
@@ -299,7 +299,7 @@ tr_ldecl' n mods p typ ir =
        addToEnv n (envv { typ = typ, ir_lv = IR.LVar n', attrs = attrs })
        ir_t <- tmap typ
        return $ (sseq p (IR.Assign (IR.LVar n') ir),
-                 IR.DeclareVar n' ir_t)
+                 IR.DeclLocal (IR.LVar n') ir_t)
 
 binop_table :: [((A.BinOp, A.Type, A.Type), (A.Type, IR.BinOp))]
 binop_table = [

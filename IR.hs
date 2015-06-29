@@ -58,9 +58,8 @@ data Expr = ConstInt   Int
 
 type Block = ([Decl], Stmt)
 
-data Decl = DeclareVar    String Type
-          | DeclareGlobal String Type Expr
-          | DeclareTemp   Int    Type
+data Decl = DeclLocal  LValue Type
+          | DeclGlobal String Type Expr
   deriving (Eq, Show)
 
 data Stmt = Assign      LValue Expr
