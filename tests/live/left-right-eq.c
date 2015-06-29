@@ -38,5 +38,7 @@ int main()
 		}
 	}
 
+	__cmt_free(l);
+	__cmt_free(r);
 	return 0;
 }
