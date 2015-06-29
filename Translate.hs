@@ -26,10 +26,7 @@ semanticT = runTranslate.translate
 
 -- IR Helpers
 
-sseq :: IR.Stmt -> IR.Stmt -> IR.Stmt
-sseq (IR.Skip) r = r
-sseq l (IR.Skip) = l
-sseq l r = IR.Seq l r
+sseq = IR.sseq
 
 add_builtins =
     do mapM (uncurry addToEnv) builtins

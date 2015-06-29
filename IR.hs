@@ -72,3 +72,7 @@ data Stmt = Assign      LValue Expr
           | Error       String
           | Free        LValue
   deriving (Eq, Show)
+
+sseq Skip r = r
+sseq l Skip = l
+sseq l r = Seq l r
