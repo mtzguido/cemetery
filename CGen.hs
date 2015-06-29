@@ -137,6 +137,10 @@ g_stmt (I.Error s) =
        let a = C.Call "abort" []
        return (C.Seq (C.Expr c) (C.Expr a))
 
+g_stmt (I.Free l) =
+    do l' <- g_lvalue l
+       return $ C.Expr $ C.Call "__cmt_free" [C.LV l']
+
 g_expr :: I.Expr -> GM C.Expr
 g_expr (I.ConstInt i) =
     do return $ C.ConstInt i

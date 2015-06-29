@@ -104,7 +104,9 @@ tr_stmt (A.Assign n e) =
        abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
 
        let expr = case t_e of
-                       A.Bits -> IR.Copy ir_e
+                       A.Bits -> case ir_e of
+                                     IR.LV _ -> IR.Copy ir_e
+                                     _ -> ir_e
                        _ -> ir_e
 
        return $ sseq p_e (IR.Assign (ir_lv d) expr)

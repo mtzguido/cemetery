@@ -357,7 +357,14 @@ cmt_bits_t __cmt_copy(cmt_bits_t b)
 	return ret;
 }
 
+void __cmt_free(cmt_bits_t b)
+{
+	free(b);
+}
+
 #undef W
 #undef WB
+#undef bit
+#undef __cmt_assert
 
 /* / Cemetery prologue */

@@ -70,4 +70,5 @@ data Stmt = Assign      LValue Expr
           | If          Expr Block Block -- C-like semantics
           | For         LValue Expr Expr Block
           | Error       String
+          | Free        LValue
   deriving (Eq, Show)
