@@ -1,0 +1,10 @@
+-- Test to see if liveness analysis works and frees the variables OK.
+-- No ifs, no loops, no arguments, so it should be one of the the
+-- easiest cases
+
+fun f() : bits
+	var b = <>
+	b = b ||| < 0xf :: 4 >
+	b = b ||| < 0x0 :: 4 >
+	b = ~b ||| b
+	return b

@@ -17,6 +17,7 @@ import Control.Monad.Identity
 
 import Common
 import IR
+import Liveness
 
 data OMState =
   OMState {
@@ -41,7 +42,8 @@ o_unit (FunDef ft b) =
        c <- check_return_paths s
        when (not c) $ throwError $
            CmtErr ("Some paths in '" ++ name ft ++ "' do not return!")
-       b' <- o_body b
+       let b' = liveness b
+       b' <- o_body b'
        return $ FunDef ft b'
 
 o_unit (Decl d) = -- do nothing with declarations
@@ -50,19 +52,28 @@ o_unit (Decl d) = -- do nothing with declarations
 o_body b =
     do return b
 
+---------------------------------------------------------------------
+-- Return path checking
+---------------------------------------------------------------------
+
 check_return_paths (Return _) =
     do return True
+
 check_return_paths (Error _) =
     do return True
+
 check_return_paths (Seq l r) =
     do lp <- check_return_paths l
        rp <- check_return_paths r
        return $ lp || rp
+
 check_return_paths (If _ (_,t) (_,e)) =
     do tp <- check_return_paths t
        ep <- check_return_paths e
        return $ tp && ep
+
 check_return_paths (For _ _ _ (_,b)) =
     do check_return_paths b
+
 check_return_paths _ =
     do return False

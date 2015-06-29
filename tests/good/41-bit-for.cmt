@@ -1,0 +1,11 @@
+fun f(b : bits, n : int) : bits
+	for i in 1..n
+		b = b ||| <1::1>
+
+	return b
+
+fun g(b : bits, n : int) : bits
+	for i in 1..n
+		b = <1::1>
+
+	return <>
