@@ -42,9 +42,6 @@ p_unit (Decl d@(VarDecl n t me _)) =
 p_unit (FunDecl _) =
     do comment "FunDecl"
 
-p_unit (Comment s) =
-    do comment s
-
 p_unit (FunDef ft b) =
     do rt <- p_typ (ret ft)
        as <- p_args (args ft)
@@ -69,6 +66,9 @@ p_decl (VarDecl n t me mods) =
 p_stmt (Seq l r) =
     do p_stmt l
        p_stmt r
+
+p_stmt (Comment s) =
+    do comment s
 
 p_stmt Skip =
     do return ()

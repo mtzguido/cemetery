@@ -17,7 +17,6 @@ data VarModifiers = Extern | Const | Static
 data Unit = Decl Decl
           | FunDecl Funtype
           | FunDef Funtype Block
-          | Comment String
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)
@@ -39,6 +38,7 @@ data Stmt = If Expr Block Block
           | Skip
           | For Expr Expr Expr Block
           | Expr Expr
+          | Comment String
   deriving (Eq, Show)
 
 data Expr = BinOp BinOp Expr Expr
