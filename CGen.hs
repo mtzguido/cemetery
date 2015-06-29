@@ -185,6 +185,9 @@ g_expr (I.ConstBits b l) =
        add_gdecl (C.VarDecl name (C.ArrT C.UChar) (Just carr) [C.Static, C.Const])
        return $ C.Call "__cmt_init" [C.LV (C.LVar name), C.ConstInt l]
 
+g_expr (I.Copy e) =
+    g_expr (I.Call "__cmt_copy" [e])
+
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
 g_type I.Bits = do return bitsType

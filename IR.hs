@@ -53,6 +53,7 @@ data Expr = ConstInt   Int
           | Slice      Expr Expr Expr
           | Access     Expr Expr
           | ConstBits  [Int] Int
+          | Copy       Expr
   deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)

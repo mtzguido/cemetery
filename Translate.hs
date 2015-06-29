@@ -103,7 +103,11 @@ tr_stmt (A.Assign n e) =
        abortIf (elem RO (attrs d)) "Can't assign to const"
        abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
 
-       return $ sseq p_e (IR.Assign (ir_lv d) (ir_e))
+       let expr = case t_e of
+                       A.Bits -> IR.Copy ir_e
+                       _ -> ir_e
+
+       return $ sseq p_e (IR.Assign (ir_lv d) expr)
 
 tr_stmt (A.Return e) =
     do rt <- getRetType

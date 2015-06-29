@@ -153,8 +153,8 @@ static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static void __cmt_copy(cmt_bits_t to, int offset, cmt_bits_t from,
-		       int start_bit, int len)
+static void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
+			  int start_bit, int len)
 {
 	int i;
 
@@ -169,8 +169,8 @@ static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(l->length + r->length);
 
-	__cmt_copy(ret, 0,         r, 0, r->length);
-	__cmt_copy(ret, r->length, l, 0, l->length);
+	__cmt_bitcopy(ret, 0,         r, 0, r->length);
+	__cmt_bitcopy(ret, r->length, l, 0, l->length);
 
 	return ret;
 }
@@ -186,7 +186,7 @@ cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 	 */
 	tob = l->length - 1 - to;
 
-	__cmt_copy(ret, 0, l, tob, ret->length);
+	__cmt_bitcopy(ret, 0, l, tob, ret->length);
 
 	return ret;
 }
@@ -269,7 +269,7 @@ cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 	__cmt_assert(s >= 0);
 
 	cmt_bits_t ret = __cmt_alloc(b->length + s);
-	__cmt_copy(ret, s, b, 0, b->length);
+	__cmt_bitcopy(ret, s, b, 0, b->length);
 	return ret;
 }
 
@@ -281,7 +281,7 @@ cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 		return __cmt_alloc(0);
 
 	cmt_bits_t ret = __cmt_alloc(b->length - s);
-	__cmt_copy(ret, 0, b, s, b->length - s);
+	__cmt_bitcopy(ret, 0, b, s, b->length - s);
 
 	return ret;
 }
@@ -291,8 +291,8 @@ cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 	cmt_bits_t ret = __cmt_alloc(b->length);
 	s = __cmt_mod(s, b->length);
 
-	__cmt_copy(ret, 0, b, b->length - s, s);
-	__cmt_copy(ret, s, b, 0, b->length - s);
+	__cmt_bitcopy(ret, 0, b, b->length - s, s);
+	__cmt_bitcopy(ret, s, b, 0, b->length - s);
 
 	return ret;
 }
@@ -347,6 +347,14 @@ static bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
 cmt_bits_t __cmt_zero(int l)
 {
 	return __cmt_alloc(l);
+}
+
+cmt_bits_t __cmt_copy(cmt_bits_t b)
+{
+	cmt_bits_t ret = __cmt_alloc(b->length);
+	__cmt_bitcopy(ret, 0, b, 0, b->length);
+
+	return ret;
 }
 
 #undef W
