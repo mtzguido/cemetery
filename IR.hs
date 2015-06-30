@@ -41,7 +41,7 @@ data UnOp = Neg | Not | Bnot
 
 data LValue = LVar String
             | Temp Int
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data Expr = ConstInt   Int
           | ConstBool  Bool
