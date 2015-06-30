@@ -86,6 +86,15 @@ tr_body b = do pushLevel
                l <- popLevel
                return (reverse $ decls l, s)
 
+tr_assign d typ ir =
+    do let expr = case typ of
+                       A.Bits -> case ir of
+                                     IR.LV _ -> IR.Copy ir
+                                     _ -> ir
+                       _ -> ir
+
+       return $ IR.Assign (ir_lv d) expr
+
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt (A.Err s) =
     do return $ IR.Error s
@@ -100,13 +109,8 @@ tr_stmt (A.Assign n e) =
        abortIf (elem RO (attrs d)) "Can't assign to const"
        abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
 
-       let expr = case t_e of
-                       A.Bits -> case ir_e of
-                                     IR.LV _ -> IR.Copy ir_e
-                                     _ -> ir_e
-                       _ -> ir_e
-
-       return $ sseq p_e (IR.Assign (ir_lv d) expr)
+       s' <- tr_assign d t_e ir_e
+       return $ sseq p_e s'
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
@@ -222,7 +226,7 @@ tr_expr' i (A.ConstStr _) =
     do abort "Strings unsupported"
 
 tr_expr' i (A.BinLit b s) =
-    do return (IR.Skip, A.Bits, IR.ConstBits b s)
+    do tr_save $ return (IR.Skip, A.Bits, IR.ConstBits b s)
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
@@ -296,10 +300,13 @@ tr_ldecl' n mods p typ ir =
 
        abortIf (elem A.Extern mods) "External on local scope?"
 
-       addToEnv n (envv { typ = typ, ir_lv = IR.LVar n', attrs = attrs })
+       let d = envv { typ = typ, ir_lv = IR.LVar n', attrs = attrs }
+       addToEnv n d
        ir_t <- tmap typ
-       return $ (sseq p (IR.Assign (IR.LVar n') ir),
-                 IR.DeclLocal (IR.LVar n') ir_t)
+
+       s <- tr_assign d typ ir
+
+       return $ (sseq p s, IR.DeclLocal (IR.LVar n') ir_t)
 
 binop_table :: [((A.BinOp, A.Type, A.Type), (A.Type, IR.BinOp))]
 binop_table = [
