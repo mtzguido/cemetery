@@ -79,6 +79,10 @@ liv u ls lo (s:ss) =
                 _ ->
                     error "liveness: return of non-lv"
 
+        Error m ->
+            let free = map Free (S.toList ls)
+                     in free ++ [s]
+
         Assign l e ->
             if S.member l ls
             then if used_e l e
