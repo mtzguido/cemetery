@@ -1,0 +1,13 @@
+fun left() : bits
+	var a = < 0x41 0x42 0x43 :: 24 >
+	if length(a) == 2
+		a = < 0x01 :: 8 >
+		a = < 0x02 :: 8 >
+	else
+		a = < 0x03 :: 8 >
+		a = < 0x04 :: 8 >
+
+	return a
+
+fun right() : bits
+	return < 0x04 :: 8>
