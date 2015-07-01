@@ -63,14 +63,19 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
     do ir_ret <- tmap ret
        requestName name
        addToEnv name (envv { typ = fun_t args ret, ir_lv = IR.LVar name })
+
        let tr_arg (s, t) = do s' <- requestSimilar s
                               t' <- tmap t
-                              addToEnv s (envv { typ = t,
-                                                 ir_lv = IR.LVar s' })
-                              return (s', t')
+                              r <- fresh t'
+                              let d = envv { typ = t, ir_lv = r }
+                              p <- tr_assign d t (IR.LV $ IR.LVar s')
+                              addToEnv s d
+                              return (p, s', t')
 
        pushLevel
-       ir_args <- mapM tr_arg args
+       args' <- mapM tr_arg args
+       let ir_args = map (\(a,b,c) -> (b,c)) args'
+       let prep_args = sfold $ map (\(a,b,c) -> a) args'
 
        setRetType ret
        ir_body_s <- tr_stmt body
@@ -79,7 +84,7 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
        let ft = IR.Funtype { IR.name = name,
                              IR.args = ir_args,
                              IR.ret = ir_ret }
-       return $ IR.FunDef ft (reverse $ decls l, ir_body_s)
+       return $ IR.FunDef ft (reverse $ decls l, sseq prep_args ir_body_s)
 
 tr_body :: A.Stmt -> TM IR.Block
 tr_body b = do pushLevel
