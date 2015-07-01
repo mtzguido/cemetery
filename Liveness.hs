@@ -71,6 +71,14 @@ flatten s = [s]
 liv u ls lo [] = []
 liv u ls lo (s:ss) =
     case s of
+        Return e ->
+            case e of
+                IR.LV lv ->
+                    let free = map Free (S.toList $ S.delete lv ls)
+                     in free ++ [s]
+                _ ->
+                    error "liveness: return of non-lv"
+
         Assign l e ->
             if S.member l ls
             then if used_e l e
