@@ -68,8 +68,6 @@ track_set d = S.fromList $ locals $ filter tracked_decl d
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
-sfold = foldl sseq Skip
-
 liv u ls lo [] = []
 liv u ls lo (s:ss) =
     case s of

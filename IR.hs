@@ -75,3 +75,5 @@ data Stmt = Assign      LValue Expr
 sseq Skip r = r
 sseq l Skip = l
 sseq l r = Seq l r
+
+sfold = foldl sseq Skip

@@ -27,6 +27,7 @@ semanticT = runTranslate.translate
 -- IR Helpers
 
 sseq = IR.sseq
+sfold = IR.sfold
 
 add_builtins =
     do mapM (uncurry addToEnv) builtins
