@@ -20,27 +20,26 @@ printf "%-40s" "Running LIVE tests with <${FLAGS}>:"
 
 for i in ${DIR}/*; do
 	if ! [ -d "$i" ] ; then continue ; fi
+	R=.
 
-	if ! ./cmt $FLAGS $i/code.cmt &>/dev/null; then
-		echo
-		echo "TEST $i FAILED TO BE TRANSLATED!"
-		exit 1
+	if [ $R == . ] && ! ./cmt $FLAGS $i/code.cmt &>/dev/null; then
+		R=t
+		goto
 	fi
 
 	cat $i/code.c $i/driver.c > $i/full.c
-	if ! gcc -Wsign-compare $i/full.c -o $i/full; then
-		echo
-		echo "TEST $i FAILED TO COMPILE!"
-		exit 1
+	if [ $R == . ] && ! gcc -Wsign-compare $i/full.c -o $i/full; then
+		R=c
 	fi
 
-	if ! ./$i/full; then
-		echo
-		echo "TEST $i FAILED WHEN RUNNING!"
-		exit 1
+	if [ $R == . ] && ! ./$i/full; then
+		R=r
+	fi
+	if [ $R == . ] && ! valgrind --error-exitcode=1 --leak-check=full ./$i/full &>/dev/null; then
+		R=l
 	fi
 
-	echo -n '.'
+	echo -n $R
 done
 
 echo " OK"
