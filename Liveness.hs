@@ -9,11 +9,10 @@ import Common
 -- Live variable analysis
 ---------------------------------------------------------------------
 
-liveness (d, s) = (d, sfold $ liv (locals $ filter tracked_decl d) S.empty (flatten s))
-
-locals ds = concatMap ff ds where
-         ff (DeclLocal lv _) = [lv]
-         ff _ = []
+liveness (d, s) =
+    let tracked = track_set d
+        s' = sfold $ liv tracked S.empty S.empty $ flatten s
+     in (d, s')
 
 -- Does any of the declarations in ds hide lv?
 hidden lv ds =
@@ -56,46 +55,37 @@ used_b lv (ds, s) =
         then False
         else used_s lv (flatten s)
 
--- Is the variable written before use?
-written lv (Assign lv' e) = if lv == lv' then
-                                if used_e lv e
-                                then error "liveness wat"
-                                else True
-                            else False
-written lv _              = False
-
-data LivSt = LivSt { live :: S.Set LValue }
-
-on  f lv = \l -> if l == lv then True  else f lv
-off f lv = \l -> if l == lv then False else f lv
-
 tracked_decl (DeclLocal _ Bits) = True
 tracked_decl _ = False
+
+locals ds = concatMap ff ds where
+         ff (DeclLocal lv _) = [lv]
+         ff _ = []
+
+track_set :: [Decl] -> S.Set LValue
+track_set d = S.fromList $ locals $ filter tracked_decl d
 
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
 sfold = foldl sseq Skip
 
-liv u ls [] = []
-liv u ls (s:ss) =
+liv u ls lo [] = []
+liv u ls lo (s:ss) =
     case s of
         Assign l e ->
             if S.member l ls
-            then error "liveness wat 2"
-            else let nls = S.fromList $ filter (flip used_s ss) u
-                     l_out = if elem l u
+            then if used_e l e
+                 then error "liveness wat 2"
+                 else Free l : (liv u (S.delete l ls) lo (s:ss))
+            else let nls = S.union lo $ S.filter (flip used_s ss) u
+                     l_out = if S.member l u
                              then S.insert l ls
                              else ls
                      poof = S.difference l_out nls
                      f = map Free (S.toList poof)
-                     s' = liv u nls ss
+                     s' = liv u nls lo ss
                   in [s] ++ f ++ s'
         _ ->
-            let s' = liv u ls ss
+            let s' = liv u ls lo ss
              in [s] ++ s'
-
-test = [Assign (LVar "b") (LV (LVar "b'")),
-        Assign (Temp 0) (BinOp RRot (LV (LVar "b")) (ConstInt 3)),
-        Assign (Temp 1) (BinOp Xor (LV (LVar "b")) (LV (Temp 0)))
-       ]
