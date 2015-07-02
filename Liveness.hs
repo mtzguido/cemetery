@@ -97,17 +97,22 @@ liv u ls lo (s:ss) =
                      s' = liv u nls lo ss
                   in [s] ++ f ++ s'
 
-        If c (td, ts) (ed, es) ->
-            let ts' = sfold $ liv (S.union (S.difference u $ (S.fromList.locals) td) (track_set td)) ls ls $ flatten ts
-                es' = sfold $ liv (S.union (S.difference u $ (S.fromList.locals) ed) (track_set ed)) ls ls $ flatten es
-             in [If c (td, ts') (ed, es')]
+        If c t e ->
+            let t' = liv_block u ls t
+                e' = liv_block u ls e
+             in [If c t' e']
                 ++ liv u ls lo ss
 
-        For i l h (bd, bs) ->
-            let bs' = sfold $ liv (S.union (S.difference u $ (S.fromList.locals) bd) (track_set bd)) ls ls $ flatten bs
-             in [For i l h (bd, bs')]
+        For i l h b ->
+            let b' = liv_block u ls b
+             in [For i l h b']
                 ++ liv u ls lo ss
 
         _ ->
             let s' = liv u ls lo ss
              in [s] ++ s'
+
+liv_block u ls (d, s) =
+    let u' = S.union (S.difference u (S.fromList $ locals d)) (track_set d)
+        s' = sfold $ liv u' ls ls $ flatten s
+     in (d, s')
