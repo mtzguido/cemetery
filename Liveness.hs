@@ -19,6 +19,9 @@ hidden lv ds =
     [] /= filter (\d -> case d of DeclLocal lv' _ -> lv == lv'
                                   _ -> False) ds
 
+data VarSt = Shadowed | Used | Unused
+    deriving (Eq, Show)
+
 -- Is the variable lv read in this chunk, before being written?
 used_e :: LValue -> Expr -> Bool
 used_e lv (ConstInt _) = False
@@ -34,28 +37,58 @@ used_e lv (Access a i) = used_e lv a || used_e lv i
 used_e lv (Copy e) = used_e lv e
 used_e lv (Arr _) = error "Local array, I.O.U."
 
-used_s lv ((Assign lv' e):ss) =
+vst_seq Shadowed _ = Shadowed
+vst_seq Used _ = Used
+vst_seq Unused x = x
+
+vst_par Shadowed Shadowed = Shadowed
+vst_par Used _ = Used
+vst_par _ Used = Used
+vst_par Unused Unused  = Unused
+
+varst lv ((Assign lv' e):ss) =
     if lv' == lv
-        then False
-        else used_e lv e || used_s lv ss
+        then Shadowed
+        else if used_e lv e
+             then Used
+             else varst lv ss
 
-used_s lv ((Return e):_) = used_e lv e
-used_s lv ((If c t e):ss) =
-    used_e lv c || used_b lv t || used_b lv e || used_s lv ss
-used_s lv ((For i l h b):ss) =
-    (used_e lv l || used_e lv h)
- || ((not $ hidden lv [DeclLocal i Int]) && used_b lv b)
- || used_s lv ss
-used_s lv ((Error _):ss) =
-    False
+varst lv ((Return e):_) =
+    if used_e lv e
+        then Used
+        else Unused
 
-used_s lv (_:ss) = used_s lv ss
-used_s lv [] = False
+varst lv ((If c t e):ss) =
+    if used_e lv c
+    then Used
+    else let ts = varst_b lv t
+             es = varst_b lv e
+             l = ts `vst_par` es
+          in l `vst_seq` varst lv ss
 
-used_b lv (ds, s) =
+varst lv ((For i l h b):ss) =
+    if used_e lv l || used_e lv h
+    then Used
+    else if hidden lv [DeclLocal i Int]
+         then varst lv ss
+         else case varst_b lv b of
+                  Shadowed -> varst lv ss -- This is tricky
+                  Used -> Used
+                  Unused -> varst lv ss
+
+varst lv ((Error _):ss) =
+    Unused
+
+varst lv (_:ss) = varst lv ss
+varst lv [] = Unused
+
+varst_b lv (ds, s) =
     if hidden lv ds
-        then False
-        else used_s lv (flatten s)
+        then Unused
+        else varst lv (flatten s)
+
+used_s lv s = varst lv s == Used
+shadow_s lv s = varst lv s == Shadowed
 
 tracked_decl (DeclLocal _ Bits) = True
 tracked_decl _ = False
