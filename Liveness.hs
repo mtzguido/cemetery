@@ -46,6 +46,8 @@ used_s lv ((For i l h b):ss) =
     (used_e lv l || used_e lv h)
  || ((not $ hidden lv [DeclLocal i Int]) && used_b lv b)
  || used_s lv ss
+used_s lv ((Error _):ss) =
+    False
 
 used_s lv (_:ss) = used_s lv ss
 used_s lv [] = False
