@@ -42,7 +42,7 @@ static int __cmt_mod(int a, int b)
 	return a % b;
 }
 
-static inline __cmt_error(char *s)
+static inline void __cmt_error(char *s)
 {
 	fprintf(stderr, "Cemetery error: %s\n", s);
 	abort();
