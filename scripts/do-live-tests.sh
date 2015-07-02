@@ -24,10 +24,9 @@ for i in ${DIR}/*; do
 
 	if [ $R == . ] && ! ./cmt $FLAGS $i/code.cmt &>/dev/null; then
 		R=t
-		goto
 	fi
 
-	cat $i/code.c $i/driver.c > $i/full.c
+	[ $R == . ] && cat $i/code.c $i/driver.c > $i/full.c
 	if [ $R == . ] && ! gcc -Wsign-compare $i/full.c -o $i/full; then
 		R=c
 	fi
