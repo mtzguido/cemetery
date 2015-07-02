@@ -90,6 +90,14 @@ liv u ls lo (s:ss) =
                 then error "liveness wat 2"
                 else Free l : (liv u (S.delete l ls) lo (s:ss))
 
+        -- TODO: replace this "False" with "the variable is
+        -- overwritten before any read", which isn't the same as
+        -- "not used" since it may belong to lo
+        Assign l (Copy (LV lv)) | not (used_s lv ss)
+                               && (not (S.member lv lo) || False)
+                               && S.member lv u ->
+            liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
+
         Assign l e ->
             let nls = S.union lo $ S.filter (flip used_s ss) u
                 l_out = if S.member l u
