@@ -85,7 +85,7 @@ liv u ls lo (s:ss) =
             let free = map Free (S.toList ls)
                      in free ++ [s]
 
-        Assign l e | S.member l ls->
+        Assign l e | S.member l ls ->
             if used_e l e
                 then error "liveness wat 2"
                 else Free l : (liv u (S.delete l ls) lo (s:ss))
@@ -98,14 +98,14 @@ liv u ls lo (s:ss) =
                                && S.member lv u ->
             liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
 
-        Assign l e ->
-            let nls = S.union lo $ S.filter (flip used_s ss) u
-                l_out = if S.member l u
+        Assign l e | S.member l u ->
+            let l_out = if S.member l u
                         then S.insert l ls
                         else ls
-                poof = S.difference l_out nls
+                used = S.filter (flip used_s ss) l_out
+                poof = l_out S.\\ (S.union lo used)
                 f = map Free (S.toList poof)
-                s' = liv u nls lo ss
+                s' = liv u (l_out S.\\ poof) lo ss
              in [s] ++ f ++ s'
 
         If c t e ->
