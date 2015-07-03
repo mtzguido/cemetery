@@ -204,12 +204,12 @@ fun des(b k : bits) : bits
 	var C D : bits
 
 	b = IP(b)
-	l = b[ 1, 31]
-	r = b[32, 63]
+	l = b[ 1, 32]
+	r = b[33, 64]
 
 	k = PC1(k)
-	C = k[ 1, 27]
-	D = k[28, 55]
+	C = k[ 1, 28]
+	D = k[29, 56]
 
 	for i in 1..16
 		var T : bits
