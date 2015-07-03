@@ -108,9 +108,14 @@ liv u ls lo (s:ss) =
     case s of
         Return e ->
             case e of
+                IR.LV lv | S.member lv u && not (S.member lv ls) ->
+                    let free = map Free (S.toList ls)
+                     in free ++ [Return (IR.Copy e)]
+
                 IR.LV lv ->
                     let free = map Free (S.toList $ S.delete lv ls)
                      in free ++ [s]
+
                 _ ->
                     error "liveness: return of non-lv"
 
