@@ -169,14 +169,14 @@ fun P(b : bits) : bits
 	return permute(b, p_map, 32)
 
 fun S(b : bits) : bits
-	var f1 = b[ 1,  6]
-	var f2 = b[ 7, 12]
-	var f3 = b[13, 18]
-	var f4 = b[19, 24]
-	var f5 = b[25, 30]
-	var f6 = b[31, 36]
-	var f7 = b[37, 42]
-	var f8 = b[43, 48]
+	var f1 = b[ 0,  5]
+	var f2 = b[ 6, 11]
+	var f3 = b[12, 17]
+	var f4 = b[18, 23]
+	var f5 = b[24, 29]
+	var f6 = b[30, 35]
+	var f7 = b[36, 41]
+	var f8 = b[42, 47]
 
 	f1 = tobits(S1[toint(f1)], 4)
 	f2 = tobits(S2[toint(f2)], 4)
@@ -204,12 +204,12 @@ fun des(b k : bits) : bits
 	var C D : bits
 
 	b = IP(b)
-	l = b[ 1, 32]
-	r = b[33, 64]
+	l = b[ 0, 31]
+	r = b[32, 63]
 
 	k = PC1(k)
-	C = k[ 1, 28]
-	D = k[29, 56]
+	C = k[ 0, 27]
+	D = k[28, 55]
 
 	for i in 1..16
 		var T : bits
