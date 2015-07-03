@@ -264,27 +264,14 @@ cmt_bits_t __cmt_bnot(cmt_bits_t e)
 	return ret;
 }
 
-cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[])
+cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[], int len)
 {
-	cmt_bits_t ret = __cmt_alloc(64); /* FIXME! */
+	cmt_bits_t ret = __cmt_alloc(len);
 	int i;
 
-	for (i = 0; i < ret->length; i++) {
-		if (get_bit(e, perm[i]))
-			set_bit(ret, i);
-	}
-
-	return ret;
-}
-
-cmt_bits_t __cmt_permute_inv(cmt_bits_t e, int perm[])
-{
-	cmt_bits_t ret = __cmt_alloc(64); /* FIXME! */
-	int i;
-
-	for (i = 0; i < ret->length; i++) {
-		if (get_bit(e, i))
-			set_bit(ret, perm[i]);
+	for (i = 0; i < len; i++) {
+		if (get_bit(e, e->length - perm[i]))
+			set_bit(ret, len - 1 - i);
 	}
 
 	return ret;

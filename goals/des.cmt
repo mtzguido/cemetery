@@ -9,6 +9,18 @@ const ip_map = [
 	63, 55, 47, 39, 31, 23, 15,  7
 ]
 
+-- TODO: do inverses automatically
+const ip_map_inv = [
+	40,  8, 48, 16, 56, 24, 64, 32,
+	39,  7, 47, 15, 55, 23, 63, 31,
+	38,  6, 46, 14, 54, 22, 62, 30,
+	37,  5, 45, 13, 53, 21, 61, 29,
+	36,  4, 44, 12, 52, 20, 60, 28,
+	35,  3, 43,  1, 51, 19, 59, 27,
+	34,  2, 42, 10, 50, 18, 58, 26,
+	33,  1, 41,  9, 49, 17, 57, 25
+]
+
 const e_map = [
 	32,  1,  2,  3,  4,  5,  4,  5,
 	 6,  7,  8,  9,  8,  9, 10, 11,
@@ -135,26 +147,26 @@ const pc2 = [
 ]
 
 fun PC1(b : bits) : bits
-	return permute(b, pc1);
+	return permute(b, pc1, 48);
 
 fun PC2(b : bits) : bits
-	return permute(b, pc2);
+	return permute(b, pc2, 48);
 
 -- initial permutation
 fun IP(b : bits) : bits
-	return permute(b, ip_map);
+	return permute(b, ip_map, 64);
 
 -- final permutation == IP^-1
 fun FP(b : bits) : bits
-	return permute_inverse(b, ip_map);
+	return permute(b, ip_map_inv, 64);
 
 -- block expansion
 fun E(k : bits) : bits
-	return permute(k, e_map)
+	return permute(k, e_map, 48)
 
 -- block permutation
 fun P(b : bits) : bits
-	return permute(b, p_map)
+	return permute(b, p_map, 32)
 
 fun S(b : bits) : bits
 	var f1 = b[ 1,  6]
