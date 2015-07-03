@@ -123,6 +123,17 @@ liv u ls lo (s:ss) =
                 then error "liveness wat 2"
                 else Free l : (liv u (S.delete l ls) lo (s:ss))
 
+        -- Try to avoid copying arguments
+        Assign l (Copy (LV lv)) | not (used_s lv ss)
+                               && not (S.member lv u) ->
+            let used = S.filter (flip used_s ss) ls
+                poof = ls S.\\ (S.union lo used)
+                f = map Free (S.toList poof)
+                s' = liv u (ls S.\\ poof) lo ss
+             in [Assign l (LV lv)] ++ f ++ s'
+
+        -- Avoid copies of temporaries that will be freed on
+        -- the next step
         Assign l (Copy (LV lv)) | not (used_s lv ss)
                                && (not (S.member lv lo) || shadow_s lv ss)
                                && S.member lv u ->
