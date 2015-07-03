@@ -193,7 +193,7 @@ fun des_f(rk b : bits) : bits
 	return P(S(E(b) ^ rk))
 
 fun shifts(round : int) : int
-	if round == 1 || round == 9 || round == 16
+	if round == 1 || round == 2 || round == 9 || round == 16
 		return 1
 	else
 		return 2
