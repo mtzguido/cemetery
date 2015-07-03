@@ -152,7 +152,9 @@ liv u ls lo (s:ss) =
                 poof = l_out S.\\ (S.union lo used)
                 f = map Free (S.toList poof)
                 s' = liv u (l_out S.\\ poof) lo ss
-             in [s] ++ f ++ s'
+             in if S.member l poof
+                then (map Free (S.toList (S.delete l poof))) ++ s'
+                else [s] ++ f ++ s'
 
         If c t e ->
             let t' = liv_block u ls t
