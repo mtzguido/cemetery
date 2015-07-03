@@ -224,7 +224,7 @@ fun des(b k : bits) : bits
 		T = l ^ des_f(K, r)
 		l = r
 		r = T
-	b = l ||| r
+	b = r ||| l
 
 	b = FP(b)
 	return b
