@@ -201,9 +201,12 @@ expr : intlit			{ A.ConstInt $1 }
      | expr SQUARE expr COMMA expr UNSQUARE
 				{ A.Slice $1 $3 $5 }
 
-exprs : {- empty -}		{ [] }
-      | expr			{ [$1] }
-      | expr COMMA exprs	{ $1 : $3 }
+exprs : {- empty -}			{ [] }
+      | BRACE exprs UNBRACE exprs	{ $2 ++ $4 }
+      | expr				{ [$1] }
+      | expr COMMA exprs		{ $1 : $3 }
+      | expr BREAK exprs		{ $1 : $3 }
+      | expr COMMA BREAK exprs		{ $1 : $4 }
 
 {
 
