@@ -6,6 +6,9 @@
 #define WB (W * 8)
 #define bit(i) ((unsigned long)1 << (i))
 
+#define mask_l(i) (bit(i) - 1)
+#define mask_m(i) (~(mask_l(WB - i)))
+
 struct cmt_bits {
 	int length;
 	int size;
@@ -153,16 +156,72 @@ static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
-			  int start_bit, int len)
+static inline unsigned long mask_set(unsigned long v,
+				     unsigned long on, unsigned long off)
+{
+	return (v & ~off) | on;
+}
+
+static void __cmt_bitcopy_iter(cmt_bits_t to, int offset,
+			       cmt_bits_t from, int start_bit, int len)
 {
 	int i;
 
-	/* FIXME, TERRIBILY SLOW! */
 	for (i = 0; i < len; i++) {
 		if (get_bit(from, start_bit + i))
 			set_bit(to, offset + i);
 	}
+}
+
+static void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
+			  int start_bit, int len)
+{
+	int fw, lw;
+	int w;
+	int lskip, rskip;
+	unsigned long *T, *F;
+	int L, R;
+	int wo;
+	int n;
+
+	if (!len)
+		return;
+
+	fw = (offset + WB - 1) / WB;
+	lw = (offset + len) / WB;
+	lskip = fw * WB - offset;
+	rskip = offset +len - lw * WB;
+
+	T = &to->data[fw];
+	F = &from->data[(start_bit + lskip) / WB];
+
+	L = (start_bit + lskip) % WB;
+	R = WB - L;
+
+	n = lw - fw;
+
+	if (n <= 0) {
+		__cmt_bitcopy_iter(to, offset, from, start_bit, len);
+		return;
+	}
+
+	if (L == 0) {
+		for (w = 0; w < n; w++) {
+			unsigned long t = T[w];
+			t = mask_set(t, F[w], (unsigned long)(-1));
+			T[w] = t;
+		}
+	} else {
+		for (w = 0; w < n; w++) {
+			unsigned long t = T[w];
+			t = mask_set(t, F[w] >> L, mask_l(R));
+			t = mask_set(t, F[w +1] << R, mask_m(L));
+			T[w] = t;
+		}
+	}
+
+	__cmt_bitcopy_iter(to, offset, from, start_bit, lskip);
+	__cmt_bitcopy_iter(to, offset + len - rskip, from, start_bit + len - rskip, rskip);
 }
 
 static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
@@ -365,6 +424,10 @@ void __cmt_free(cmt_bits_t b)
 #undef W
 #undef WB
 #undef bit
+
+#undef mask_l
+#undef mask_m
+
 #undef __cmt_assert
 
 /* / Cemetery prologue */
