@@ -20,13 +20,15 @@ int main()
 {
 	cmt_bits_t l = left();
 	cmt_bits_t r = right();
+	int ret;
 	int i;
 
 	if (l->length != r->length) {
 		fprintf(stderr, "\nLength mismatch\n");
 		dump(l);
 		dump(r);
-		return 1;
+		ret = 1;
+		goto out;
 	}
 
 	for (i = 0; i < l->length; i++) {
@@ -34,11 +36,15 @@ int main()
 			fprintf(stderr, "\nBit sequences differ\n");
 			dump(l);
 			dump(r);
-			return 1;
+			ret = 1;
+			goto out;
 		}
 	}
 
+	ret = 0;
+out:
+
 	__cmt_free(l);
 	__cmt_free(r);
-	return 0;
+	return ret;
 }
