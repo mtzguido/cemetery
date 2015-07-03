@@ -84,7 +84,7 @@ g_body (d, s) =
 
 g_decl :: I.Decl -> GM C.Decl
 g_decl (I.DeclLocal (I.Temp i) t) =
-    do let v = "cmt_temp_" ++ show i
+    do let v = "t" ++ show i
        tt <- g_type t
        return $ C.VarDecl v tt Nothing []
 
@@ -230,4 +230,4 @@ g_lvalue (I.LVar n) =
     do return $ C.LVar n
 
 g_lvalue (I.Temp i) =
-    do return $ C.LVar ("cmt_temp_" ++ show i)
+    do return $ C.LVar ("t" ++ show i)
