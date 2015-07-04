@@ -43,7 +43,7 @@ fun pad(m : bits) : bits
 	return m
 
 fun sha1(m : bits) : bits
-	var i t N : int
+	var N : int
 	var a b c d e A B C D E T : bits
 	var W : bits
 
