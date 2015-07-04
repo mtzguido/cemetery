@@ -147,7 +147,7 @@ const pc2 = [
 ]
 
 fun PC1(b : bits) : bits
-	return permute(b, pc1, 48);
+	return permute(b, pc1, 56);
 
 fun PC2(b : bits) : bits
 	return permute(b, pc2, 48);
