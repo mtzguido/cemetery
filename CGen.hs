@@ -109,7 +109,7 @@ g_stmt I.Skip =
 g_stmt (I.Assign lv e) =
     do c_e <- g_expr e
        c_lv <- g_lvalue lv
-       return (C.Expr $ C.Assign c_lv c_e)
+       return (C.Expr $ C.BinOp C.Assign (C.LV c_lv) c_e)
 
 g_stmt (I.If c t e) =
     do c_c <- g_expr c
@@ -125,9 +125,10 @@ g_stmt (I.For lv fr to b) =
     do i <- g_lvalue lv
        f <- g_expr fr
        t <- g_expr to
-       let init = C.Assign i f
+       let init = C.BinOp C.Assign (C.LV i) f
        let cond = C.BinOp C.Le (C.LV i) t
-       let inc = C.Assign i (C.BinOp C.Plus (C.LV i) (C.ConstInt 1))
+       let inc = C.BinOp C.Assign (C.LV i)
+                         (C.BinOp C.Plus (C.LV i) (C.ConstInt 1))
        body <- g_body b
        return $ C.For init cond inc body
 

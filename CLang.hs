@@ -42,7 +42,6 @@ data Stmt = If Expr Block Block
   deriving (Eq, Show)
 
 data Expr = BinOp BinOp Expr Expr
-          | Assign LValue Expr
           | UnOp UnOp Expr
           | ConstInt Int
           | ConstFloat Double
@@ -59,11 +58,12 @@ data Expr = BinOp BinOp Expr Expr
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod
-           | Eq | Mod | And | Or
+           | Eq | Neq | Mod | And | Or
            | Lt | Gt | Le | Ge
+           | Assign
   deriving (Eq, Show)
 
-data UnOp = NegateNum | Not | Address
+data UnOp = NegateNum | Not
   deriving (Eq, Show)
 
 data Type = Int | Bool | ArrT Type | Custom String

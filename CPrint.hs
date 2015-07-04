@@ -57,7 +57,7 @@ p_block (decls, stmt) =
 p_decl (VarDecl n t me mods) =
     do init <- case me of
                  Nothing -> do return ""
-                 Just e -> do e' <- p_expr e
+                 Just e -> do (e', _) <- p_expr e
                               return $ " = " ++ e'
 
        tv <- p_typed_var n t
@@ -77,17 +77,17 @@ p_stmt s@(If _ _ _) =
     do p_if "" s
 
 p_stmt (Expr e) =
-    do e' <- p_expr e
+    do (e', _) <- p_expr e
        line $ e' ++ ";"
 
 p_stmt (Return e) =
-    do ee <- p_expr e
+    do (ee, _) <- p_expr e
        line $ "return " ++ ee ++ ";"
 
 p_stmt (For s c i b) =
-    do ss <- p_expr s
-       cc <- p_expr c
-       ii <- p_expr i
+    do (ss, _) <- p_expr s
+       (cc, _) <- p_expr c
+       (ii, _) <- p_expr i
        line $ "for (" ++ ss ++ "; " ++ cc ++ "; " ++ ii ++ ") {"
        indent $ p_block b
        line "}"
@@ -97,57 +97,94 @@ p_typ Bool = do return "bool"
 p_typ UChar = do return "unsigned char"
 p_typ (Custom s) = do return s
 
+data Assoc = L | R
+  deriving (Show, Eq)
+
+b_prec Prod  = (2, L)
+b_prec Div   = (2, L)
+b_prec Mod   = (2, L)
+
+b_prec Plus  = (3, L)
+b_prec Minus = (3, L)
+
+b_prec Lt    = (4, L)
+b_prec Le    = (4, L)
+b_prec Gt    = (4, L)
+b_prec Ge    = (4, L)
+
+b_prec Eq    = (5, L)
+b_prec Neq   = (5, L)
+
+b_prec And   = (7, L)
+b_prec Or    = (8, L)
+
+b_prec Assign = (10, R)
+
+u_prec NegateNum = (0, R)
+u_prec Not       = (1, R)
+
 p_expr (BinOp op l r) =
     do oo <- p_binop op
-       ll <- p_expr l
-       rr <- p_expr r
-       return $ paren (ll ++ " " ++ oo ++ " " ++ rr)
+       (ll, lp) <- p_expr l
+       (rr, rp) <- p_expr r
+       let (p, a) = b_prec op
+
+       let ls = if p < lp || (p == lp && a /= L)
+                then paren ll
+                else ll
+
+       let rs = if p < rp || (p == rp && a /= R)
+                then paren rr
+                else rr
+
+       return (ls ++ " " ++ oo ++ " " ++ rs, p)
 
 p_expr (UnOp op l) =
     do oo <- p_unop op
-       ll <- p_expr l
-       return $ paren (oo ++ " " ++ ll)
+       (ll, lp) <- p_expr l
+       let (p, a) = u_prec op
 
-p_expr (Assign lv e) =
-    do lvs <- p_lvalue lv
-       ee <- p_expr e
-       return $ lvs ++ " = " ++ ee
+       let ls = if p < lp || (p == lp && a /= L)
+                then paren ll
+                else ll
+
+       return (oo ++ ls, p)
 
 p_expr (ConstInt i) =
-    do return $ show i
+    do return (show i, 0)
 
 p_expr (ConstBool b) =
-    do return $ if b == True then "true" else "false"
+    do return (if b == True then "true" else "false", 0)
 
 p_expr (ConstFloat f) =
-    do return $ show f
+    do return (show f, 0)
 
 p_expr (Call s args) =
-    do as <- mapM p_expr args
-       return $ paren (s ++ "(" ++ commas as ++ ")")
+    do (as, _) <- liftM unzip $ mapM p_expr args
+       return (s ++ "(" ++ commas as ++ ")", 0)
 
 p_expr (LV lv) =
     do lvs <- p_lvalue lv
-       return lvs
+       return (lvs, 0)
 
 p_expr (Arr es) =
-    do p_es <- mapM p_expr es
-       return $ brace $ commas p_es
+    do (p_es, _) <- liftM unzip $ mapM p_expr es
+       return (brace $ commas p_es, 0)
 
 p_expr (Access a i) =
-    do aa <- p_expr a
-       ii <- p_expr i
-       return $ aa ++ square ii
+    do (aa, _) <- p_expr a
+       (ii, _) <- p_expr i
+       return (aa ++ square ii, 0)
 
 p_expr (ConstStr s) =
-    do return $ "\"" ++ s ++ "\""
+    do return ("\"" ++ s ++ "\"", 0)
 
 p_expr (StructVal attrs) =
     do ts <- mapM p_attr attrs
-       return $ brace (commas ts)
+       return (brace (commas ts), 0)
 
 p_attr (name, expr) =
-    do e <- p_expr expr
+    do (e, _) <- p_expr expr
        return $ "." ++ name ++ " = " ++ e
 
 paren s = "(" ++ s ++ ")"
@@ -173,19 +210,19 @@ p_typed_var n (ArrT t) =
        return $ tv ++ "[]"
 
 p_if lead (If c t (_, Skip)) =
-    do cc <- p_expr c
+    do (cc, _) <- p_expr c
        line (lead ++ "if (" ++ cc ++ ") {")
        indent $ p_block t
        line "}"
 
 p_if lead (If c t ([], i@(If _ _ _))) =
-    do cc <- p_expr c
+    do (cc, _) <- p_expr c
        line (lead ++ "if (" ++ cc ++ ") {")
        indent $ p_block t
        p_if "} else " i
 
 p_if lead (If c t e) =
-    do cc <- p_expr c
+    do (cc, _) <- p_expr c
        line (lead ++ "if (" ++ cc ++ ") {")
        indent $ p_block t
        line "} else {"
@@ -205,10 +242,10 @@ p_binop Lt    = do return "<"
 p_binop Gt    = do return ">"
 p_binop Le    = do return "<="
 p_binop Ge    = do return ">="
+p_binop Assign = do return "="
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
-p_unop Address   = do return "&"
 
 p_lvalue (LVar s) =
     do return s
