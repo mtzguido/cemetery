@@ -154,6 +154,12 @@ g_expr (I.BinOp op l r) =
        rr <- g_expr r
        g_binop op ll rr
 
+-- Special case for inequalities
+g_expr (I.UnOp I.Not (I.BinOp I.Eq l r)) =
+    do ll <- g_expr l
+       rr <- g_expr r
+       return $ C.BinOp C.Neq ll rr
+
 g_expr (I.UnOp op l) =
     do ll <- g_expr l
        g_unop op ll
