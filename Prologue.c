@@ -1,13 +1,11 @@
 /* Cemetery prologue */
 
-#include <stddef.h>
+#define W	((int)sizeof(unsigned long))
+#define WB	(W * 8)
+#define bit(i)	((unsigned long)1 << (i))
 
-#define W  ((int)sizeof(unsigned long))
-#define WB (W * 8)
-#define bit(i) ((unsigned long)1 << (i))
-
-#define mask_l(i) (bit(i) - 1)
-#define mask_m(i) (~(mask_l(WB - i)))
+#define mask_l(i)	(bit(i) - 1)
+#define mask_m(i)	(~(mask_l(WB - i)))
 
 struct cmt_bits {
 	int length;
@@ -24,17 +22,17 @@ typedef struct cmt_bits *cmt_bits_t;
 
 #define __cmt_assert(c) ({ if(!(c)) __cmt_error("ASSERT FAILED: " #c); })
 
-static int __cmt_even(int x)
+int __cmt_even(int x)
 {
 	return !(x&1);
 }
 
-static inline int max(int a, int b)
+inline int max(int a, int b)
 {
 	return a > b ? a : b;
 }
 
-static int __cmt_mod(int a, int b)
+int __cmt_mod(int a, int b)
 {
 	if (a == -1)
 		return b - 1;
@@ -45,13 +43,13 @@ static int __cmt_mod(int a, int b)
 	return a % b;
 }
 
-static inline void __cmt_error(char *s)
+inline void __cmt_error(char *s)
 {
 	fprintf(stderr, "Cemetery error: %s\n", s);
 	abort();
 }
 
-static cmt_bits_t __cmt_alloc(int length)
+cmt_bits_t __cmt_alloc(int length)
 {
 	cmt_bits_t ret;
 	int size;
@@ -69,7 +67,7 @@ static cmt_bits_t __cmt_alloc(int length)
 	return ret;
 }
 
-static void __cmt_fixup(cmt_bits_t b)
+void __cmt_fixup(cmt_bits_t b)
 {
 	unsigned long m;
 
@@ -80,7 +78,7 @@ static void __cmt_fixup(cmt_bits_t b)
 	}
 }
 
-static bool get_bit(cmt_bits_t b, int o)
+bool get_bit(cmt_bits_t b, int o)
 {
 	if (o > b->length)
 		return false;
@@ -88,7 +86,7 @@ static bool get_bit(cmt_bits_t b, int o)
 	return b->data[o / WB] & bit(o % WB);
 }
 
-static void set_bit(cmt_bits_t b, int o)
+void set_bit(cmt_bits_t b, int o)
 {
 	if (o > b->length)
 		__cmt_error("wat");
@@ -96,7 +94,7 @@ static void set_bit(cmt_bits_t b, int o)
 	b->data[o / WB] |= bit(o % WB);
 }
 
-static unsigned long get_word(cmt_bits_t b, int wi)
+unsigned long get_word(cmt_bits_t b, int wi)
 {
 	if (wi < 0)
 		__cmt_error("fuck 1");
@@ -112,7 +110,7 @@ static unsigned long get_word(cmt_bits_t b, int wi)
 	return b->data[wi];
 }
 
-static void set_word(cmt_bits_t b, int wi, unsigned long w)
+void set_word(cmt_bits_t b, int wi, unsigned long w)
 {
 	if (wi < 0)
 		__cmt_error("fuck 2");
@@ -123,7 +121,7 @@ static void set_word(cmt_bits_t b, int wi, unsigned long w)
 	b->data[wi] = w;
 }
 
-static cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
+cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -134,7 +132,7 @@ static cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
+cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -145,7 +143,7 @@ static cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
+cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -156,14 +154,14 @@ static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static inline unsigned long mask_set(unsigned long v,
-				     unsigned long on, unsigned long off)
+inline unsigned long mask_set(unsigned long v, unsigned long on,
+			      unsigned long off)
 {
 	return (v & ~off) | on;
 }
 
-static void __cmt_bitcopy_iter(cmt_bits_t to, int offset,
-			       cmt_bits_t from, int start_bit, int len)
+void __cmt_bitcopy_iter(cmt_bits_t to, int offset, cmt_bits_t from,
+			int start_bit, int len)
 {
 	int i;
 
@@ -173,15 +171,14 @@ static void __cmt_bitcopy_iter(cmt_bits_t to, int offset,
 	}
 }
 
-static void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
-			  int start_bit, int len)
+void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
+		   int start_bit, int len)
 {
 	int fw, lw;
 	int w;
 	int lskip, rskip;
 	unsigned long *T, *F;
 	int L, R;
-	int wo;
 	int n;
 
 	if (!len)
@@ -221,10 +218,11 @@ static void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
 	}
 
 	__cmt_bitcopy_iter(to, offset, from, start_bit, lskip);
-	__cmt_bitcopy_iter(to, offset + len - rskip, from, start_bit + len - rskip, rskip);
+	__cmt_bitcopy_iter(to, offset + len - rskip, from,
+			   start_bit + len - rskip, rskip);
 }
 
-static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
+cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(l->length + r->length);
 
@@ -360,7 +358,7 @@ cmt_bits_t __cmt_init(unsigned char *data, int length)
 	return ret;
 }
 
-static cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
+cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -381,7 +379,7 @@ static cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-static bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
+bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
 {
 	if (l->length != r->length)
 		return false;
