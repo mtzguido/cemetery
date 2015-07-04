@@ -1,5 +1,3 @@
-- Be smart with parenthesis when generating C code
-
 - Make "error" something sane and catcheable
 
 - Define precisely what arrays mean, and if they can be composed of more
