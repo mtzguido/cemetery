@@ -50,6 +50,9 @@ clean:
 	$(Q)rm -f $(automods)
 	$(Q)rm -f Parser.info
 
+install: $(TARGET)
+	install -m 0755 cmt /usr/local/bin/
+
 test: test-all
 
 test-%:
