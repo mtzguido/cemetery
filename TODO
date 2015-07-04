@@ -1,12 +1,4 @@
-- Think some more about type mapping. Is it always possible to have
-  a one-to-one map? If not, what can we assume?
-
-- Fix every FIXME
-
 - Be smart with parenthesis when generating C code
-
-- Think about how to allow for newlines on array declarations,
-  like in the DES goal.
 
 - Make "error" something sane and catcheable
 
