@@ -50,9 +50,32 @@ p_unit (FunDef ft b) =
        indent $ p_block b
        line "}"
 
+summarize []  = []
+summarize [d] = [[d]]
+summarize (l:r:ds) =
+    let VarDecl n  t  me  mods  = l
+        VarDecl n' t' me' mods' = r
+        s:ss = summarize (r:ds)
+     in if t == t' && me == Nothing && me' == Nothing && mods == []
+        && mods' == []
+            then (l:s):ss
+            else [l]:s:ss
+
 p_block (decls, stmt) =
-    do mapM p_decl decls
+    do mapM p_sum_decl (summarize decls)
+       line ""
        p_stmt stmt
+
+dname (VarDecl n _ _ _) = n
+dtype (VarDecl _ t _ _) = t
+
+p_sum_decl [d] = p_decl d
+p_sum_decl [] = error "wat"
+p_sum_decl ds =
+    do let names = map dname ds
+           typ = dtype (head ds)
+       tv <- p_typed_var "" typ
+       line $ tv ++ (commas names) ++ ";"
 
 p_decl (VarDecl n t me mods) =
     do init <- case me of
