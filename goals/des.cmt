@@ -226,5 +226,35 @@ fun des(b k : bits) : bits
 		r = T
 	b = r ||| l
 
-	b = FP(b)
-	return b
+	return FP(b)
+
+fun un_des(b k : bits) : bits
+	var l r : bits
+	var K : bits -- round key
+	var C D : bits
+
+	b = IP(b)
+	r = b[ 0, 31]
+	l = b[32, 63]
+
+	k = PC1(k)
+	C = k[ 0, 27] <<< 28
+	D = k[28, 55] <<< 28
+
+	for i in 1..16
+		var T : bits
+		-- make the round key
+		K = PC2(C ||| D)
+
+		-- rotate the partial keys
+		C = C >>> shifts(17 - i)
+		D = D >>> shifts(17 - i)
+
+		-- apply the round function and do the Feistel flip
+		T = r ^ des_f(K, l)
+		r = l
+		l = T
+
+	b = l ||| r
+
+	return FP(b)
