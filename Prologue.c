@@ -280,32 +280,14 @@ cmt_bits_t __cmt_tobits(int x, int len)
 	cmt_bits_t ret = __cmt_alloc(len);
 	int i = 0;
 
-	for (i = 0; i < len; i++) {
-		if (!x)
-			break;
-
-		if (x & 1)
-			set_bit(ret, i);
-
-		x >>= 1;
-	}
+	ret->data[0] = x;
 
 	return ret;
 }
 
 int __cmt_toint(cmt_bits_t b)
 {
-	int ret = 0;
-	int i;
-
-	for (i = b->length - 1; i >= 0; i--) {
-		ret <<= 1;
-
-		if (get_bit(b, i))
-			ret += 1;
-	}
-
-	return ret;
+	return b->data[0];
 }
 
 cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
