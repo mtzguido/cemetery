@@ -314,30 +314,30 @@ tr_ldecl' n mods p typ ir =
 
        return $ (sseq p s, IR.DeclLocal (IR.LVar n') ir_t)
 
-binop_table :: [((A.BinOp, A.Type, A.Type), (A.Type, IR.BinOp))]
+binop_table :: [(A.BinOp, A.Type, A.Type, A.Type, IR.BinOp)]
 binop_table = [
-    ((A.Plus,    A.Int,  A.Int) , (A.Int,  IR.Plus)),
-    ((A.Plus,    A.Bits, A.Bits), (A.Bits, IR.ModPlus)),
-    ((A.Minus,   A.Int,  A.Int) , (A.Int,  IR.Minus)),
-    ((A.Div,     A.Int,  A.Int) , (A.Int,  IR.Div)),
-    ((A.Prod,    A.Int,  A.Int) , (A.Int,  IR.Prod)),
-    ((A.Mod,     A.Int,  A.Int) , (A.Int,  IR.Mod)),
-    ((A.Eq,      A.Int,  A.Int) , (A.Bool, IR.Eq)),
-    ((A.Eq,      A.Bits, A.Bits), (A.Bool, IR.BitEq)),
-    ((A.And,     A.Bool, A.Bool), (A.Bool, IR.And)),
-    ((A.Or,      A.Bool, A.Bool), (A.Bool, IR.Or)),
-    ((A.Band,    A.Bits, A.Bits), (A.Bits, IR.Band)),
-    ((A.Bor,     A.Bits, A.Bits), (A.Bits, IR.Bor)),
-    ((A.BConcat, A.Bits, A.Bits), (A.Bits, IR.BConcat)),
-    ((A.Xor,     A.Bits, A.Bits), (A.Bits, IR.Xor)),
-    ((A.LShift,  A.Bits, A.Int) , (A.Bits, IR.LShift)),
-    ((A.RShift,  A.Bits, A.Int) , (A.Bits, IR.RShift)),
-    ((A.LRot,    A.Bits, A.Int) , (A.Bits, IR.LRot)),
-    ((A.RRot,    A.Bits, A.Int) , (A.Bits, IR.RRot)),
-    ((A.Le,      A.Int,  A.Int) , (A.Bool, IR.Le)),
-    ((A.Lt,      A.Int,  A.Int) , (A.Bool, IR.Lt)),
-    ((A.Ge,      A.Int,  A.Int) , (A.Bool, IR.Ge)),
-    ((A.Gt,      A.Int,  A.Int) , (A.Bool, IR.Gt))
+    (A.Plus,    A.Int,  A.Int,    A.Int,  IR.Plus),
+    (A.Plus,    A.Bits, A.Bits,   A.Bits, IR.ModPlus),
+    (A.Minus,   A.Int,  A.Int,    A.Int,  IR.Minus),
+    (A.Div,     A.Int,  A.Int,    A.Int,  IR.Div),
+    (A.Prod,    A.Int,  A.Int,    A.Int,  IR.Prod),
+    (A.Mod,     A.Int,  A.Int,    A.Int,  IR.Mod),
+    (A.Eq,      A.Int,  A.Int,    A.Bool, IR.Eq),
+    (A.Eq,      A.Bits, A.Bits,   A.Bool, IR.BitEq),
+    (A.And,     A.Bool, A.Bool,   A.Bool, IR.And),
+    (A.Or,      A.Bool, A.Bool,   A.Bool, IR.Or),
+    (A.Band,    A.Bits, A.Bits,   A.Bits, IR.Band),
+    (A.Bor,     A.Bits, A.Bits,   A.Bits, IR.Bor),
+    (A.BConcat, A.Bits, A.Bits,   A.Bits, IR.BConcat),
+    (A.Xor,     A.Bits, A.Bits,   A.Bits, IR.Xor),
+    (A.LShift,  A.Bits, A.Int,    A.Bits, IR.LShift),
+    (A.RShift,  A.Bits, A.Int,    A.Bits, IR.RShift),
+    (A.LRot,    A.Bits, A.Int,    A.Bits, IR.LRot),
+    (A.RRot,    A.Bits, A.Int,    A.Bits, IR.RRot),
+    (A.Le,      A.Int,  A.Int,    A.Bool, IR.Le),
+    (A.Lt,      A.Int,  A.Int,    A.Bool, IR.Lt),
+    (A.Ge,      A.Int,  A.Int,    A.Bool, IR.Ge),
+    (A.Gt,      A.Int,  A.Int,    A.Bool, IR.Gt)
  ]
 
 tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
@@ -347,13 +347,13 @@ tr_unop'  A.Bnot  = do return (A.Bits, A.Bits, IR.Bnot)
 tr_binop i op l r =
     do (l_p, l_t, l_ir) <- tr_expr' i l
        (r_p, r_t, r_ir) <- tr_expr' i r
-       let ops = filter (\(c,r) -> c == (op, l_t, r_t)) binop_table
+       let ops = filter (\(a,b,c,_,_) -> (a,b,c) == (op, l_t, r_t)) binop_table
        (e_t, op_ir) <-
            case ops of
               [] -> abort $ "Error on binop, no suitable operator found: " ++
                             "(" ++ show l_t ++ " " ++ show op ++
                             " " ++ show r_t ++ ")"
-              [(_,x)] -> return x
+              [(_,_,_,c,d)] -> return (c,d)
               _ -> abort $ "Internal error, more than one operator match"
 
        return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
