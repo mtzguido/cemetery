@@ -165,6 +165,35 @@ void __cmt_bitcopy_iter(cmt_bits_t to, int offset, cmt_bits_t from,
 {
 	int i;
 
+	if (!len)
+		return;
+
+	if (start_bit / WB == (start_bit + len - 1) / WB &&
+	    offset / WB == (offset + len - 1) / WB) {
+		unsigned long t;
+		unsigned long w;
+		unsigned long m;
+		int s;
+
+
+		w = from->data[start_bit / WB];
+
+		t = to->data[offset / WB];
+
+		w >>= start_bit % WB;
+
+		m = mask_l(len);
+		w &= m;
+
+		w <<= offset % WB;
+		m <<= offset % WB;
+
+		t = mask_set(t, w, m);
+
+		to->data[offset / WB] = t;
+		return;
+	}
+
 	for (i = 0; i < len; i++) {
 		if (get_bit(from, start_bit + i))
 			set_bit(to, offset + i);
