@@ -19,7 +19,7 @@ line s = tell [s]
 indent :: PM a -> PM a
 indent (WriterT { runWriterT = r }) =
     WriterT { runWriterT = do (a, w) <- r
-                              let w' = map ('\t':) w
+                              let w' = map (\s -> if s /= "" then '\t':s else s) w
                               return (a, w') }
 
 p_prog :: String -> Prog -> PM ()
