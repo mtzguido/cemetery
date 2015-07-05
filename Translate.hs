@@ -351,8 +351,7 @@ tr_binop i op l r =
        (e_t, op_ir) <-
            case ops of
               [] -> abort $ "Error on binop, no suitable operator found: " ++
-                            "(" ++ show l_t ++ " " ++ show op ++
-                            " " ++ show r_t ++ ")"
+                            show (l_t, op, r_t)
               [(_,_,_,c,d)] -> return (c,d)
               _ -> abort $ "Internal error, more than one operator match"
 
@@ -378,7 +377,9 @@ tr_save m =
 tr_call i f args =
     do abortIf i "Can't call functions in global initializers"
        d <- env_lookup f
-       let A.Fun expected_t ret = typ d
+       A.Fun expected_t ret <- case typ d of
+                                   A.Fun _ _ -> return (typ d)
+                                   _ -> abort $ f ++ ": is not a function"
 
        as <- mapM (tr_expr' i) args
        let (args_prep, actual_t, args_ir) = unzip3 as
