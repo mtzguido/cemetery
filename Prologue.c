@@ -412,6 +412,32 @@ cmt_bits_t __cmt_copy(cmt_bits_t b)
 	return ret;
 }
 
+cmt_bits_t cmt_mkbuf(const char *d, int bitlen)
+{
+	cmt_bits_t ret = __cmt_alloc(bitlen);
+	char *t = (char*)ret->data;
+	int i;
+
+	__cmt_assert(bitlen % 8 == 0);
+
+	for (i = 0; i < bitlen / 8; i++)
+		t[bitlen/8 - 1 - i] = d[i];
+
+	return ret;
+}
+
+void cmt_copy(char *dest, cmt_bits_t b)
+{
+	char *f = (char*)b->data;
+	int i;
+	int l = b->length / 8;
+
+	__cmt_assert(b->length % 8 == 0);
+
+	for (i = 0; i < l; i++)
+		dest[i] = f[l - 1 - i];
+}
+
 void __cmt_free(cmt_bits_t b)
 {
 	free(b);
