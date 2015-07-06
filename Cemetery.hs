@@ -107,7 +107,7 @@ get_toks =
 
 showIRUnit :: IR.Unit -> App ()
 showIRUnit ir =
-    do liftIO $ putStrLn $ show ir
+    do dbgLn $ show ir
 
 inc_regex = mkRegex "^include ([^ ]*) *$"
 
@@ -162,7 +162,7 @@ work = do (opts, filename) <- ask
 
           case ir of
             Left e -> do throwError e
-            Right t -> do liftIO $ putStrLn "IR Tree: "
+            Right t -> do dbgLn "IR Tree: "
                           mapM showIRUnit t
 
           let Right ir' = ir
@@ -173,19 +173,19 @@ work = do (opts, filename) <- ask
                    (Left e, _) -> throwError e
                    (Right x,_) -> return x
 
-          liftIO $ putStrLn "Optimized IR: "
+          dbgLn "Optimized IR: "
           mapM showIRUnit oir
 
           let cast = cgen oir
 
-          liftIO $ putStrLn "C ast:"
-          liftIO $ putStrLn (show cast)
+          dbg "C AST:"
+          dbgLn (show cast)
 
           breakIf StopGen
 
           let ctext = cprint cprologue cast
-          liftIO $ putStrLn "C text:"
-          liftIO $ putStrLn ctext
+          dbgLn "C Text:"
+          dbgLn ctext
 
           ifNotOpt NoOutput $ liftIO $ writeFile outC ctext
 
