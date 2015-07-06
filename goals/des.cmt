@@ -238,8 +238,8 @@ fun un_des(b k : bits) : bits
 	l = b[32, 63]
 
 	k = PC1(k)
-	C = k[ 0, 27] <<< 28
-	D = k[28, 55] <<< 28
+	C = k[ 0, 27]
+	D = k[28, 55]
 
 	for i in 1..16
 		var T : bits
