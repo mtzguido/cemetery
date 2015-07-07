@@ -24,12 +24,7 @@ typedef struct cmt_bits *cmt_bits_t;
 
 #define __cmt_assert(c) ({ if(!(c)) __cmt_error("ASSERT FAILED: " #c); })
 
-int __cmt_even(int x)
-{
-	return !(x&1);
-}
-
-inline int max(int a, int b)
+static inline int max(int a, int b)
 {
 	return a > b ? a : b;
 }

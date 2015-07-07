@@ -1,2 +1,2 @@
 fun e(p : bool) : bool
-	return even(p)
+	return p % 2 == 0
