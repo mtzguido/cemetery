@@ -1,8 +1,10 @@
 /* Cemetery prologue */
 
-#define W	((int)sizeof(unsigned long))
+typedef unsigned long word_t;
+
+#define W	((int)sizeof(word_t))
 #define WB	(W * 8)
-#define bit(i)	((unsigned long)1 << (i))
+#define bit(i)	((word_t)1 << (i))
 
 #define mask_l(i)	(bit(i) - 1)
 #define mask_m(i)	(~(mask_l(WB - i)))
@@ -10,7 +12,7 @@
 struct cmt_bits {
 	int length;
 	int size;
-	unsigned long data[];
+	word_t data[];
 };
 
 struct cmt_init {
@@ -69,7 +71,7 @@ cmt_bits_t __cmt_alloc(int length)
 
 void __cmt_fixup(cmt_bits_t b)
 {
-	unsigned long m;
+	word_t m;
 
 	if (b->length % WB) {
 		m = -1;
@@ -94,7 +96,7 @@ void set_bit(cmt_bits_t b, int o)
 	b->data[o / WB] |= bit(o % WB);
 }
 
-unsigned long get_word(cmt_bits_t b, int wi)
+word_t get_word(cmt_bits_t b, int wi)
 {
 	if (wi < 0)
 		__cmt_error("fuck 1");
@@ -110,7 +112,7 @@ unsigned long get_word(cmt_bits_t b, int wi)
 	return b->data[wi];
 }
 
-void set_word(cmt_bits_t b, int wi, unsigned long w)
+void set_word(cmt_bits_t b, int wi, word_t w)
 {
 	if (wi < 0)
 		__cmt_error("fuck 2");
@@ -154,8 +156,7 @@ cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-inline unsigned long mask_set(unsigned long v, unsigned long on,
-			      unsigned long off)
+inline word_t mask_set(word_t v, word_t on, word_t off)
 {
 	return (v & ~off) | on;
 }
@@ -170,9 +171,9 @@ void __cmt_bitcopy_iter(cmt_bits_t to, int offset, cmt_bits_t from,
 
 	if (start_bit / WB == (start_bit + len - 1) / WB &&
 	    offset / WB == (offset + len - 1) / WB) {
-		unsigned long t;
-		unsigned long w;
-		unsigned long m;
+		word_t t;
+		word_t w;
+		word_t m;
 		int s;
 
 
@@ -206,7 +207,7 @@ void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
 	int fw, lw;
 	int w;
 	int lskip, rskip;
-	unsigned long *T, *F;
+	word_t *T, *F;
 	int L, R;
 	int n;
 
@@ -233,13 +234,13 @@ void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
 
 	if (L == 0) {
 		for (w = 0; w < n; w++) {
-			unsigned long t = T[w];
-			t = mask_set(t, F[w], (unsigned long)(-1));
+			word_t t = T[w];
+			t = mask_set(t, F[w], (word_t)(-1));
 			T[w] = t;
 		}
 	} else {
 		for (w = 0; w < n; w++) {
-			unsigned long t = T[w];
+			word_t t = T[w];
 			t = mask_set(t, F[w] >> L, mask_l(R));
 			t = mask_set(t, F[w +1] << R, mask_m(L));
 			T[w] = t;
@@ -373,7 +374,7 @@ cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
-	unsigned long c = 0, cc;
+	word_t c = 0, cc;
 
 	for (i = 0; i < ret->size; i++) {
 		cc = c;
