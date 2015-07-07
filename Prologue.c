@@ -22,28 +22,32 @@ struct cmt_init {
 
 typedef struct cmt_bits *cmt_bits_t;
 
-#define __cmt_assert(c) ({ if(!(c)) __cmt_error("ASSERT FAILED: " #c); })
+static inline void __cmt_error(char *s)
+{
+	fprintf(stderr, "Cemetery error: %s\n", s);
+	abort();
+}
+
+#define __cmt_assert(c)						\
+	do {							\
+		if (!(c))					\
+			__cmt_error("ASSERT FAILED: " #c);	\
+	} while(0);
 
 static inline int max(int a, int b)
 {
 	return a > b ? a : b;
 }
 
-int __cmt_mod(int a, int b)
+static int __cmt_mod(int a, int b)
 {
-	if (a == -1)
-		return b - 1;
+	__cmt_assert(b > 0);
 
-	if (a < 0)
-		a += b * (-a/b + 1);
+	/* Special case for powers of 2 */
+	if (b & (b - 1) == 0)
+		return a & (b - 1);
 
-	return a % b;
-}
-
-inline void __cmt_error(char *s)
-{
-	fprintf(stderr, "Cemetery error: %s\n", s);
-	abort();
+	return (a % b) + (a < 0 ? b : 0);
 }
 
 cmt_bits_t __cmt_alloc(int length)
@@ -109,11 +113,8 @@ word_t get_word(cmt_bits_t b, int wi)
 
 void set_word(cmt_bits_t b, int wi, word_t w)
 {
-	if (wi < 0)
-		__cmt_error("fuck 2");
-
-	if (wi >= (b->length + WB - 1)/ WB)
-		__cmt_error("fuck 3");
+	__cmt_assert(wi >= 0);
+	__cmt_assert(wi < (b->length + WB - 1)/ WB);
 
 	b->data[wi] = w;
 }
@@ -151,13 +152,13 @@ cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-inline word_t mask_set(word_t v, word_t on, word_t off)
+static inline word_t mask_set(word_t v, word_t on, word_t off)
 {
 	return (v & ~off) | on;
 }
 
-void __cmt_bitcopy_iter(cmt_bits_t to, int offset, cmt_bits_t from,
-			int start_bit, int len)
+static void __cmt_bitcopy_iter(cmt_bits_t to, int offset,
+			       cmt_bits_t from, int start_bit, int len)
 {
 	int i;
 
@@ -196,8 +197,8 @@ void __cmt_bitcopy_iter(cmt_bits_t to, int offset, cmt_bits_t from,
 	}
 }
 
-void __cmt_bitcopy(cmt_bits_t to, int offset, cmt_bits_t from,
-		   int start_bit, int len)
+static void __cmt_bitcopy(cmt_bits_t to, int offset,
+			  cmt_bits_t from, int start_bit, int len)
 {
 	int fw, lw;
 	int w;
@@ -262,6 +263,11 @@ cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 	int tob;
 	cmt_bits_t ret = __cmt_alloc(to - from + 1);
 
+	__cmt_assert(from >= 0);
+	__cmt_assert(from < l->length);
+	__cmt_assert(to >= 0);
+	__cmt_assert(to < l->length);
+
 	/*
 	 * Slice takes bits counted from the left (MSB),
 	 * so turn them into an index from the right (LSB)
@@ -321,6 +327,7 @@ cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 
 	cmt_bits_t ret = __cmt_alloc(b->length + s);
 	__cmt_bitcopy(ret, s, b, 0, b->length);
+
 	return ret;
 }
 
@@ -368,8 +375,8 @@ cmt_bits_t __cmt_init(unsigned char *data, int length)
 cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
-	int i;
 	word_t c = 0, cc;
+	int i;
 
 	for (i = 0; i < ret->size; i++) {
 		cc = c;
