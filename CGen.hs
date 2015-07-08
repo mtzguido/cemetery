@@ -187,6 +187,9 @@ g_expr (I.Slice a f t) =
        tt <- g_expr t
        return $ C.Call "__cmt_slice" [aa, ff, tt]
 
+g_expr (I.ConstBits b l) | all (==0) b =
+    do return $ C.Call "__cmt_zero" [C.ConstInt l]
+
 g_expr (I.ConstBits b l) =
     do c <- fresh_buflit_counter
        let name = "__cmt_buf_literal_" ++ show c
