@@ -88,6 +88,7 @@ varst_b lv (ds, s) =
         else varst lv (flatten s)
 
 used_s lv s   = varst lv s == Used
+unused_s lv s = varst lv s == Unused
 shadow_s lv s = varst lv s == Shadowed
 
 tracked_decl (DeclLocal _ Bits) = True
