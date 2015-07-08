@@ -87,7 +87,7 @@ varst_b lv (ds, s) =
         then Unused
         else varst lv (flatten s)
 
-used_s lv s = varst lv s == Used
+used_s lv s   = varst lv s == Used
 shadow_s lv s = varst lv s == Shadowed
 
 tracked_decl (DeclLocal _ Bits) = True
@@ -103,8 +103,20 @@ track_set d = S.fromList $ locals $ filter tracked_decl d
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
-liv u ls lo [] = []
-liv u ls lo (s:ss) =
+do_frees u ls lo s =
+    let used     = S.filter (flip used_s s)   ls
+        shadowed = S.filter (flip shadow_s s) ls
+        needed   = (S.union lo used) S.\\ shadowed
+        unneeded = ls S.\\ needed
+     in (ls S.\\ unneeded, map Free (S.toList unneeded))
+
+liv u ls lo ss =
+    let (ls', f) = do_frees u ls lo ss
+        ss' = liv' u ls' lo ss
+     in f ++ ss'
+
+liv' u ls lo [] = []
+liv' u ls lo (s:ss) =
     case s of
         Return (IR.LV lv) ->
             let free = map Free (S.toList $ S.delete lv ls)
@@ -115,9 +127,7 @@ liv u ls lo (s:ss) =
                      in free ++ [s]
 
         Assign l e | S.member l ls ->
-            if used_e l e
-                then error "liveness wat 2"
-                else Free l : (liv u (S.delete l ls) lo (s:ss))
+            error "BUG: Assigning to live value"
 
         -- Avoid copies of temporaries that will be freed on
         -- the next step
@@ -127,16 +137,7 @@ liv u ls lo (s:ss) =
             liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
 
         Assign l e | S.member l u ->
-            let l_out = if S.member l u
-                        then S.insert l ls
-                        else ls
-                used = S.filter (flip used_s ss) l_out
-                poof = l_out S.\\ (S.union lo used)
-                f = map Free (S.toList poof)
-                s' = liv u (l_out S.\\ poof) lo ss
-             in if S.member l poof
-                then (map Free (S.toList (S.delete l poof))) ++ s'
-                else [s] ++ f ++ s'
+            [s] ++ liv u (S.insert l ls) lo ss
 
         If c t e ->
             let t' = liv_block u ls t
