@@ -44,7 +44,7 @@ static int __cmt_mod(int a, int b)
 	__cmt_assert(b > 0);
 
 	/* Special case for powers of 2 */
-	if (b & (b - 1) == 0)
+	if ((b & (b - 1)) == 0)
 		return a & (b - 1);
 
 	return (a % b) + (a < 0 ? b : 0);
@@ -167,11 +167,7 @@ static void __cmt_bitcopy_iter(cmt_bits_t to, int offset,
 
 	if (start_bit / WB == (start_bit + len - 1) / WB &&
 	    offset / WB == (offset + len - 1) / WB) {
-		word_t t;
-		word_t w;
-		word_t m;
-		int s;
-
+		word_t t, w, m;
 
 		w = from->data[start_bit / WB];
 
@@ -309,7 +305,6 @@ cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[], int len)
 cmt_bits_t __cmt_tobits(int x, int len)
 {
 	cmt_bits_t ret = __cmt_alloc(len);
-	int i = 0;
 
 	ret->data[0] = x;
 
