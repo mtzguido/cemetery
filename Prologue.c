@@ -2,9 +2,9 @@
 
 typedef unsigned long word_t;
 
-#define W	((int)sizeof(word_t))
-#define WB	(W * 8)
-#define bit(i)	((word_t)1 << (i))
+#define W		((int)sizeof(word_t))
+#define WB		(W * 8)
+#define bit(i)		((word_t)1 << (i))
 
 #define mask_l(i)	(bit(i) - 1)
 #define mask_m(i)	(~(mask_l(WB - i)))
