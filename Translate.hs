@@ -126,9 +126,7 @@ tr_stmt (A.Return e) =
            IR.LV _ -> return $ sseq p_e (IR.Return ir_e)
            _       -> do ir_t <- tmap rt
                          t <- fresh ir_t
-                         return $ sseq p_e
-                                 (sseq (IR.Assign t ir_e)
-                                 (IR.Return (IR.LV t)))
+                         return $ sfold [p_e, IR.Assign t ir_e, IR.Return (IR.LV t)]
 
 tr_stmt (A.Seq l r) =
     do ll <- tr_stmt l
@@ -166,13 +164,12 @@ tr_stmt (A.For v f t b) =
        b' <- tr_body b
        popLevel
 
-       return $ foldl1 sseq $
-           [f_p,
-            IR.Assign f_save f_ir,
-            t_p,
-            IR.Assign t_save t_ir,
-            IR.For it (IR.LV f_save) (IR.LV t_save) b'
-           ]
+       return $ sfold [f_p,
+                       IR.Assign f_save f_ir,
+                       t_p,
+                       IR.Assign t_save t_ir,
+                       IR.For it (IR.LV f_save) (IR.LV t_save) b'
+                      ]
 
 
 -- The bool represents wether we're translating a global initializer, so
@@ -204,7 +201,7 @@ tr_expr' i (A.Arr es) =
        abortIf (not $ all (== head es_types) es_types)
          "All elements of the array need to have the same type"
 
-       return (foldl sseq IR.Skip es_preps,
+       return (sfold es_preps,
                A.ArrT (head es_types),
                IR.Arr es_irs)
 
@@ -395,7 +392,7 @@ tr_call i f args =
                    IR.LVar n -> return n
                    _ -> abort "Internal error"
 
-       return (foldl sseq IR.Skip args_prep, ret, IR.Call name args_ir)
+       return (sfold args_prep, ret, IR.Call name args_ir)
 
 tr_slice i a f t =
     do (a_p, a_t, a_ir) <- tr_expr' i a
@@ -410,6 +407,6 @@ tr_slice i a f t =
        abortIf (not $ tmatch t_t A.Int)
            "Slice's 'to' has to be of type int"
 
-       return (sseq (sseq a_p f_p) t_p,
+       return (sfold [a_p, f_p, t_p],
                A.Bits,
                IR.Slice a_ir f_ir t_ir)
