@@ -1,0 +1,11 @@
+fun w(b : bits) : bits
+	for i in 1..10
+		b = <>
+
+	return b
+
+fun left() : bits
+	return w(<>)
+
+fun right() : bits
+	return <>
