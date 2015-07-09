@@ -130,6 +130,12 @@ liv' u ls lo (s:ss) =
         Assign l e | S.member l ls ->
             error "BUG: Assigning to live value"
 
+        Assign l e | shadow_s l ss ->
+            liv u ls lo ss
+
+        Assign l e | unused_s l ss && not (S.member l lo) ->
+            liv u ls lo ss
+
         -- Avoid copies of temporaries that will be freed on
         -- the next step
         Assign l (Copy (LV lv)) | not (used_s lv ss)
