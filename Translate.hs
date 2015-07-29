@@ -243,6 +243,9 @@ tmap (A.ArrT t) =
 tmap t =
     do abort $ "Can't map that type (" ++ (show t) ++ ")"
 
+isArr (A.ArrT _) = True
+isArr _ = False
+
 -- Declaration translation
 
 tr_gdecl (A.VarDecl n mods _      Nothing) =
@@ -296,6 +299,8 @@ tr_ldecl' :: String -> [A.VarModifiers] -> IR.Stmt -> A.Type -> IR.Expr
           -> TM (IR.Stmt, IR.Decl)
 tr_ldecl' n mods p typ ir =
     do n' <- requestSimilar n
+
+       abortIf (isArr typ) "arrays can't be declared locally, only as global constants"
 
        let attrs = if elem A.Const mods
                    then [RO]
