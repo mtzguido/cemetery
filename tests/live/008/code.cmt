@@ -1,4 +1,4 @@
-include ../../../goals/sha1.cmt
+include ../../../lib/sha1.cmt
 
 fun left() : bits
 	return sha1(< 0x68 0x6f 0x6c 0x61 :: 32 >) -- "hola"
