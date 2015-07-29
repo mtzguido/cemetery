@@ -28,6 +28,7 @@ data Opts = StopLexer
           | StopGen
           | NoOutput
           | Verbose
+          | NoOptimize
     deriving (Eq, Show)
 
 -- Monadic type for the program logic
@@ -44,7 +45,8 @@ options = [
  Option []    ["parse", "ast"]      (NoArg StopParse)       "stop after parsing stage",
  Option []    ["translate", "ir"]   (NoArg StopTranslate)   "stop after translation",
  Option []    ["generate"]          (NoArg StopGen)         "stop after genering a C ast",
- Option ['v'] ["verbose"]           (NoArg Verbose)         "be more verbose"
+ Option ['v'] ["verbose"]           (NoArg Verbose)         "be more verbose",
+ Option []    ["no-optimize"]       (NoArg NoOptimize)      "don't optimize the IR"
  ]
 
 main =
@@ -71,6 +73,10 @@ main =
            Left e -> do putStrLn $ "An error ocurred: " ++ show e
                         exitFailure
            Right _ -> do liftIO exitSuccess
+
+haveOpt f =
+    do (opts, _) <- ask
+       return $ elem f opts
 
 ifNotOpt f m =
     do (opts, _) <- ask
@@ -169,9 +175,12 @@ work = do (opts, filename) <- ask
 
           breakIf StopTranslate
 
-          oir <- case runOM (optimize ir') of
-                   (Left e, _) -> throwError e
-                   (Right x,_) -> return x
+          should_opt <- liftM not (haveOpt NoOptimize)
+          oir <- if should_opt
+                 then case runOM (optimize ir') of
+                        (Left e, _) -> throwError e
+                        (Right x,_) -> return x
+                 else return ir'
 
           dbgLn "Optimized IR: "
           mapM showIRUnit oir
