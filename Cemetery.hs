@@ -5,7 +5,7 @@ import Control.Monad.Reader
 import Control.Monad.Error
 import Data.Either
 import Data.List
-import System.Console.GetOpt
+import System.Console.GetOpt as Opt
 import System.Environment
 import System.Exit
 import Text.Regex
@@ -14,7 +14,7 @@ import AST
 import CGen
 import Common
 import CPrint
-import IR
+import IR as I
 import Lexer
 import Optimize
 import Parser
@@ -49,7 +49,7 @@ options = [
 
 main =
     do args <- getArgs
-       let (flags, nonOpts, msgs) = getOpt Permute options args
+       let (flags, nonOpts, msgs) = getOpt Opt.Permute options args
 
        when (nonOpts == []) $
          do putStr (concat msgs ++ usageInfo "fatal: no input files" options)
@@ -105,7 +105,7 @@ get_toks =
          _ -> do cs <- get_toks
                  return (c ++ cs)
 
-showIRUnit :: IR.Unit -> App ()
+showIRUnit :: Unit -> App ()
 showIRUnit ir =
     do dbgLn $ show ir
 

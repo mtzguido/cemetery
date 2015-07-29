@@ -41,13 +41,21 @@ data UnOp = Neg | Not | Bnot
 
 data LValue = LVar String
             | Temp Int
+            | Builtin Builtin
+  deriving (Eq, Show, Ord)
+
+data Builtin = Permute
+             | Length
+             | ToInt
+             | ToBits
+             | Zero
   deriving (Eq, Show, Ord)
 
 data Expr = ConstInt   Int
           | ConstBool  Bool
           | BinOp      BinOp Expr Expr
           | UnOp       UnOp Expr
-          | Call       String [Expr]
+          | Call       LValue [Expr]
           | LV         LValue
           | Arr        [Expr]
           | Slice      Expr Expr Expr

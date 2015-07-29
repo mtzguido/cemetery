@@ -168,9 +168,13 @@ g_expr (I.LV lv) =
     do lv_c <- g_lvalue lv
        return $ C.LV lv_c
 
-g_expr (I.Call n args) =
+g_expr (I.Call cc args) =
     do c_args <- mapM g_expr args
-       return $ C.Call n c_args
+       let f_name = case cc of
+                        I.LVar n -> n
+                        I.Builtin b -> builtin_name b
+
+       return $ C.Call f_name c_args
 
 g_expr (I.Arr es) =
     do es' <- mapM g_expr es
@@ -199,8 +203,9 @@ g_expr (I.ConstBits b l) =
        add_gdecl (C.VarDecl name (C.ArrT C.UChar) (Just carr) [C.Static, C.Const])
        return $ C.Call "__cmt_init" [C.LV (C.LVar name), C.ConstInt l]
 
+-- "Copy" is implemented as a function call.
 g_expr (I.Copy e) =
-    g_expr (I.Call "__cmt_copy" [e])
+    g_expr (I.Call (I.LVar "__cmt_copy") [e])
 
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
@@ -241,3 +246,9 @@ g_lvalue (I.LVar n) =
 
 g_lvalue (I.Temp i) =
     do return $ C.LVar ("t" ++ show i)
+
+builtin_name I.Permute = "__cmt_permute"
+builtin_name I.Length  = "__cmt_length"
+builtin_name I.ToInt   = "__cmt_toint"
+builtin_name I.ToBits  = "__cmt_tobits"
+builtin_name I.Zero    = "__cmt_zero"

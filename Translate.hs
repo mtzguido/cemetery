@@ -388,11 +388,7 @@ tr_call i f args =
        abortIf (not (all id ok))
            "Ill typed function argument on call"
 
-       name  <- case ir_lv d of
-                   IR.LVar n -> return n
-                   _ -> abort "Internal error"
-
-       return (sfold args_prep, ret, IR.Call name args_ir)
+       return (sfold args_prep, ret, IR.Call (ir_lv d) args_ir)
 
 tr_slice i a f t =
     do (a_p, a_t, a_ir) <- tr_expr' i a
