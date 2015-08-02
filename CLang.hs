@@ -52,9 +52,6 @@ data Expr = BinOp BinOp Expr Expr
           | Access Expr Expr
           | ConstStr String
           | StructVal [(String, Expr)]
---          | ConstArr [Word8]
---          | StructVal [(String, Expr)]
---          | PtrTo String
   deriving (Eq, Show)
 
 data BinOp = Plus | Minus | Div | Prod

@@ -195,17 +195,21 @@ g_expr (I.ConstBits b l) | all (==0) b =
     do return $ C.Call "__cmt_zero" [C.ConstInt l]
 
 g_expr (I.ConstBits b l) =
+    do name <- g_const_bits b l
+       return $ C.Call "__cmt_init" [C.LV (C.LVar name), C.ConstInt l]
+
+-- "Copy" is implemented as a function call.
+g_expr (I.Copy e) =
+    g_expr (I.Call (I.LVar "__cmt_copy") [e])
+
+g_const_bits b l =
     do c <- fresh_buflit_counter
        let name = "__cmt_buf_literal_" ++ show c
        let arr  = map C.ConstInt (reverse b)
        let arr' = take (div (l+7) 8) (arr ++ repeat (C.ConstInt 0))
        let carr = C.Arr arr'
        add_gdecl (C.VarDecl name (C.ArrT C.UChar) (Just carr) [C.Static, C.Const])
-       return $ C.Call "__cmt_init" [C.LV (C.LVar name), C.ConstInt l]
-
--- "Copy" is implemented as a function call.
-g_expr (I.Copy e) =
-    g_expr (I.Call (I.LVar "__cmt_copy") [e])
+       return name
 
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool

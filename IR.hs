@@ -73,8 +73,8 @@ data Decl = DeclLocal  LValue Type
 data Stmt = Assign      LValue Expr
           | Return      Expr
           | Seq         Stmt Stmt
-          | Skip                         -- Simply discard this
-          | If          Expr Block Block -- C-like semantics
+          | Skip
+          | If          Expr Block Block -- Expr is true if non-zero
           | For         LValue Expr Expr Block
           | Error       String
           | Free        LValue
