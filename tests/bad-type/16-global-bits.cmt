@@ -1,0 +1,4 @@
+const a = < 0x41 0x42 0x43 :: 24 >
+
+fun f() : bits
+	return a

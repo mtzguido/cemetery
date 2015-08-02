@@ -229,7 +229,8 @@ tr_expr' i (A.ConstStr _) =
     do abort "Strings unsupported"
 
 tr_expr' i (A.BinLit b s) =
-    do tr_save $ return (IR.Skip, A.Bits, IR.ConstBits b s)
+    do abortIf i "Binary literals not supported as global initiliazers"
+       tr_save $ return (IR.Skip, A.Bits, IR.ConstBits b s)
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
