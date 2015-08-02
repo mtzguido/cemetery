@@ -39,8 +39,10 @@ comment s = line ("/* " ++ s ++ " */")
 p_unit (Decl d@(VarDecl n t me _)) =
     do p_decl d
 
-p_unit (FunDecl _) =
-    do comment "FunDecl"
+p_unit (FunDecl ft) =
+    do rt <- p_typ (ret ft)
+       as <- p_args (args ft)
+       line (rt ++ " " ++ name ft ++ "(" ++ as ++ ");")
 
 p_unit (FunDef ft b) =
     do rt <- p_typ (ret ft)

@@ -1,3 +1,4 @@
 *.o
 sha1.c
+sha1.h
 sha1sum

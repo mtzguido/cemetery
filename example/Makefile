@@ -3,7 +3,7 @@
 sha1sum: sha1.o sha1sum.o
 	gcc $^ -o $@
 
-sha1.c: sha1.cmt
+sha1.c sha1.h: sha1.cmt
 	cmt $<
 
 clean:

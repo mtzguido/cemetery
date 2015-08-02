@@ -1,12 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-struct cmt_bits;
-typedef struct cmt_bits *cmt_bits_t;
-
-cmt_bits_t sha1(cmt_bits_t);
-cmt_bits_t cmt_mkbuf(const char *, int);
-void cmt_copy(char *, cmt_bits_t);
+#include "sha1.h"
 
 int main(int argc, char **argv)
 {

@@ -185,10 +185,12 @@ work = do (opts, filename) <- ask
           dbgLn "Optimized IR: "
           mapM showIRUnit oir
 
-          let cast = cgen oir
+          let (cast, hast) = cgen oir
 
           dbg "C AST:"
           dbgLn (show cast)
+          dbg "H AST:"
+          dbgLn (show hast)
 
           breakIf StopGen
 
@@ -196,6 +198,19 @@ work = do (opts, filename) <- ask
           dbgLn "C Text:"
           dbgLn ctext
 
+          let htext = incl_guard stem $ cprint hprologue hast
+          dbgLn "H Text:"
+          dbgLn htext
+
           ifNotOpt NoOutput $ liftIO $ writeFile outC ctext
+          ifNotOpt NoOutput $ liftIO $ writeFile outH htext
 
           return ()
+
+incl_guard i s = unlines $ ["#ifndef __CEMETERY_" ++ ii ++ "__",
+                            "#define __CEMETERY_" ++ ii ++ "__", ""] ++
+                           (lines s) ++
+                           ["", "#endif"] where
+                 ii = macro_sanitize i
+
+macro_sanitize = tr "-/" (repeat '_')

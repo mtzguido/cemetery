@@ -13,16 +13,26 @@ import Control.Monad.Identity
 bitsType_str = C.Custom "struct cmt_init"
 bitsType = C.Custom "cmt_bits_t"
 
-cgen :: I.IR -> C.Prog
+-- Generate source file and header
+cgen :: I.IR -> (C.Prog, C.Prog)
 cgen ir = let (units, ()) = runGM (g_ir ir)
-           in C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
-                                     "stddef", "string"],
-                       C.units = units
-                     }
+              c = C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
+                                         "stddef", "string"],
+                           C.units = units
+                         }
+              h = C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
+                                         "stddef", "string"],
+                           C.units = concat $ map header_unit units
+                         }
+           in (c, h)
 
 data CGenState = CGenState { globals :: [C.Decl],
                              buflit_counter :: Int
                            }
+
+header_unit (C.Decl d) = []
+header_unit (C.FunDef ft _) = [C.FunDecl ft]
+header_unit (C.FunDecl ft) = [C.FunDecl ft]
 
 initState = CGenState { globals = [],
                         buflit_counter = 0
