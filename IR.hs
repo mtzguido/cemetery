@@ -25,6 +25,7 @@ data Unit = FunDef Funtype Block
 
 data Funtype = Funtype { name :: String,
                          args :: [(String, Type)],
+                         mods :: [Mods],
                          ret :: Type }
   deriving (Eq, Show)
 
@@ -34,6 +35,9 @@ data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
            | Le | Lt | Gt | Ge
            | ModPlus -- Bits addition modulo size
            | BitEq
+  deriving (Eq, Show)
+
+data Mods = Static
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot

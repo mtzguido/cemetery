@@ -64,12 +64,17 @@ g_unit (I.Decl d) =
 
 g_unit (I.FunDef (I.Funtype { I.name = name,
                               I.args = args,
+                              I.mods = mods,
                               I.ret  = ret}) body) =
     do c_args <- mapM g_arg args
        c_ret <- g_type ret
        c_body <- g_body body
-       let ft = C.Funtype { C.name = name, C.args = c_args, C.ret = c_ret }
+       c_mods <- mapM g_mods mods
+       let ft = C.Funtype { C.name = name, C.args = c_args,
+                            C.mods = c_mods, C.ret = c_ret }
        tell [C.FunDef ft c_body]
+
+g_mods I.Static = do return C.Static
 
 g_arg :: (String, I.Type) -> GM (String, C.Type)
 g_arg (n, t) =

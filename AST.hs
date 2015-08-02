@@ -53,13 +53,14 @@ data Stmt = Skip
           | Err String
           deriving (Eq, Show)
 
-data VarModifiers = Const | Extern
+data Mods = Const | Extern | Static
     deriving (Eq, Show)
 
-data Decl = VarDecl String [VarModifiers] (Maybe Type) (Maybe Expr)
+data Decl = VarDecl String [Mods] (Maybe Type) (Maybe Expr)
           | FunDecl { name :: String,
                       ret :: Type,
                       args :: [(String, Type)],
+                      mods :: [Mods],
                       body :: Stmt }
           deriving (Eq, Show)
 

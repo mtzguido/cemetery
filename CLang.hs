@@ -11,7 +11,7 @@ data Prog = Prog { includes :: [String],
                  }
   deriving (Eq, Show)
 
-data VarModifiers = Extern | Const | Static
+data Mods = Extern | Const | Static
   deriving (Eq, Show)
 
 data Unit = Decl Decl
@@ -21,11 +21,12 @@ data Unit = Decl Decl
 
 type Block = ([Decl], Stmt)
 
-data Decl = VarDecl String Type (Maybe Expr) [VarModifiers]
+data Decl = VarDecl String Type (Maybe Expr) [Mods]
   deriving (Eq, Show)
 
 data Funtype = Funtype { name :: String,
                          args :: [(String, Type)],
+                         mods :: [Mods],
                          ret :: Type }
   deriving (Eq, Show)
 

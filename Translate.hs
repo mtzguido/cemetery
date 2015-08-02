@@ -58,7 +58,7 @@ translate1 d@(A.VarDecl _ _ _ _) =
     do d' <- tr_gdecl d
        return $ IR.Decl d'
 
-translate1 (A.FunDecl {A.name = name, A.ret = ret,
+translate1 (A.FunDecl {A.name = name, A.ret = ret, A.mods = mods,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret
        requestName name
@@ -81,8 +81,11 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret,
        ir_body_s <- tr_stmt body
        l <- popLevel
 
+       let ir_mods = []
+
        let ft = IR.Funtype { IR.name = name,
                              IR.args = ir_args,
+                             IR.mods = ir_mods,
                              IR.ret = ir_ret }
        return $ IR.FunDef ft (reverse $ decls l, sseq prep_args ir_body_s)
 
@@ -263,7 +266,7 @@ tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
        abortIf (prep /= IR.Skip) "Internal error"
        tr_gdecl' n mods e_t e_ir
 
-tr_gdecl' :: String -> [A.VarModifiers] -> A.Type -> IR.Expr -> TM IR.Decl
+tr_gdecl' :: String -> [A.Mods] -> A.Type -> IR.Expr -> TM IR.Decl
 tr_gdecl' n mods typ ir =
     do requestName n
        abortIf (not (elem A.Const mods))
@@ -296,7 +299,7 @@ tr_ldecl (A.VarDecl n mods Nothing  (Just e)) =
     do (p, e_t, e_ir) <- tr_expr e
        tr_ldecl' n mods p e_t e_ir
 
-tr_ldecl' :: String -> [A.VarModifiers] -> IR.Stmt -> A.Type -> IR.Expr
+tr_ldecl' :: String -> [A.Mods] -> IR.Stmt -> A.Type -> IR.Expr
           -> TM (IR.Stmt, IR.Decl)
 tr_ldecl' n mods p typ ir =
     do n' <- requestSimilar n
