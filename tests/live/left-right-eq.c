@@ -44,7 +44,7 @@ int main()
 	ret = 0;
 out:
 
-	__cmt_free(l);
-	__cmt_free(r);
+	cmt_free(l);
+	cmt_free(r);
 	return ret;
 }

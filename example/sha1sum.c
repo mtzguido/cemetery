@@ -53,8 +53,8 @@ int main(int argc, char **argv)
 		printf("%02x", hash[i]);
 	printf("\n");
 
-	__cmt_free(h);
-	__cmt_free(b);
+	cmt_free(h);
+	cmt_free(b);
 	free(buf);
 	fclose(f);
 

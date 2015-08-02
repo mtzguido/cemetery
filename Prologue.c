@@ -436,7 +436,7 @@ void cmt_copy(char *dest, cmt_bits_t b)
 		dest[i] = f[l - 1 - i];
 }
 
-void __cmt_free(cmt_bits_t b)
+void cmt_free(cmt_bits_t b)
 {
 	free(b);
 }

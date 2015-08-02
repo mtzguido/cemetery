@@ -140,7 +140,7 @@ g_stmt (I.Error s) =
 
 g_stmt (I.Free l) =
     do l' <- g_lvalue l
-       return $ C.Expr $ C.Call "__cmt_free" [C.LV l']
+       return $ C.Expr $ C.Call "cmt_free" [C.LV l']
 
 g_expr :: I.Expr -> GM C.Expr
 g_expr (I.ConstInt i) =
