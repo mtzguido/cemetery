@@ -146,29 +146,29 @@ const pc2 = [
 	34, 53, 46, 42, 50, 36, 29, 32
 ]
 
-fun PC1(b : bits) : bits
+static fun PC1(b : bits) : bits
 	return permute(b, pc1, 56);
 
-fun PC2(b : bits) : bits
+static fun PC2(b : bits) : bits
 	return permute(b, pc2, 48);
 
 -- initial permutation
-fun IP(b : bits) : bits
+static fun IP(b : bits) : bits
 	return permute(b, ip_map, 64);
 
 -- final permutation == IP^-1
-fun FP(b : bits) : bits
+static fun FP(b : bits) : bits
 	return permute(b, ip_map_inv, 64);
 
 -- block expansion
-fun E(k : bits) : bits
+static fun E(k : bits) : bits
 	return permute(k, e_map, 48)
 
 -- block permutation
-fun P(b : bits) : bits
+static fun P(b : bits) : bits
 	return permute(b, p_map, 32)
 
-fun S(b : bits) : bits
+static fun S(b : bits) : bits
 	var f1 = b[ 0,  5]
 	var f2 = b[ 6, 11]
 	var f3 = b[12, 17]
@@ -189,10 +189,10 @@ fun S(b : bits) : bits
 
 	return f1 ||| f2 ||| f3 ||| f4 ||| f5 ||| f6 ||| f7 ||| f8
 
-fun des_f(rk b : bits) : bits
+static fun des_f(rk b : bits) : bits
 	return P(S(E(b) ^ rk))
 
-fun shifts(round : int) : int
+static fun shifts(round : int) : int
 	if round == 1 || round == 2 || round == 9 || round == 16
 		return 1
 	else
