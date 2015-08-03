@@ -20,8 +20,7 @@ cgen ir = let (units, ()) = runGM (g_ir ir)
                                          "stddef", "string"],
                            C.units = units
                          }
-              h = C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
-                                         "stddef", "string"],
+              h = C.Prog { C.includes = ["stdbool"],
                            C.units = concat $ map header_unit units
                          }
            in (c, h)
