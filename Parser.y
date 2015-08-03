@@ -56,6 +56,7 @@ import qualified AST as A
 	RSHIFT		{ L.Tok L.RShift _ }
 	SLASH		{ L.Tok L.Slash _ }
 	SQUARE		{ L.Tok L.Square _ }
+	STATIC		{ L.Tok L.Static _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
 	TILDE		{ L.Tok L.Tilde _ }
 	TYPE		{ L.Tok (L.Type _) _ }
@@ -97,12 +98,16 @@ floatlit : FLOAT { readFloat $1 }
 strlit : STRING { readStr $1 }
 boollit : BOOL { readBool $1 }
 
-fun : FUN id PAREN args UNPAREN COLON type
+fun : funmods FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {
-				    A.name = $2,
-				    A.ret = $7,
-				    A.args = $4,
-				    A.body = $9 } }
+				    A.name = $3,
+				    A.ret = $8,
+				    A.args = $5,
+				    A.mods = $1,
+				    A.body = $10 } }
+
+funmods : {- empty -}		{ [] }
+        | STATIC funmods	{ A.Static : $2 }
 
 args : {- empty -}		{ [] }
      | arg			{ $1 }

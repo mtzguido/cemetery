@@ -1,4 +1,4 @@
-fun K(t : int) : bits
+static fun K(t : int) : bits
 	if t < 0
 		error "negative t"
 	else if t < 20
@@ -12,7 +12,7 @@ fun K(t : int) : bits
 	else
 		error "t is bigger than 80"
 
-fun f(t : int, x y z : bits) : bits
+static fun f(t : int, x y z : bits) : bits
 	if t < 0
 		error "negative t"
 	else if t < 20
@@ -26,7 +26,7 @@ fun f(t : int, x y z : bits) : bits
 	else
 		error "t is bigger than 80"
 
-fun pad(m : bits) : bits
+static fun pad(m : bits) : bits
 	var l = length(m)
 	var k = (447 - l) % 512 -- should always be the positive remainder
 

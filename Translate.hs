@@ -81,7 +81,7 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret, A.mods = mods,
        ir_body_s <- tr_stmt body
        l <- popLevel
 
-       let ir_mods = []
+       let ir_mods = if elem A.Static mods then [IR.Static] else []
 
        let ft = IR.Funtype { IR.name = name,
                              IR.args = ir_args,

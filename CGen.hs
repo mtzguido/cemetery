@@ -31,8 +31,10 @@ data CGenState = CGenState { globals :: [C.Decl],
                            }
 
 header_unit (C.Decl d) = []
-header_unit (C.FunDef ft _) = [C.FunDecl ft]
-header_unit (C.FunDecl ft) = [C.FunDecl ft]
+header_unit (C.FunDef ft _) = if elem C.Static (C.mods ft)
+                              then []
+                              else [C.FunDecl ft]
+-- Cemetery shouldn't generate any FunDecls on the source file
 
 initState = CGenState { globals = [],
                         buflit_counter = 0

@@ -37,9 +37,10 @@ p_inc f = line ("#include <" ++ f ++ ".h>")
 comment s = line ("/* " ++ s ++ " */")
 
 p_fun_proto ft =
-    do rt <- p_typ (ret ft)
+    do let p = if elem Static (mods ft) then "static " else ""
+       rt <- p_typ (ret ft)
        as <- p_args (args ft)
-       return $ rt ++ " " ++ name ft ++ "(" ++ as ++ ")"
+       return $ p ++ rt ++ " " ++ name ft ++ "(" ++ as ++ ")"
 
 p_unit (Decl d@(VarDecl n t me _)) =
     do p_decl d
