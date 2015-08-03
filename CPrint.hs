@@ -36,18 +36,21 @@ p_inc f = line ("#include <" ++ f ++ ".h>")
 
 comment s = line ("/* " ++ s ++ " */")
 
+p_fun_proto ft =
+    do rt <- p_typ (ret ft)
+       as <- p_args (args ft)
+       return $ rt ++ " " ++ name ft ++ "(" ++ as ++ ")"
+
 p_unit (Decl d@(VarDecl n t me _)) =
     do p_decl d
 
 p_unit (FunDecl ft) =
-    do rt <- p_typ (ret ft)
-       as <- p_args (args ft)
-       line (rt ++ " " ++ name ft ++ "(" ++ as ++ ");")
+    do p <- p_fun_proto ft
+       line $ p ++ ";"
 
 p_unit (FunDef ft b) =
-    do rt <- p_typ (ret ft)
-       as <- p_args (args ft)
-       line (rt ++ " " ++ name ft ++ "(" ++ as ++ ")")
+    do p <- p_fun_proto ft
+       line p
        line "{"
        indent $ p_block b
        line "}"
