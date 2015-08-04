@@ -42,12 +42,12 @@ vst_seq Used _ = Used
 vst_seq Unused x = x
 
 vst_par Shadowed Shadowed = Shadowed
-vst_par Used _ = Used
-vst_par _ Used = Used
-vst_par Unused Unused  = Unused
+vst_par Used _            = Used
+vst_par _ Used            = Used
+vst_par Unused Unused     = Unused
 
 varst lv ((Assign lv' e):ss) =
-    if lv' == lv
+    if lv' == lv && not (used_e lv e)
         then Shadowed
         else if used_e lv e
              then Used
@@ -131,9 +131,6 @@ liv' u ls lo (s:ss) =
             error "BUG: Assigning to live value"
 
         Assign l e | shadow_s l ss ->
-            liv u ls lo ss
-
-        Assign l e | unused_s l ss && not (S.member l lo) ->
             liv u ls lo ss
 
         -- Avoid copies of temporaries that will be freed on
