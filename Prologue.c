@@ -225,11 +225,8 @@ static void __cmt_bitcopy(cmt_bits_t to, int offset,
 	}
 
 	if (L == 0) {
-		for (w = 0; w < n; w++) {
-			word_t t = T[w];
-			t = mask_set(t, F[w], (word_t)(-1));
-			T[w] = t;
-		}
+		for (w = 0; w < n; w++)
+			T[w] = F[w];
 	} else {
 		for (w = 0; w < n; w++) {
 			word_t t = T[w];
