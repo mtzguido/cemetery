@@ -154,12 +154,24 @@ const_fold (UnOp op e) =
     do e' <- const_fold e
        return $ fold_unop op e'
 
-fold_binop Plus (ConstInt x) (ConstInt y) = ConstInt (x+y)
+fold_binop Plus  (ConstInt x) (ConstInt y) = ConstInt (x + y)
+fold_binop Minus (ConstInt x) (ConstInt y) = ConstInt (x - y)
+fold_binop Div   (ConstInt x) (ConstInt y) = ConstInt (div x y)
+fold_binop Prod  (ConstInt x) (ConstInt y) = ConstInt (x * y)
+fold_binop Mod   (ConstInt x) (ConstInt y) = ConstInt (mod x y) --FIXME: y<0?
+
+fold_binop And (ConstBool p) (ConstBool q) = ConstBool (p && q)
+fold_binop Or  (ConstBool p) (ConstBool q) = ConstBool (p || q)
+
 fold_binop op l r = BinOp op l r
+
+fold_unop Neg (ConstInt x) = ConstInt (-x)
+fold_unop Not (ConstBool b) = ConstBool (not b)
 
 fold_unop op e = UnOp op e
 
 ---------------------------------------------------------------------
 -- Clustering of bit expressions
 ---------------------------------------------------------------------
+
 clustering e = do return e

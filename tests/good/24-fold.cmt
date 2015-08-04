@@ -1,2 +1,6 @@
 fun add(x y : int) : int
-	return 2 + 3
+	var z = ((2 + 3 * (-5)) / 4) % 8
+	var p = (false && true) || true
+	if p
+		z = z - 1
+	return z
