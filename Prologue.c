@@ -344,8 +344,20 @@ cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 	cmt_bits_t ret = __cmt_alloc(b->length);
 	s = __cmt_mod(s, b->length);
 
-	__cmt_bitcopy(ret, 0, b, b->length - s, s);
-	__cmt_bitcopy(ret, s, b, 0, b->length - s);
+	if (b->length <= WB) {
+		word_t p, q, w;
+
+		w = b->data[0];
+		p = (w & mask_l(b->length - s)) << s;
+		q =  w >> (b->length - s);
+
+		ret->data[0] = p | q;
+
+		return ret;
+	} else {
+		__cmt_bitcopy(ret, 0, b, b->length - s, s);
+		__cmt_bitcopy(ret, s, b, 0, b->length - s);
+	}
 
 	return ret;
 }
