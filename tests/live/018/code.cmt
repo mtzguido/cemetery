@@ -1,0 +1,10 @@
+fun left() : bits
+	var b = < 0x92 :: 8 >
+
+	if true
+		b = < 0x29 :: 8 >
+
+	return b
+
+fun right() : bits
+	return < 0x29 :: 8 >

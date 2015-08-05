@@ -45,6 +45,7 @@ vst_par Shadowed Shadowed = Shadowed
 vst_par Used _            = Used
 vst_par _ Used            = Used
 vst_par Unused Unused     = Unused
+vst_par _      _          = Unused -- Unsure about this
 
 varst lv ((Assign lv' e):ss) =
     if lv' == lv && not (used_e lv e)
