@@ -179,31 +179,33 @@ tr_stmt (A.For v f t b) =
 -- function calls are prohibited.
 tr_expr = tr_expr' False
 tr_init = tr_expr' True
-tr_expr' :: Bool -> A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
-tr_expr' i (A.ConstInt ii) =
+
+tr_expr' i e =
+    do s <- tr_expr'' i e
+       csave s
+
+tr_expr'' :: Bool -> A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
+tr_expr'' i (A.ConstInt ii) =
     do return (IR.Skip, A.Int, IR.ConstInt ii)
 
-tr_expr' i (A.ConstBool b) =
+tr_expr'' i (A.ConstBool b) =
     do return (IR.Skip, A.Bool, IR.ConstBool b)
 
-tr_expr' i (A.BinOp op l r) =
-    do s <- tr_binop i op l r
-       csave s
+tr_expr'' i (A.BinOp op l r) =
+    do tr_binop i op l r
 
-tr_expr' i (A.UnOp op e) =
-    do s <- tr_unop i op e
-       csave s
+tr_expr'' i (A.UnOp op e) =
+    do tr_unop i op e
 
-tr_expr' i (A.Var n) =
+tr_expr'' i (A.Var n) =
     do d <- env_lookup n
        return (IR.Skip, typ d, IR.LV (ir_lv d))
 
-tr_expr' i (A.Call f args) =
-    do s <- tr_call i f args
-       csave s
+tr_expr'' i (A.Call f args) =
+    do tr_call i f args
 
-tr_expr' i (A.Arr es) =
-    do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr' i) es
+tr_expr'' i (A.Arr es) =
+    do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr'' i) es
        abortIf (not $ all (== head es_types) es_types)
          "All elements of the array need to have the same type"
 
@@ -211,13 +213,12 @@ tr_expr' i (A.Arr es) =
                A.ArrT (head es_types),
                IR.Arr es_irs)
 
-tr_expr' i (A.Slice a f t) =
-    do s <- tr_slice i a f t
-       csave s
+tr_expr'' i (A.Slice a f t) =
+    do tr_slice i a f t
 
-tr_expr' i (A.Access a idx) =
-    do (a_p, a_t, a_ir) <- tr_expr' i a
-       (i_p, i_t, i_ir) <- tr_expr' i idx
+tr_expr'' i (A.Access a idx) =
+    do (a_p, a_t, a_ir) <- tr_expr'' i a
+       (i_p, i_t, i_ir) <- tr_expr'' i idx
        t <- case a_t of
                 A.ArrT e -> return e
                 _ -> abort "Accesses can only be used on arrays"
@@ -229,15 +230,15 @@ tr_expr' i (A.Access a idx) =
                t,
                IR.Access a_ir i_ir)
 
-tr_expr' i (A.ConstFloat _) =
+tr_expr'' i (A.ConstFloat _) =
     do abort "Floats unsupported"
 
-tr_expr' i (A.ConstStr _) =
+tr_expr'' i (A.ConstStr _) =
     do abort "Strings unsupported"
 
-tr_expr' i (A.BinLit b s) =
+tr_expr'' i (A.BinLit b s) =
     do abortIf i "Binary literals not supported as global initiliazers"
-       csave (IR.Skip, A.Bits, IR.ConstBits b s)
+       return (IR.Skip, A.Bits, IR.ConstBits b s)
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
