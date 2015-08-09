@@ -187,17 +187,20 @@ tr_expr' i (A.ConstBool b) =
     do return (IR.Skip, A.Bool, IR.ConstBool b)
 
 tr_expr' i (A.BinOp op l r) =
-    do tr_save $ tr_binop i op l r
+    do s <- tr_binop i op l r
+       csave s
 
 tr_expr' i (A.UnOp op e) =
-    do tr_save $ tr_unop i op e
+    do s <- tr_unop i op e
+       csave s
 
 tr_expr' i (A.Var n) =
     do d <- env_lookup n
        return (IR.Skip, typ d, IR.LV (ir_lv d))
 
 tr_expr' i (A.Call f args) =
-    do tr_save $ tr_call i f args
+    do s <- tr_call i f args
+       csave s
 
 tr_expr' i (A.Arr es) =
     do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr' i) es
@@ -209,7 +212,8 @@ tr_expr' i (A.Arr es) =
                IR.Arr es_irs)
 
 tr_expr' i (A.Slice a f t) =
-    tr_save (tr_slice i a f t)
+    do s <- tr_slice i a f t
+       csave s
 
 tr_expr' i (A.Access a idx) =
     do (a_p, a_t, a_ir) <- tr_expr' i a
@@ -233,7 +237,7 @@ tr_expr' i (A.ConstStr _) =
 
 tr_expr' i (A.BinLit b s) =
     do abortIf i "Binary literals not supported as global initiliazers"
-       tr_save $ return (IR.Skip, A.Bits, IR.ConstBits b s)
+       csave (IR.Skip, A.Bits, IR.ConstBits b s)
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
@@ -369,16 +373,20 @@ tr_unop i op e =
        abortIf (not $ tmatch e_tt e_t) "Error on unop"
        return (e_p, r_t, IR.UnOp op_ir e_ir)
 
-tr_save :: TM (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
-tr_save m =
-    do (p, t, e) <- m
-       case t of
-           A.Bits ->
-               do t' <- tmap t
-                  v <- fresh t'
-                  return (sseq p (IR.Assign v e), t, IR.LV v)
-           _ ->
-               do return (p, t, e)
+save :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
+save e@(p, t, IR.LV _) =
+    do return e
+
+save (p, t, e) =
+    do t' <- tmap t
+       r <- fresh t'
+       return (sseq p (IR.Assign r e), t, IR.LV r)
+
+csave :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
+csave (p, t, e) =
+    do if t == A.Bits
+       then save   (p, t, e)
+       else return (p, t, e)
 
 tr_call i f args =
     do abortIf i "Can't call functions in global initializers"
