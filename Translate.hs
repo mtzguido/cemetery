@@ -325,30 +325,30 @@ tr_ldecl' n mods p typ ir =
 
        return $ (sseq p s, IR.DeclLocal (IR.LVar n') ir_t)
 
-binop_table :: [(A.BinOp, A.Type, A.Type, A.Type, IR.BinOp)]
+binop_table :: [(A.BinOp, A.Type, A.Type, A.Type, IR.BinOp, Bool)]
 binop_table = [
-    (A.Plus,    A.Int,  A.Int,    A.Int,  IR.Plus),
-    (A.Plus,    A.Bits, A.Bits,   A.Bits, IR.ModPlus),
-    (A.Minus,   A.Int,  A.Int,    A.Int,  IR.Minus),
-    (A.Div,     A.Int,  A.Int,    A.Int,  IR.Div),
-    (A.Prod,    A.Int,  A.Int,    A.Int,  IR.Prod),
-    (A.Mod,     A.Int,  A.Int,    A.Int,  IR.Mod),
-    (A.Eq,      A.Int,  A.Int,    A.Bool, IR.Eq),
-    (A.Eq,      A.Bits, A.Bits,   A.Bool, IR.BitEq),
-    (A.And,     A.Bool, A.Bool,   A.Bool, IR.And),
-    (A.Or,      A.Bool, A.Bool,   A.Bool, IR.Or),
-    (A.Band,    A.Bits, A.Bits,   A.Bits, IR.Band),
-    (A.Bor,     A.Bits, A.Bits,   A.Bits, IR.Bor),
-    (A.BConcat, A.Bits, A.Bits,   A.Bits, IR.BConcat),
-    (A.Xor,     A.Bits, A.Bits,   A.Bits, IR.Xor),
-    (A.LShift,  A.Bits, A.Int,    A.Bits, IR.LShift),
-    (A.RShift,  A.Bits, A.Int,    A.Bits, IR.RShift),
-    (A.LRot,    A.Bits, A.Int,    A.Bits, IR.LRot),
-    (A.RRot,    A.Bits, A.Int,    A.Bits, IR.RRot),
-    (A.Le,      A.Int,  A.Int,    A.Bool, IR.Le),
-    (A.Lt,      A.Int,  A.Int,    A.Bool, IR.Lt),
-    (A.Ge,      A.Int,  A.Int,    A.Bool, IR.Ge),
-    (A.Gt,      A.Int,  A.Int,    A.Bool, IR.Gt)
+    (A.Plus,    A.Int,  A.Int,    A.Int,  IR.Plus,    False),
+    (A.Plus,    A.Bits, A.Bits,   A.Bits, IR.ModPlus, False),
+    (A.Minus,   A.Int,  A.Int,    A.Int,  IR.Minus,   False),
+    (A.Div,     A.Int,  A.Int,    A.Int,  IR.Div,     False),
+    (A.Prod,    A.Int,  A.Int,    A.Int,  IR.Prod,    False),
+    (A.Mod,     A.Int,  A.Int,    A.Int,  IR.Mod,     False),
+    (A.Eq,      A.Int,  A.Int,    A.Bool, IR.Eq,      False),
+    (A.Eq,      A.Bits, A.Bits,   A.Bool, IR.BitEq,   False),
+    (A.And,     A.Bool, A.Bool,   A.Bool, IR.And,     False),
+    (A.Or,      A.Bool, A.Bool,   A.Bool, IR.Or,      False),
+    (A.Band,    A.Bits, A.Bits,   A.Bits, IR.Band,    False),
+    (A.Bor,     A.Bits, A.Bits,   A.Bits, IR.Bor,     False),
+    (A.BConcat, A.Bits, A.Bits,   A.Bits, IR.BConcat, False),
+    (A.Xor,     A.Bits, A.Bits,   A.Bits, IR.Xor,     False),
+    (A.LShift,  A.Bits, A.Int,    A.Bits, IR.LShift,  False),
+    (A.RShift,  A.Bits, A.Int,    A.Bits, IR.RShift,  False),
+    (A.LRot,    A.Bits, A.Int,    A.Bits, IR.LRot,    False),
+    (A.RRot,    A.Bits, A.Int,    A.Bits, IR.RRot,    False),
+    (A.Le,      A.Int,  A.Int,    A.Bool, IR.Le,      False),
+    (A.Lt,      A.Int,  A.Int,    A.Bool, IR.Lt,      False),
+    (A.Ge,      A.Int,  A.Int,    A.Bool, IR.Ge,      False),
+    (A.Gt,      A.Int,  A.Int,    A.Bool, IR.Gt,      False)
  ]
 
 tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
@@ -356,17 +356,33 @@ tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)
 tr_unop'  A.Bnot  = do return (A.Bits, A.Bits, IR.Bnot)
 
 tr_binop i op l r =
-    do (l_p, l_t, l_ir) <- tr_expr' i l
-       (r_p, r_t, r_ir) <- tr_expr' i r
-       let ops = filter (\(a,b,c,_,_) -> (a,b,c) == (op, l_t, r_t)) binop_table
-       (e_t, op_ir) <-
+    do ls@(l_p, l_t, l_ir) <- tr_expr'' i l
+       rs@(r_p, r_t, r_ir) <- tr_expr'' i r
+       let ops = filter (\(a,b,c,_,_,_) -> (a,b,c) == (op, l_t, r_t)) binop_table
+       (e_t, op_ir, clusterable) <-
            case ops of
               [] -> abort $ "Error on binop, no suitable operator found: " ++
                             show (l_t, op, r_t)
-              [(_,_,_,c,d)] -> return (c,d)
+              [(_,_,_,d,e,f)] -> return (d, e, f)
               _ -> abort $ "Internal error, more than one operator match"
 
-       return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
+       if clusterable
+       then tr_cluster e_t op_ir ls rs
+       else do ls@(l_p, _, l_ir) <- csave ls
+               rs@(r_p, _, r_ir) <- csave rs
+               return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
+
+clusterize s@(p, t, IR.Cluster _ _) =
+    do return s
+
+clusterize (p, t, e) =
+    do let e' = IR.Cluster (IR.CArg 0) [e]
+       return (p, t, e')
+
+tr_cluster t op ls rs =
+    do ls@(l_p, _, l_ir) <- clusterize ls
+       rs@(r_p, _, r_ir) <- clusterize rs
+       return (sseq l_p r_p, t, IR.c_binop op l_ir r_ir)
 
 tr_unop i op e =
     do (e_p, e_t, e_ir) <- tr_expr' i e

@@ -12,6 +12,7 @@ module IR where
 import Common
 import Data.Word
 import Data.List
+import Data.Maybe (fromJust)
 
 type IR = [Unit]
 
@@ -66,7 +67,13 @@ data Expr = ConstInt   Int
           | Access     Expr Expr
           | ConstBits  [Int] Int
           | Copy       Expr
+          | Cluster    ClusterExpr [Expr]
   deriving (Eq, Show)
+
+data ClusterExpr = CBinOp BinOp ClusterExpr ClusterExpr
+                 | CUnOp  UnOp  ClusterExpr
+                 | CArg   Int
+    deriving (Eq, Show)
 
 type Block = ([Decl], Stmt)
 
@@ -89,3 +96,22 @@ sseq l Skip = l
 sseq l r = Seq l r
 
 sfold = foldl sseq Skip
+
+c_binop op (Cluster le la) (Cluster re ra) =
+    let ea = la ++ ra
+        ee = CBinOp op le (argmap (\i -> i + length la) re)
+     in c_simplify $ Cluster ee ea
+
+c_unop op (Cluster le la) =
+    let ea = la
+        ee = CUnOp op le
+     in c_simplify $ Cluster ee ea
+
+c_simplify (Cluster e a) =
+    let mapping = map (\i -> fromJust $ elemIndex i (nub a)) a
+        e' = argmap (mapping!!) e
+     in Cluster e' (nub a)
+
+argmap f (CBinOp op l r) = CBinOp op (argmap f l) (argmap f r)
+argmap f (CUnOp op l)    = CUnOp op (argmap f l)
+argmap f (CArg i)        = CArg (f i)
