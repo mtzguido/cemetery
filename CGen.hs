@@ -17,7 +17,7 @@ bitsType = C.Custom "cmt_bits_t"
 cgen :: I.IR -> (C.Prog, C.Prog)
 cgen ir = let (units, ()) = runGM (g_ir ir)
               c = C.Prog { C.includes = ["stdbool", "stdlib", "stdio",
-                                         "stddef", "string"],
+                                         "stddef", "string", "stdarg"],
                            C.units = units
                          }
               h = C.Prog { C.includes = ["stdbool"],
@@ -25,8 +25,13 @@ cgen ir = let (units, ()) = runGM (g_ir ir)
                          }
            in (c, h)
 
+-- In 'extra' we keep those functions that are generated
+-- despite not being an IR unit, like the implementations
+-- for clusters.
 data CGenState = CGenState { globals :: [C.Decl],
-                             buflit_counter :: Int
+                             extra :: [C.Unit],
+                             buflit_counter :: Int,
+                             cluster_counter :: Int
                            }
 
 header_unit (C.Decl d) = []
@@ -36,7 +41,9 @@ header_unit (C.FunDef ft _) = if elem C.Static (C.mods ft)
 -- Cemetery shouldn't generate any FunDecls on the source file
 
 initState = CGenState { globals = [],
-                        buflit_counter = 0
+                        extra = [],
+                        buflit_counter = 0,
+                        cluster_counter = 0
                       }
 
 type GM = StateT CGenState (
@@ -48,6 +55,15 @@ add_gdecl d =
     do s <- get
        put (s { globals = globals s ++ [d]})
 
+add_extra f =
+    do s <- get
+       put (s { extra = extra s ++ [f]})
+
+get_cluster_idx =
+    do s <- get
+       put (s { cluster_counter = cluster_counter s + 1 })
+       return (cluster_counter s)
+
 fresh_buflit_counter =
     do s <- get
        put (s { buflit_counter = buflit_counter s + 1})
@@ -57,12 +73,14 @@ sseq C.Skip r = r
 sseq l C.Skip = l
 sseq l r = C.Seq l r
 
+sfold = foldl sseq C.Skip
+
 runGM :: GM t -> ([C.Unit], t)
 runGM m = let m' = runStateT m initState
               m'' = runWriterT m'
               ((r, s), units) = runIdentity m''
               gdecls = map C.Decl (globals s)
-           in (gdecls ++ units, r)
+           in (gdecls ++ extra s ++ units, r)
 
 g_ir :: I.IR -> GM ()
 g_ir p = do bs <- mapM g_unit p
@@ -217,6 +235,77 @@ g_expr (I.ConstBits b l) =
 -- "Copy" is implemented as a function call.
 g_expr (I.Copy e) =
     g_expr (I.Call (I.LVar "__cmt_copy") [e])
+
+-- optimize simple clusters
+g_expr (I.Cluster (I.CBinOp op (I.CArg m) (I.CArg n)) as) =
+    do l <- g_expr (as!!m)
+       r <- g_expr (as!!n)
+       g_binop op l r
+
+g_expr (I.Cluster (I.CUnOp op (I.CArg n)) as) =
+    do e <- g_expr (as!!n)
+       g_unop op e
+
+g_expr (I.Cluster e as) =
+    do n <- reg_cluster e (length as)
+       as' <- mapM g_expr as
+       return $ C.Call n as'
+
+reg_cluster e n =
+    do c@(C.FunDef ft _) <- make_cluster e n
+       add_extra c
+       return (C.name ft)
+
+make_cluster e n =
+    do idx <- get_cluster_idx
+       let arg_names = map (\i -> "_a" ++ show i) [0..n-1]
+       let formal = zip arg_names (repeat bitsType)
+       let lengths = map (\v -> C.Call "cmt_length" [C.LV $ C.LVar v]) arg_names
+       let maxcall = C.Call "__cmt_maxv" (lengths ++ [C.ConstInt (-1)])
+       let words = map (\v -> C.Call "get_word" [C.LV $ C.LVar v,
+                                                 C.LV $ C.LVar "i"]) arg_names
+       let res = make_cluster_expr words e
+
+       let ast = cluster_ast maxcall res
+
+       let ft = C.Funtype { C.name = "__cmt_cluster_impl_" ++ show idx,
+                            C.args = formal, C.mods = [C.Static],
+                            C.ret = bitsType }
+
+       return $ C.FunDef ft ast
+
+make_cluster_expr words (I.CArg i) = words !! i
+make_cluster_expr words (I.CBinOp op l r) =
+    let l' = make_cluster_expr words l
+        r' = make_cluster_expr words r
+        op' = clustered_binop op
+     in C.BinOp op' l' r'
+
+make_cluster_expr words (I.CUnOp op e) =
+    let e' = make_cluster_expr words e
+        op' = clustered_unop op
+     in C.UnOp op' e'
+
+cluster_ast maxcall res =
+    let i    = C.LV (C.LVar "i")
+        ret  = C.LV (C.LVar "ret")
+        size = C.LV (C.LVar "size")
+        ret_init = C.Call "__cmt_alloc" [maxcall]
+     in
+    ([C.VarDecl "ret" bitsType (Just ret_init) [],
+      C.VarDecl "i"   C.Int    Nothing         []],
+     sfold [C.For (C.BinOp C.Assign i (C.ConstInt 0))
+                  (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
+                  (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
+                  ([], C.Expr $ C.Call "set_word" [ret, i, res]),
+            C.Return ret]
+    )
+
+clustered_binop I.Band = C.Band
+clustered_binop I.Bor  = C.Bor
+clustered_binop I.Xor  = C.Xor
+
+clustered_unop  I.Bnot = C.Bnot
 
 g_const_bits b l =
     do c <- fresh_buflit_counter

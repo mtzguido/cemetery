@@ -15,7 +15,7 @@ data Attr = RO
   deriving (Eq, Show)
 
 type EnvT = M.Map A.VarName EnvV
-data EnvV = EnvV { typ :: A.Type, 
+data EnvV = EnvV { typ :: A.Type,
                    ir_lv :: I.LValue,
                    attrs :: [Attr]
                  }

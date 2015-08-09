@@ -13,7 +13,7 @@ the algorithms in a clear language, which can then be compiled to C code.
 Example (not actually Cemetery-generated):
 
 Cemetery source:
-    
+
 	fun coll (x : int) : int
 		if x == 1
 			return 1

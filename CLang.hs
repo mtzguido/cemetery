@@ -58,10 +58,12 @@ data Expr = BinOp BinOp Expr Expr
 data BinOp = Plus | Minus | Div | Prod
            | Eq | Neq | Mod | And | Or
            | Lt | Gt | Le | Ge
+           | Band | Bor | Xor
+           | Member -- "->"
            | Assign
   deriving (Eq, Show)
 
-data UnOp = NegateNum | Not
+data UnOp = NegateNum | Not | Bnot
   deriving (Eq, Show)
 
 data Type = Int | Bool | ArrT Type | Custom String

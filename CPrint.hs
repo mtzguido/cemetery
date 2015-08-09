@@ -129,9 +129,15 @@ p_typ (Custom s) = do return s
 data Assoc = L | R
   deriving (Show, Eq)
 
+b_prec Member = (1, L)
+
 b_prec Prod  = (2, L)
 b_prec Div   = (2, L)
 b_prec Mod   = (2, L)
+
+b_prec Band  = (7, L)
+b_prec Xor   = (8, L)
+b_prec Bor   = (9, L)
 
 b_prec Plus  = (3, L)
 b_prec Minus = (3, L)
@@ -149,8 +155,10 @@ b_prec Or    = (8, L)
 
 b_prec Assign = (10, R)
 
+-- aren't all of these the same prec level?
 u_prec NegateNum = (0, R)
 u_prec Not       = (1, R)
+u_prec Bnot      = (2, R)
 
 p_expr (BinOp op l r) =
     do oo <- p_binop op
@@ -273,9 +281,14 @@ p_binop Gt    = do return ">"
 p_binop Le    = do return "<="
 p_binop Ge    = do return ">="
 p_binop Assign = do return "="
+p_binop Band  = do return "&"
+p_binop Xor   = do return "^"
+p_binop Bor   = do return "|"
+p_binop Member = do return "->"
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
+p_unop Bnot      = do return "~"
 
 p_lvalue (LVar s) =
     do return s

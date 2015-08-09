@@ -27,4 +27,4 @@ strip:
 re: clean all
 
 see: all
-	evince $(pdfs) 
+	evince $(pdfs)

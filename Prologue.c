@@ -39,6 +39,28 @@ static inline int max(int a, int b)
 	return a > b ? a : b;
 }
 
+int cmt_length(cmt_bits_t b) {
+	return b->length;
+}
+
+static inline int __cmt_maxv(int v, ...)
+{
+	int t;
+	va_list l;
+	va_start(l, v);
+
+	for (;;) {
+		t = va_arg(l, int);
+		if (t == -1)
+			break;
+
+		if (t > v)
+			v = t;
+	}
+
+	return v;
+}
+
 static int __cmt_mod(int a, int b)
 {
 	__cmt_assert(b > 0);

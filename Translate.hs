@@ -337,10 +337,10 @@ binop_table = [
     (A.Eq,      A.Bits, A.Bits,   A.Bool, IR.BitEq,   False),
     (A.And,     A.Bool, A.Bool,   A.Bool, IR.And,     False),
     (A.Or,      A.Bool, A.Bool,   A.Bool, IR.Or,      False),
-    (A.Band,    A.Bits, A.Bits,   A.Bits, IR.Band,    False),
-    (A.Bor,     A.Bits, A.Bits,   A.Bits, IR.Bor,     False),
+    (A.Band,    A.Bits, A.Bits,   A.Bits, IR.Band,    True ),
+    (A.Bor,     A.Bits, A.Bits,   A.Bits, IR.Bor,     True ),
     (A.BConcat, A.Bits, A.Bits,   A.Bits, IR.BConcat, False),
-    (A.Xor,     A.Bits, A.Bits,   A.Bits, IR.Xor,     False),
+    (A.Xor,     A.Bits, A.Bits,   A.Bits, IR.Xor,     True ),
     (A.LShift,  A.Bits, A.Int,    A.Bits, IR.LShift,  False),
     (A.RShift,  A.Bits, A.Int,    A.Bits, IR.RShift,  False),
     (A.LRot,    A.Bits, A.Int,    A.Bits, IR.LRot,    False),
@@ -351,9 +351,12 @@ binop_table = [
     (A.Gt,      A.Int,  A.Int,    A.Bool, IR.Gt,      False)
  ]
 
-tr_unop'  A.Neg   = do return (A.Int,  A.Int,  IR.Neg)
-tr_unop'  A.Not   = do return (A.Bool, A.Bool, IR.Not)
-tr_unop'  A.Bnot  = do return (A.Bits, A.Bits, IR.Bnot)
+unop_table :: [(A.UnOp, A.Type, A.Type, IR.UnOp, Bool)]
+unop_table = [
+    (A.Neg,   A.Int , A.Int ,  IR.Neg,    False),
+    (A.Not,   A.Bool, A.Bool,  IR.Not,    False),
+    (A.Bnot,  A.Bits, A.Bits,  IR.Bnot,   True )
+ ]
 
 tr_binop i op l r =
     do ls@(l_p, l_t, l_ir) <- tr_expr'' i l
@@ -364,31 +367,45 @@ tr_binop i op l r =
               [] -> abort $ "Error on binop, no suitable operator found: " ++
                             show (l_t, op, r_t)
               [(_,_,_,d,e,f)] -> return (d, e, f)
-              _ -> abort $ "Internal error, more than one operator match"
+              _ -> abort $ "Internal error, more than one binop match"
 
        if clusterable
-       then tr_cluster e_t op_ir ls rs
+       then tr_cluster_bin e_t op_ir ls rs
        else do ls@(l_p, _, l_ir) <- csave ls
                rs@(r_p, _, r_ir) <- csave rs
                return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
 
+tr_unop i op e =
+    do es@(e_p, e_t, e_ir) <- tr_expr'' i e
+       let ops = filter (\(a,b,_,_,_) -> (a,b) == (op, e_t)) unop_table
+       (r_t, op_ir, clusterable) <-
+           case ops of
+               [] -> abort $ "Error on unop, no suitable operator found: " ++
+                             show (op, e_t)
+               [(_,_,c,d,e)] -> return (c, d, e)
+               _ -> abort $ "Internal error, more than one unop match"
+
+       if clusterable
+       then tr_cluster_un r_t op_ir es
+       else do es@(e_p, _, e_ir) <- csave es
+               return (e_p, r_t, IR.UnOp op_ir e_ir)
+
 clusterize s@(p, t, IR.Cluster _ _) =
     do return s
 
-clusterize (p, t, e) =
-    do let e' = IR.Cluster (IR.CArg 0) [e]
+clusterize s =
+    do (p, t, e) <- csave s
+       let e' = IR.Cluster (IR.CArg 0) [e]
        return (p, t, e')
 
-tr_cluster t op ls rs =
+tr_cluster_bin t op ls rs =
     do ls@(l_p, _, l_ir) <- clusterize ls
        rs@(r_p, _, r_ir) <- clusterize rs
        return (sseq l_p r_p, t, IR.c_binop op l_ir r_ir)
 
-tr_unop i op e =
-    do (e_p, e_t, e_ir) <- tr_expr' i e
-       (r_t, e_tt, op_ir) <- tr_unop' op
-       abortIf (not $ tmatch e_tt e_t) "Error on unop"
-       return (e_p, r_t, IR.UnOp op_ir e_ir)
+tr_cluster_un t op es =
+    do es@(e_p, _, e_ir) <- clusterize es
+       return (e_p, t, IR.c_unop op e_ir)
 
 save :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
 save e@(p, t, IR.LV _) =
