@@ -1,12 +1,15 @@
 fun weird(b : bits) : bits
-	b ^= b >>> 3
-	b ^= b <<< 3
-	b ^= b << 3
-	b ^= b >> 3
-	b = b & b
-	b = b | b
-	b = ~b
-	b = b ||| b
-	b = b[5, 9]
-	b = b >>> toint(b)
-	return b
+	var r = b
+
+	r ^= r >>> 3
+	r ^= r <<< 3
+	r ^= r << 3
+	r ^= r >> 3
+	r = r & r
+	r = r | r
+	r = ~r
+	r = r ||| r
+	r = r[5, 9]
+	r = r >>> toint(r)
+
+	return r

@@ -67,7 +67,7 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret, A.mods = mods,
        let tr_arg (s, t) = do s' <- requestSimilar s
                               t' <- tmap t
                               r <- fresh t'
-                              let d = envv { typ = t, ir_lv = r }
+                              let d = envv { typ = t, ir_lv = r, attrs = [RO] }
                               p <- tr_assign d t (IR.LV $ IR.LVar s')
                               addToEnv s d
                               return (p, s', t')

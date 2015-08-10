@@ -1,8 +1,8 @@
 fun a(x : int) : int
-	x = a(x)
-	if (x == 0)
-		x = a(a(x))
+	var y = a(x)
+	if (y == 0)
+		y = a(a(y))
 	else
-		x = a(a(a(x)))
+		y = a(a(a(y)))
 
-	return x
+	return y

@@ -1,6 +1,5 @@
-
 fun zero (x : int) : int
 	var y : int
-	x = (0xff + y) * 0xA0
-	x = 0x41424344
-	return x
+	y = (0xff + x) * 0xA0
+	y = 0x41424344
+	return y

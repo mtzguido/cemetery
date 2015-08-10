@@ -1,4 +1,6 @@
-fun w(b : bits) : bits
+fun w(b0 : bits) : bits
+	var b = b0
+
 	for i in 1..10
 		b = <>
 

@@ -198,16 +198,17 @@ static fun shifts(round : int) : int
 	else
 		return 2
 
-fun des(b k : bits) : bits
+fun des(b0 k0 : bits) : bits
 	var l r : bits
 	var K : bits -- round key
 	var C D : bits
+	var b k : bits
 
-	b = IP(b)
+	b = IP(b0)
 	l = b[ 0, 31]
 	r = b[32, 63]
 
-	k = PC1(k)
+	k = PC1(k0)
 	C = k[ 0, 27]
 	D = k[28, 55]
 
@@ -228,16 +229,17 @@ fun des(b k : bits) : bits
 
 	return FP(b)
 
-fun un_des(b k : bits) : bits
+fun un_des(b0 k0 : bits) : bits
 	var l r : bits
 	var K : bits -- round key
 	var C D : bits
+	var b k : bits
 
-	b = IP(b)
+	b = IP(b0)
 	r = b[ 0, 31]
 	l = b[32, 63]
 
-	k = PC1(k)
+	k = PC1(k0)
 	C = k[ 0, 27]
 	D = k[28, 55]
 

@@ -1,11 +1,14 @@
 fun f(b : bits, n : int) : bits
+	var r = b
 	for i in 1..n
-		b = b ||| <1::1>
+		r = r ||| <1::1>
 
-	return b
+	return r
 
 fun g(b : bits, n : int) : bits
+	var r : bits
+
 	for i in 1..n
-		b = <1::1>
+		r = <1::1>
 
 	return <>
