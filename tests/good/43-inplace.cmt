@@ -1,0 +1,8 @@
+fun triple_neg(b : bits) : bits
+	var r = b
+
+	r = ~r
+	r = ~r
+	r = ~r
+
+	return r
