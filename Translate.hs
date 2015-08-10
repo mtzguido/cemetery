@@ -53,6 +53,15 @@ translate prog = do -- Push a first level and add builtins to it
 
 fun_t args ret = A.Fun (map snd args) ret
 
+tr_arg (s,t) =
+    do s' <- requestSimilar s
+       t' <- tmap t
+
+       let d = envv { typ = t, ir_lv = IR.LVar s', attrs = [RO] }
+
+       addToEnv s d
+       return (IR.Skip, s', t')
+
 translate1 :: A.Decl -> TM IR.Unit
 translate1 d@(A.VarDecl _ _ _ _) =
     do d' <- tr_gdecl d
@@ -63,14 +72,6 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret, A.mods = mods,
     do ir_ret <- tmap ret
        requestName name
        addToEnv name (envv { typ = fun_t args ret, ir_lv = IR.LVar name })
-
-       let tr_arg (s, t) = do s' <- requestSimilar s
-                              t' <- tmap t
-                              r <- fresh t'
-                              let d = envv { typ = t, ir_lv = r, attrs = [RO] }
-                              p <- tr_assign d t (IR.LV $ IR.LVar s')
-                              addToEnv s d
-                              return (p, s', t')
 
        pushLevel
        args' <- mapM tr_arg args
