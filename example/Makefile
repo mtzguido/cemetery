@@ -15,7 +15,7 @@ clean:
 	rm -f sha1.c *.o
 
 bench: sha1sum
-	dd if=/dev/urandom of=blob bs=1K count=512
+	dd if=/dev/urandom of=blob bs=1M count=1
 	time ./sha1sum blob
 	gprof sha1sum > prof
 	gprof2dot.py prof > vprof
