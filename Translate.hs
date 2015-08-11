@@ -395,8 +395,8 @@ clusterize s@(p, t, IR.Cluster _ _) =
     do return s
 
 clusterize s =
-    do (p, t, e) <- csave s
-       let e' = IR.Cluster (IR.CArg 0) [e]
+    do (p, t, IR.LV lv) <- csave s
+       let e' = IR.Cluster (IR.CArg 0) [lv]
        return (p, t, e')
 
 tr_cluster_bin t op ls rs =

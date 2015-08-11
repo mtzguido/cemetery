@@ -36,7 +36,7 @@ used_e lv (Slice b l h) = any (used_e lv) [b,l,h]
 used_e lv (Access a i) = used_e lv a || used_e lv i
 used_e lv (Copy e) = used_e lv e
 used_e lv (Arr _) = error "Local array, I.O.U."
-used_e lv (Cluster _ es) = any (used_e lv) es
+used_e lv (Cluster _ es) = any (== lv) es
 
 vst_seq Shadowed _ = Shadowed
 vst_seq Used _ = Used

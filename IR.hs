@@ -67,7 +67,7 @@ data Expr = ConstInt   Int
           | Access     Expr Expr
           | ConstBits  [Int] Int
           | Copy       Expr
-          | Cluster    ClusterExpr [Expr]
+          | Cluster    ClusterExpr [LValue]
   deriving (Eq, Show)
 
 data ClusterExpr = CBinOp BinOp ClusterExpr ClusterExpr

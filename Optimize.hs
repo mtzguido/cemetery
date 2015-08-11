@@ -154,8 +154,7 @@ const_fold (UnOp op e) =
        return $ fold_unop op e'
 
 const_fold (Cluster op es) =
-    do es' <- mapM const_fold es
-       return $ Cluster op es'
+    do return $ Cluster op es
 
 fold_binop Plus  (ConstInt x) (ConstInt y) = ConstInt (x + y)
 fold_binop Minus (ConstInt x) (ConstInt y) = ConstInt (x - y)

@@ -239,18 +239,18 @@ g_expr (I.Copy e) =
 
 -- optimize simple clusters
 g_expr (I.Cluster (I.CBinOp op (I.CArg m) (I.CArg n)) as) =
-    do l <- g_expr (as!!m)
-       r <- g_expr (as!!n)
-       g_binop op l r
+    do l <- g_lvalue (as!!m)
+       r <- g_lvalue (as!!n)
+       g_binop op (C.LV l) (C.LV r)
 
 g_expr (I.Cluster (I.CUnOp op (I.CArg n)) as) =
-    do e <- g_expr (as!!n)
-       g_unop op e
+    do e <- g_lvalue (as!!n)
+       g_unop op (C.LV e)
 
 g_expr (I.Cluster e as) =
     do n <- reg_cluster e (length as)
-       as' <- mapM g_expr as
-       return $ C.Call n as'
+       as' <- mapM g_lvalue as
+       return $ C.Call n (map C.LV as')
 
 reg_cluster e n =
     do c@(C.FunDef ft _) <- make_cluster e n
