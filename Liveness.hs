@@ -108,12 +108,15 @@ flatten s = [s]
 
 free set = map Free (S.toList set)
 
-do_frees u ls lo s =
-    let used     = S.filter (flip used_s s)   ls
-        shadowed = S.filter (flip shadow_s s) ls
+unneeded ls lo ss =
+    let used     = S.filter (flip used_s   ss) ls
+        shadowed = S.filter (flip shadow_s ss) ls
         needed   = (S.union lo used) S.\\ shadowed
-        unneeded = ls S.\\ needed
-     in (ls S.\\ unneeded, free unneeded)
+     in ls S.\\ needed
+
+do_frees u ls lo s =
+    let un = unneeded ls lo s
+     in (ls S.\\ un, free un)
 
 liv u ls lo ss =
     let (ls', f) = do_frees u ls lo ss
