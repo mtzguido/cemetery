@@ -63,8 +63,8 @@ data Expr = ConstInt   Int
           | Call       LValue [Expr]
           | LV         LValue
           | Arr        [Expr]
-          | Slice      Expr Expr Expr
-          | Access     Expr Expr
+          | Slice      LValue Expr Expr
+          | Access     LValue Expr
           | ConstBits  [Int] Int
           | Copy       LValue
           | Cluster    ClusterExpr [LValue]

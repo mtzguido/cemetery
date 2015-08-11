@@ -130,15 +130,13 @@ const_fold e@(LV _)           = do return e
 const_fold e@(Arr _)          = do error "local array on constant folding"
 
 const_fold (Slice b f t) =
-    do b' <- const_fold b
-       f' <- const_fold f
+    do f' <- const_fold f
        t' <- const_fold t
-       return $ Slice b' f' t'
+       return $ Slice b f' t'
 
 const_fold (Access a i) =
-    do a' <- const_fold a
-       i' <- const_fold i
-       return $ Access a' i'
+    do i' <- const_fold i
+       return $ Access a i'
 
 const_fold (Call n args) =
     do args' <- mapM const_fold args

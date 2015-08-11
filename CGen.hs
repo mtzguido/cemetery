@@ -215,15 +215,15 @@ g_expr (I.Arr es) =
        return $ C.Arr es'
 
 g_expr (I.Access a i) =
-    do aa <- g_expr a
+    do aa <- g_lvalue a
        ii <- g_expr i
-       return $ C.Access aa ii
+       return $ C.Access (C.LV aa) ii
 
 g_expr (I.Slice a f t) =
-    do aa <- g_expr a
+    do aa <- g_lvalue a
        ff <- g_expr f
        tt <- g_expr t
-       return $ C.Call "__cmt_slice" [aa, ff, tt]
+       return $ C.Call "__cmt_slice" [C.LV aa, ff, tt]
 
 g_expr (I.ConstBits b l) | all (==0) b =
     do return $ C.Call "__cmt_zero" [C.ConstInt l]

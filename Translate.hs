@@ -218,7 +218,7 @@ tr_expr'' i (A.Slice a f t) =
     do tr_slice i a f t
 
 tr_expr'' i (A.Access a idx) =
-    do (a_p, a_t, a_ir) <- tr_expr'' i a
+    do (a_p, a_t, IR.LV a_ir) <- tr_expr'' i a
        (i_p, i_t, i_ir) <- tr_expr'' i idx
        t <- case a_t of
                 A.ArrT e -> return e
@@ -443,7 +443,7 @@ tr_call i f args =
        return (sfold args_prep, ret, IR.Call (ir_lv d) args_ir)
 
 tr_slice i a f t =
-    do (a_p, a_t, a_ir) <- tr_expr' i a
+    do (a_p, a_t, IR.LV a_ir) <- tr_expr' i a
        (f_p, f_t, f_ir) <- tr_expr' i f
        (t_p, t_t, t_ir) <- tr_expr' i t
        case a_t of

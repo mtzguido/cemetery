@@ -32,8 +32,8 @@ used_e lv (LV lv') = lv == lv'
 used_e lv (BinOp o l r) = used_e lv l || used_e lv r
 used_e lv (UnOp o e) = used_e lv e
 used_e lv (Call _ es) = any (used_e lv) es
-used_e lv (Slice b l h) = any (used_e lv) [b,l,h]
-used_e lv (Access a i) = used_e lv a || used_e lv i
+used_e lv (Slice b l h) = b == lv || any (used_e lv) [l,h]
+used_e lv (Access a i) = a == lv || used_e lv i
 used_e lv (Copy lv') = lv == lv'
 used_e lv (Arr _) = error "Local array, I.O.U."
 used_e lv (Cluster _ es) = any (== lv) es
