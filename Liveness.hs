@@ -106,12 +106,14 @@ track_set d = S.fromList $ locals $ filter tracked_decl d
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
+free set = map Free (S.toList set)
+
 do_frees u ls lo s =
     let used     = S.filter (flip used_s s)   ls
         shadowed = S.filter (flip shadow_s s) ls
         needed   = (S.union lo used) S.\\ shadowed
         unneeded = ls S.\\ needed
-     in (ls S.\\ unneeded, map Free (S.toList unneeded))
+     in (ls S.\\ unneeded, free unneeded)
 
 liv u ls lo ss =
     let (ls', f) = do_frees u ls lo ss
@@ -121,13 +123,15 @@ liv u ls lo ss =
 liv' u ls lo [] = []
 liv' u ls lo (s:ss) =
     case s of
+        -- We need to do frees manually here since we don't
+        -- care about keeping the values in "lo", like liv
+        -- does.
         Return (IR.LV lv) ->
-            let free = map Free (S.toList $ S.delete lv ls)
-             in free ++ [s]
+            free (S.delete lv ls) ++ [s]
 
+        -- Same here
         Error m ->
-            let free = map Free (S.toList ls)
-                     in free ++ [s]
+            free ls ++ [s]
 
         Assign l e | S.member l ls ->
             error "BUG: Assigning to live value"
