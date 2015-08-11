@@ -53,7 +53,6 @@ o_unit (Decl d) = -- do nothing with declarations
 
 o_body (bd, bs) =
     do bs <- expr_opt const_fold bs
-       bs <- expr_opt clustering bs
        return (bd, bs)
 
 ---------------------------------------------------------------------
@@ -173,9 +172,3 @@ fold_unop Neg (ConstInt x) = ConstInt (-x)
 fold_unop Not (ConstBool b) = ConstBool (not b)
 
 fold_unop op e = UnOp op e
-
----------------------------------------------------------------------
--- Clustering of bit expressions
----------------------------------------------------------------------
-
-clustering e = do return e
