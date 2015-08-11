@@ -391,10 +391,10 @@ int __cmt_length(cmt_bits_t b)
 	return b->length;
 }
 
-cmt_bits_t __cmt_init(unsigned char *data, int length)
+cmt_bits_t __cmt_init(struct cmt_init *init, int length)
 {
 	cmt_bits_t ret = __cmt_alloc(length);
-	memcpy(ret->data, data, (length + 7) / 8);
+	memcpy(ret->data, init->data, init->length);
 	return ret;
 }
 

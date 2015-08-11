@@ -1,0 +1,10 @@
+fun left() : bits
+	var a = <0xff :: 5000000>
+	var b = <0x0f :: 5000000>
+	var c = <0xf0 :: 5000000>
+	var d = <0x00 :: 5000000>
+
+	return (a & b) | (c & d)
+
+fun right() : bits
+	return <0x0f :: 5000000>
