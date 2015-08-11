@@ -63,7 +63,7 @@ data BinOp = Plus | Minus | Div | Prod
            | Assign
   deriving (Eq, Show)
 
-data UnOp = NegateNum | Not | Bnot
+data UnOp = NegateNum | Not | Bnot | Address
   deriving (Eq, Show)
 
 data Type = Int | Bool | ArrT Type | Custom String

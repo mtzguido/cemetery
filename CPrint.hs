@@ -131,34 +131,34 @@ data Assoc = L | R
 
 b_prec Member = (1, L)
 
-b_prec Prod  = (2, L)
-b_prec Div   = (2, L)
-b_prec Mod   = (2, L)
+b_prec Prod  = (3, L)
+b_prec Div   = (3, L)
+b_prec Mod   = (3, L)
 
-b_prec Band  = (7, L)
-b_prec Xor   = (8, L)
-b_prec Bor   = (9, L)
+b_prec Plus  = (4, L)
+b_prec Minus = (4, L)
 
-b_prec Plus  = (3, L)
-b_prec Minus = (3, L)
+b_prec Lt    = (6, L)
+b_prec Le    = (6, L)
+b_prec Gt    = (6, L)
+b_prec Ge    = (6, L)
 
-b_prec Lt    = (4, L)
-b_prec Le    = (4, L)
-b_prec Gt    = (4, L)
-b_prec Ge    = (4, L)
+b_prec Eq    = (7, L)
+b_prec Neq   = (7, L)
 
-b_prec Eq    = (5, L)
-b_prec Neq   = (5, L)
+b_prec Band  = (8, L)
+b_prec Xor   = (9, L)
+b_prec Bor   = (10, L)
 
-b_prec And   = (7, L)
-b_prec Or    = (8, L)
+b_prec And   = (11, L)
+b_prec Or    = (12, L)
 
-b_prec Assign = (10, R)
+b_prec Assign = (14, R)
 
--- aren't all of these the same prec level?
-u_prec NegateNum = (0, R)
-u_prec Not       = (1, R)
+u_prec NegateNum = (2, R)
+u_prec Not       = (2, R)
 u_prec Bnot      = (2, R)
+u_prec Address   = (2, R)
 
 p_expr (BinOp op l r) =
     do oo <- p_binop op
@@ -174,7 +174,7 @@ p_expr (BinOp op l r) =
                 then paren rr
                 else rr
 
-       return (ls ++ " " ++ oo ++ " " ++ rs, p)
+       return (ls ++ oo ++ rs, p)
 
 p_expr (UnOp op l) =
     do oo <- p_unop op
@@ -267,28 +267,29 @@ p_if lead (If c t e) =
        line "}"
 
 
-p_binop Plus  = do return "+"
-p_binop Minus = do return "-"
-p_binop Prod  = do return "*"
-p_binop Div   = do return "/"
-p_binop Eq    = do return "=="
-p_binop Neq   = do return "!="
-p_binop Mod   = do return "%"
-p_binop And   = do return "&&"
-p_binop Or    = do return "||"
-p_binop Lt    = do return "<"
-p_binop Gt    = do return ">"
-p_binop Le    = do return "<="
-p_binop Ge    = do return ">="
-p_binop Assign = do return "="
-p_binop Band  = do return "&"
-p_binop Xor   = do return "^"
-p_binop Bor   = do return "|"
+p_binop Plus   = do return " + "
+p_binop Minus  = do return " - "
+p_binop Prod   = do return " * "
+p_binop Div    = do return " / "
+p_binop Eq     = do return " == "
+p_binop Neq    = do return " != "
+p_binop Mod    = do return " % "
+p_binop And    = do return " && "
+p_binop Or     = do return " || "
+p_binop Lt     = do return " < "
+p_binop Gt     = do return " > "
+p_binop Le     = do return " <= "
+p_binop Ge     = do return " >= "
+p_binop Assign = do return " = "
+p_binop Band   = do return " & "
+p_binop Xor    = do return " ^ "
+p_binop Bor    = do return " | "
 p_binop Member = do return "->"
 
 p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
 p_unop Bnot      = do return "~"
+p_unop Address   = do return "&"
 
 p_lvalue (LVar s) =
     do return s
