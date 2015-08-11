@@ -234,8 +234,8 @@ g_expr (I.ConstBits b l) =
        return $ C.Call "__cmt_init" [p, C.ConstInt l]
 
 -- "Copy" is implemented as a function call.
-g_expr (I.Copy e) =
-    g_expr (I.Call (I.LVar "__cmt_copy") [e])
+g_expr (I.Copy lv) =
+    g_expr (I.Call (I.LVar "__cmt_copy") [I.LV lv])
 
 -- optimize simple clusters
 g_expr (I.Cluster (I.CBinOp op (I.CArg m) (I.CArg n)) as) =

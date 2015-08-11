@@ -66,7 +66,7 @@ data Expr = ConstInt   Int
           | Slice      Expr Expr Expr
           | Access     Expr Expr
           | ConstBits  [Int] Int
-          | Copy       Expr
+          | Copy       LValue
           | Cluster    ClusterExpr [LValue]
   deriving (Eq, Show)
 

@@ -99,7 +99,7 @@ tr_body b = do pushLevel
 tr_assign d typ ir =
     do let expr = case typ of
                        A.Bits -> case ir of
-                                     IR.LV _ -> IR.Copy ir
+                                     IR.LV lv -> IR.Copy lv
                                      _ -> ir
                        _ -> ir
 

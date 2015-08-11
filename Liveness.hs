@@ -34,7 +34,7 @@ used_e lv (UnOp o e) = used_e lv e
 used_e lv (Call _ es) = any (used_e lv) es
 used_e lv (Slice b l h) = any (used_e lv) [b,l,h]
 used_e lv (Access a i) = used_e lv a || used_e lv i
-used_e lv (Copy e) = used_e lv e
+used_e lv (Copy lv') = lv == lv'
 used_e lv (Arr _) = error "Local array, I.O.U."
 used_e lv (Cluster _ es) = any (== lv) es
 
@@ -144,9 +144,9 @@ liv' u ls lo (s:ss) =
 
         -- Avoid copies of temporaries that will be freed on
         -- the next step
-        Assign l (Copy (LV lv)) | not (used_s lv ss)
-                               && (not (S.member lv lo) || shadow_s lv ss)
-                               && S.member lv u ->
+        Assign l (Copy lv) | not (used_s lv ss)
+                          && (not (S.member lv lo) || shadow_s lv ss)
+                          && S.member lv u ->
             liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
 
         Assign l e | S.member l u ->
