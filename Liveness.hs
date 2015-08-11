@@ -36,7 +36,7 @@ used_e lv (Slice b l h) = b == lv || any (used_e lv) [l,h]
 used_e lv (Access a i) = a == lv || used_e lv i
 used_e lv (Copy lv') = lv == lv'
 used_e lv (Arr _) = error "Local array, I.O.U."
-used_e lv (Cluster _ es) = any (== lv) es
+used_e lv (Cluster _ es) = any (== lv) (map fst es)
 
 vst_seq Shadowed _ = Shadowed
 vst_seq Used _ = Used
@@ -148,6 +148,17 @@ liv' u ls lo (s:ss) =
                           && (not (S.member lv lo) || shadow_s lv ss)
                           && S.member lv u ->
             liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
+
+        Assign l (Cluster _ _) | not (S.member l u) ->
+            error "liveness: cluster not tracked?"
+
+        Assign l (Cluster ce as) ->
+            let un  = unneeded ls lo ss
+                un' = S.intersection un (S.fromList (map fst as))
+                ls' = ls S.\\ un'
+                as' = map (\(lv,_) -> (lv, S.member lv un')) as
+             in [Assign l (Cluster ce as')] ++
+                    liv u (S.insert l ls') lo ss
 
         Assign l e | S.member l u ->
             [s] ++ liv u (S.insert l ls) lo ss

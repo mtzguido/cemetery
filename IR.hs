@@ -67,7 +67,10 @@ data Expr = ConstInt   Int
           | Access     LValue Expr
           | ConstBits  [Int] Int
           | Copy       LValue
-          | Cluster    ClusterExpr [LValue]
+            -- The bool represents if the value should be freed
+            -- this always comes as False from translation, and
+            -- the Liveness analysis might add True's
+          | Cluster    ClusterExpr [(LValue, Bool)]
   deriving (Eq, Show)
 
 data ClusterExpr = CBinOp BinOp ClusterExpr ClusterExpr

@@ -18,4 +18,6 @@ traceM s = trace s (return ())
 data CmtError = CmtErr String
   deriving Show
 
+shuf l r = concat $ map (\(a,b) -> [a,b]) $ zip l r
+
 instance Error CmtError where

@@ -238,28 +238,30 @@ g_expr (I.Copy lv) =
     g_expr (I.Call (I.LVar "__cmt_copy") [I.LV lv])
 
 -- optimize simple clusters
-g_expr (I.Cluster (I.CBinOp op (I.CArg m) (I.CArg n)) as) =
-    do l <- g_lvalue (as!!m)
-       r <- g_lvalue (as!!n)
+g_expr (I.Cluster (I.CBinOp op (I.CArg m) (I.CArg n)) as)
+            | all not (map snd as) =
+    do l <- g_lvalue (fst $ as!!m)
+       r <- g_lvalue (fst $ as!!n)
        g_binop op (C.LV l) (C.LV r)
 
-g_expr (I.Cluster (I.CUnOp op (I.CArg n)) as) =
-    do e <- g_lvalue (as!!n)
+g_expr (I.Cluster (I.CUnOp op (I.CArg n)) as)
+            | all not (map snd as) =
+    do e <- g_lvalue (fst $ as!!n)
        g_unop op (C.LV e)
 
 g_expr (I.Cluster e as) =
-    do n <- reg_cluster e (length as)
-       as' <- mapM g_lvalue as
+    do n <- reg_cluster e (map snd as) (length as)
+       as' <- mapM g_lvalue (map fst as)
        return $ C.Call n (map C.LV as')
 
-reg_cluster e n =
-    do c@(C.FunDef ft _) <- make_cluster e n
+reg_cluster e fs n =
+    do c@(C.FunDef ft _) <- make_cluster e fs n
        add_extra c
        return (C.name ft)
 
-make_cluster e n =
+make_cluster e fs n =
     do idx <- get_cluster_idx
-       let arg_names = map (\i -> "_a" ++ show i) [0..n-1]
+       let arg_names = map (\i -> "a" ++ show i) [0..n-1]
        let formal = zip arg_names (repeat bitsType)
        let lengths = map (\v -> C.Call "cmt_length" [C.LV $ C.LVar v]) arg_names
        let maxcall = C.Call "__cmt_maxv" (lengths ++ [C.ConstInt (-1)])
@@ -267,7 +269,7 @@ make_cluster e n =
                                                  C.LV $ C.LVar "i"]) arg_names
        let res = make_cluster_expr words e
 
-       let ast = cluster_ast maxcall res
+       let ast = cluster_ast maxcall fs res n
 
        let ft = C.Funtype { C.name = "__cmt_cluster_impl_" ++ show idx,
                             C.args = formal, C.mods = [C.Static],
@@ -287,7 +289,12 @@ make_cluster_expr words (I.CUnOp op e) =
         op' = clustered_unop op
      in C.UnOp op' e'
 
-cluster_ast maxcall res =
+do_frees fs n =
+    let idxs = filter (fs!!) [0..n-1]
+        b i = C.LV (C.LVar ("a" ++ show i))
+     in map (\i -> C.Expr $ C.Call "cmt_free" [b i]) idxs
+
+cluster_ast maxcall fs res n =
     let i    = C.LV (C.LVar "i")
         ret  = C.LV (C.LVar "ret")
         size = C.LV (C.LVar "size")
@@ -295,11 +302,12 @@ cluster_ast maxcall res =
      in
     ([C.VarDecl "ret" bitsType (Just ret_init) [],
       C.VarDecl "i"   C.Int    Nothing         []],
-     sfold [C.For (C.BinOp C.Assign i (C.ConstInt 0))
-                  (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
-                  (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
-                  ([], C.Expr $ C.Call "set_word" [ret, i, res]),
-            C.Return ret]
+     sfold $ [C.For (C.BinOp C.Assign i (C.ConstInt 0))
+                    (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
+                    (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
+                    ([], C.Expr $ C.Call "set_word" [ret, i, res])] ++
+             do_frees fs n ++
+             [C.Return ret]
     )
 
 clustered_binop I.Band = C.Band
