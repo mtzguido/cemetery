@@ -472,6 +472,35 @@ void cmt_free(cmt_bits_t b)
 	free(b);
 }
 
+static cmt_bits_t __cmt_resize(cmt_bits_t b, int len)
+{
+	int s = (len + WB - 1) / WB;
+	cmt_bits_t t;
+
+	t = realloc(b, offsetof(struct cmt_bits, data[s]));
+	if (!t)
+		__cmt_error("OOM");
+
+	t->length = len;
+	t->size = s;
+
+	return t;
+}
+
+static cmt_bits_t __cmt_resize_zero(cmt_bits_t b, int len)
+{
+	int ol = b->size;
+
+	b = __cmt_resize(b, len);
+
+	if (b->size > ol)
+		memset(&b->data[ol], 0, W * (b->size - ol));
+
+	__cmt_fixup(b);
+
+	return b;
+}
+
 #undef W
 #undef WB
 #undef bit
