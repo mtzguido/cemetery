@@ -6,6 +6,7 @@ import AST
 import qualified IR
 
 tmatch :: Type -> Type -> Bool
+tmatch (ArrT a _) (ArrT b _) = tmatch a b
 tmatch p q = p == q
 
 default_initializer :: Type -> IR.Expr

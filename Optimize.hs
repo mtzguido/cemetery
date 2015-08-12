@@ -126,7 +126,10 @@ const_fold e@(ConstInt _)     = do return e
 const_fold e@(ConstBool _)    = do return e
 const_fold e@(ConstBits _ _ ) = do return e
 const_fold e@(Copy _)         = do return e
-const_fold e@(Arr _)          = do error "local array on constant folding"
+
+const_fold e@(Arr as) =
+    do as' <- mapM const_fold as
+       return $ Arr as'
 
 const_fold (LV lv) =
     do lv' <- const_fold_lv lv

@@ -140,6 +140,13 @@ g_stmt (I.Seq l r) =
 g_stmt I.Skip =
     do return C.Skip
 
+-- Special handling for array assignments, since C doesn't
+-- provide an array assignment
+g_stmt (I.Assign lv (I.Arr es)) =
+    do let a i = I.Assign (I.Access lv (I.ConstInt i)) (es !! i)
+       ss <- mapM (g_stmt.a) [0..length es - 1]
+       return $ sfold ss
+
 g_stmt (I.Assign lv e) =
     do c_e <- g_expr e
        c_lv <- g_lvalue lv
@@ -323,9 +330,9 @@ g_const_bits b l =
 g_type I.Int  = do return C.Int
 g_type I.Bool = do return C.Bool
 g_type I.Bits = do return bitsType
-g_type (I.ArrT t) =
+g_type (I.ArrT t l) =
     do t' <- g_type t
-       return (C.ArrT t')
+       return (C.ArrT t' l)
 
 g_binop I.Plus    l r = do return $ C.BinOp C.Plus  l r
 g_binop I.Minus   l r = do return $ C.BinOp C.Minus l r

@@ -13,7 +13,7 @@ data Type = Int
           | Void
           | Double
           | Fun [Type] Type
-          | ArrT Type
+          | ArrT Type (Maybe Int)
           | Invalid -- Dummy type
           deriving (Eq, Show)
 

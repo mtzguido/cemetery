@@ -211,7 +211,7 @@ tr_expr'' i (A.Arr es) =
          "All elements of the array need to have the same type"
 
        return (sfold es_preps,
-               A.ArrT (head es_types),
+               A.ArrT (head es_types) (Just $ length es),
                IR.Arr es_irs)
 
 tr_expr'' i (A.Slice a f t) =
@@ -221,7 +221,7 @@ tr_expr'' i (A.Access a idx) =
     do (a_p, a_t, IR.LV a_ir) <- tr_expr'' i a
        (i_p, i_t, i_ir) <- tr_expr'' i idx
        t <- case a_t of
-                A.ArrT e -> return e
+                A.ArrT e _ -> return e
                 _ -> abort "Accesses can only be used on arrays"
 
        abortIf (not $ tmatch i_t A.Int)
@@ -246,15 +246,12 @@ tmap A.Int  = do return IR.Int
 tmap A.Bool = do return IR.Bool
 tmap A.Bits = do return IR.Bits
 
-tmap (A.ArrT t) =
+tmap (A.ArrT t l) =
     do t' <- tmap t
-       return (IR.ArrT t')
+       return (IR.ArrT t' l)
 
 tmap t =
     do abort $ "Can't map that type (" ++ (show t) ++ ")"
-
-isArr (A.ArrT _) = True
-isArr _ = False
 
 -- Declaration translation
 
@@ -309,8 +306,6 @@ tr_ldecl' :: String -> [A.Mods] -> IR.Stmt -> A.Type -> IR.Expr
           -> TM (IR.Stmt, IR.Decl)
 tr_ldecl' n mods p typ ir =
     do n' <- requestSimilar n
-
-       abortIf (isArr typ) "arrays can't be declared locally, only as global constants"
 
        let attrs = if elem A.Const mods
                    then [RO]

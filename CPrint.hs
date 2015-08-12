@@ -237,9 +237,12 @@ p_typed_var n UChar =
     do return $ "unsigned char " ++ n
 p_typed_var n (Custom s) =
     do return $ s ++ " " ++ n
-p_typed_var n (ArrT t) =
+p_typed_var n (ArrT t Nothing) =
     do tv <- p_typed_var n t
        return $ tv ++ "[]"
+p_typed_var n (ArrT t (Just l)) =
+    do tv <- p_typed_var n t
+       return $ tv ++ "[" ++ show l ++ "]"
 
 p_if lead (If c t (_, Skip)) =
     do (cc, _) <- p_expr c

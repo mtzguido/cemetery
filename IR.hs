@@ -16,7 +16,7 @@ import Data.Maybe (fromJust)
 
 type IR = [Unit]
 
-data Type = Int | Bool | ArrT Type
+data Type = Int | Bool | ArrT Type (Maybe Int)
           | Bits
   deriving (Eq, Show)
 
