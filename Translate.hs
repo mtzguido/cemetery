@@ -28,6 +28,7 @@ semanticT = runTranslate.translate
 
 sseq = IR.sseq
 sfold = IR.sfold
+prepFold ls = sfold $ map prep ls
 
 add_builtins =
     do mapM (uncurry addToEnv) builtins
@@ -101,10 +102,10 @@ tr_body b = do pushLevel
                l <- popLevel
                return (reverse $ decls l, s)
 
-tr_assign d typ ir =
-    do let e = case (typ, ir) of
+tr_assign d s =
+    do let e = case (typ s, expr s) of
                  (A.Bits, IR.LV lv) -> IR.Copy lv
-                 _                  -> ir
+                 (_, e)             -> e
 
        return $ IR.Assign (fromLV $ expr d) e
 
@@ -117,23 +118,21 @@ tr_stmt A.Skip =
 
 tr_stmt (A.Assign n e) =
     do d <- env_lookup n
-       (p_e, t_e, ir_e) <- tr_expr e
+       es <- tr_expr e
 
        abortIf (elem RO (attrs d)) "Can't assign to const"
-       abortIf (not (tmatch t_e (typ d))) "Type mismatch in assignment"
+       abortIf (not (tmatch (typ es) (typ d))) "Type mismatch in assignment"
 
-       s' <- tr_assign d t_e ir_e
-       return $ sseq p_e s'
+       s' <- tr_assign d es
+       return $ sseq (prep es) s'
 
 tr_stmt (A.Return e) =
     do rt <- getRetType
-       (p_e, t_e, ir_e) <- tr_expr e
-       abortIf (not (tmatch rt t_e)) "Invalid return"
-       case ir_e of
-           IR.LV _ -> return $ sseq p_e (IR.Return ir_e)
-           _       -> do ir_t <- tmap rt
-                         t <- fresh ir_t
-                         return $ sfold [p_e, IR.Assign t ir_e, IR.Return (IR.LV t)]
+       es <- tr_expr e
+       abortIf (not (tmatch rt (typ es))) "Invalid return"
+       es' <- save es
+
+       return $ sfold [prep es', IR.Return (expr es')]
 
 tr_stmt (A.Seq l r) =
     do ll <- tr_stmt l
@@ -146,26 +145,26 @@ tr_stmt (A.Decl d) =
        return p
 
 tr_stmt (A.If c t e) =
-    do (prep, c_t, c_ir) <- tr_expr c
-       abortIf (not (tmatch c_t A.Bool))
+    do cs <- tr_expr c
+       abortIf (not (tmatch (typ cs) A.Bool))
            "If conditions have to be of type Bool"
        tt <- tr_body t
        ee <- tr_body e
-       return $ sseq prep (IR.If c_ir tt ee)
+       return $ sseq (prep cs) (IR.If (expr cs) tt ee)
 
 tr_stmt (A.For v f t b) =
     do it <- fresh IR.Int
        f_save <- fresh IR.Int
        t_save <- fresh IR.Int
-       (f_p, f_t, f_ir) <- tr_expr f
-       (t_p, t_t, t_ir) <- tr_expr t
+       fs <- tr_expr f
+       ts <- tr_expr t
 
-       abortIf (not $ tmatch f_t A.Int)
-           "For bound have to be of type Int (low)"
-       abortIf (not $ tmatch t_t A.Int)
-           "For bound have to be of type Int (high)"
+       abortIf (not $ tmatch (typ fs) A.Int)
+           "For bounds have to be of type Int (low)"
+       abortIf (not $ tmatch (typ ts) A.Int)
+           "For bounds have to be of type Int (high)"
 
-       let prep_f = IR.Assign f_save f_ir
+       let prep_f = IR.Assign f_save (expr fs)
        pushLevel
 
        let s = eseman {typ = A.Int, attrs = [RO], expr = IR.LV it}
@@ -174,13 +173,12 @@ tr_stmt (A.For v f t b) =
        b' <- tr_body b
        popLevel
 
-       return $ sfold [f_p,
-                       IR.Assign f_save f_ir,
-                       t_p,
-                       IR.Assign t_save t_ir,
+       return $ sfold [prep fs,
+                       IR.Assign f_save (expr fs),
+                       prep ts,
+                       IR.Assign t_save (expr ts),
                        IR.For it (IR.LV f_save) (IR.LV t_save) b'
                       ]
-
 
 -- The bool represents wether we're translating a global initializer, so
 -- function calls are prohibited.
@@ -191,12 +189,12 @@ tr_expr' i e =
     do s <- tr_expr'' i e
        csave s
 
-tr_expr'' :: Bool -> A.Expr -> TM (IR.Stmt, A.Type, IR.Expr)
+tr_expr'' :: Bool -> A.Expr -> TM ExprSeman
 tr_expr'' i (A.ConstInt ii) =
-    do return (IR.Skip, A.Int, IR.ConstInt ii)
+    do return $ eseman { typ = A.Int, expr = IR.ConstInt ii }
 
 tr_expr'' i (A.ConstBool b) =
-    do return (IR.Skip, A.Bool, IR.ConstBool b)
+    do return $ eseman { typ = A.Bool, expr = IR.ConstBool b }
 
 tr_expr'' i (A.BinOp op l r) =
     do tr_binop i op l r
@@ -206,36 +204,42 @@ tr_expr'' i (A.UnOp op e) =
 
 tr_expr'' i (A.Var n) =
     do d <- env_lookup n
-       return (prep d, typ d, expr d)
+       return d
 
 tr_expr'' i (A.Call f args) =
     do tr_call i f args
 
 tr_expr'' i (A.Arr es) =
-    do (es_preps, es_types, es_irs) <- liftM unzip3 $ mapM (tr_expr'' i) es
-       abortIf (not $ all (== head es_types) es_types)
+    do ess <- mapM (tr_expr'' i) es
+       let t = typ (head ess)
+           types = map typ  ess
+           preps = map prep ess
+           exprs = map expr ess
+
+       abortIf (not $ all (==t) (tail types))
          "All elements of the array need to have the same type"
 
-       return (sfold es_preps,
-               A.ArrT (head es_types) (Just $ length es),
-               IR.Arr es_irs)
+       return $ eseman { prep = sfold preps,
+                         typ = A.ArrT t (Just (length es)),
+                         expr = IR.Arr exprs
+                       }
 
 tr_expr'' i (A.Slice a f t) =
     do tr_slice i a f t
 
 tr_expr'' i (A.Access a idx) =
-    do (a_p, a_t, IR.LV a_ir) <- tr_expr'' i a
-       (i_p, i_t, i_ir) <- tr_expr'' i idx
-       t <- case a_t of
+    do as <- tr_expr'' i a
+       is <- tr_expr'' i idx
+       t <- case typ as of
                 A.ArrT e _ -> return e
                 _ -> abort "Accesses can only be used on arrays"
 
-       abortIf (not $ tmatch i_t A.Int)
+       abortIf (not $ tmatch (typ is) A.Int)
            "Access index has to be of type int"
 
-       return (sseq a_p i_p,
-               t,
-               IR.LV $ IR.Access a_ir i_ir)
+       return $ eseman { prep = prepFold [as, is],
+                         typ = t,
+                         expr = IR.LV $ IR.Access (fromLV $ expr as) (expr is) }
 
 tr_expr'' i (A.ConstFloat _) =
     do abort "Floats unsupported"
@@ -245,7 +249,7 @@ tr_expr'' i (A.ConstStr _) =
 
 tr_expr'' i (A.BinLit b s) =
     do abortIf i "Binary literals not supported as global initiliazers"
-       return (IR.Skip, A.Bits, IR.ConstBits b s)
+       return $ eseman { typ = A.Bits, expr = IR.ConstBits b s }
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int
@@ -265,15 +269,15 @@ tr_gdecl (A.VarDecl n mods _      Nothing) =
     do abort "Global constants need an initializer"
 
 tr_gdecl (A.VarDecl n mods (Just t) (Just e)) =
-    do (prep, e_t, e_ir) <- tr_init e
-       abortIf (prep /= IR.Skip) "Internal error"
-       abortIf (not (tmatch e_t t)) "Type and initializer don't match"
-       tr_gdecl' n mods e_t e_ir
+    do es <- tr_init e
+       abortIf (prep es /= IR.Skip) "Internal error (non-empty prep in global context)"
+       abortIf (not (tmatch (typ es) t)) "Type and initializer don't match"
+       tr_gdecl' n mods (typ es) (expr es)
 
 tr_gdecl (A.VarDecl n mods Nothing  (Just e)) =
-    do (prep, e_t, e_ir) <- tr_init e
-       abortIf (prep /= IR.Skip) "Internal error"
-       tr_gdecl' n mods e_t e_ir
+    do es <- tr_init e
+       abortIf (prep es /= IR.Skip) "Internal error (non-empty prep in global context)"
+       tr_gdecl' n mods (typ es) (expr es)
 
 tr_gdecl' :: String -> [A.Mods] -> A.Type -> IR.Expr -> TM IR.Decl
 tr_gdecl' n mods typ ir =
@@ -301,20 +305,20 @@ tr_ldecl (A.VarDecl n mods Nothing Nothing) =
 tr_ldecl (A.VarDecl n mods (Just t) Nothing) =
     do abortIf (elem A.Const mods) "Constants need an initializer"
        i <- default_initializer t
-       tr_ldecl' n mods IR.Skip t i
+       let s = eseman { typ = t, expr = i }
+       tr_ldecl' n mods s
 
 tr_ldecl (A.VarDecl n mods (Just t) (Just e)) =
-    do (p, e_t, e_ir) <- tr_expr e
-       abortIf (not (tmatch e_t t)) "Type and initializer don't match"
-       tr_ldecl' n mods p e_t e_ir
+    do es <- tr_expr e
+       abortIf (not (tmatch (typ es) t)) "Type and initializer don't match"
+       tr_ldecl' n mods es
 
 tr_ldecl (A.VarDecl n mods Nothing  (Just e)) =
-    do (p, e_t, e_ir) <- tr_expr e
-       tr_ldecl' n mods p e_t e_ir
+    do es <- tr_expr e
+       tr_ldecl' n mods es
 
-tr_ldecl' :: String -> [A.Mods] -> IR.Stmt -> A.Type -> IR.Expr
-          -> TM (IR.Stmt, IR.Decl)
-tr_ldecl' n mods p typ ir =
+tr_ldecl' :: String -> [A.Mods] -> ExprSeman -> TM (IR.Stmt, IR.Decl)
+tr_ldecl' n mods es =
     do n' <- requestSimilar n
 
        let attrs = if elem A.Const mods
@@ -323,13 +327,13 @@ tr_ldecl' n mods p typ ir =
 
        abortIf (elem A.Extern mods) "External on local scope?"
 
-       let d = eseman { typ = typ, expr = IR.LV $ IR.LVar n', attrs = attrs }
+       let d = eseman { typ = typ es, expr = IR.LV $ IR.LVar n', attrs = attrs }
        addToEnv n d
-       ir_t <- tmap typ
+       ir_t <- tmap (typ es)
 
-       s <- tr_assign d typ ir
+       s <- tr_assign d es
 
-       return $ (sseq p s, IR.DeclLocal (IR.LVar n') ir_t)
+       return $ (sseq (prep es) s, IR.DeclLocal (IR.LVar n') ir_t)
 
 binop_table :: [(A.BinOp, A.Type, A.Type, A.Type, IR.BinOp, Bool)]
 binop_table = [
@@ -365,75 +369,84 @@ unop_table = [
  ]
 
 tr_binop i op l r =
-    do ls@(l_p, l_t, l_ir) <- tr_expr'' i l
-       rs@(r_p, r_t, r_ir) <- tr_expr'' i r
-       let ops = filter (\(a,b,c,_,_,_) -> (a,b,c) == (op, l_t, r_t)) binop_table
+    do ls <- tr_expr'' i l
+       rs <- tr_expr'' i r
+       let ops = filter (\(a,b,c,_,_,_) -> (a,b,c) == (op, typ ls, typ rs)) binop_table
        (e_t, op_ir, clusterable) <-
            case ops of
               [] -> abort $ "Error on binop, no suitable operator found: " ++
-                            show (l_t, op, r_t)
+                            show (typ ls, op, typ rs)
               [(_,_,_,d,e,f)] -> return (d, e, f)
               _ -> abort $ "Internal error, more than one binop match"
 
        if clusterable
        then tr_cluster_bin e_t op_ir ls rs
-       else do ls@(l_p, _, l_ir) <- csave ls
-               rs@(r_p, _, r_ir) <- csave rs
-               return (sseq l_p r_p, e_t, IR.BinOp op_ir l_ir r_ir)
+       else do ls <- csave ls
+               rs <- csave rs
+               return $ eseman { prep = prepFold [ls, rs],
+                                 typ = e_t,
+                                 expr = IR.BinOp op_ir (expr ls) (expr rs) }
 
 tr_unop i op e =
-    do es@(e_p, e_t, e_ir) <- tr_expr'' i e
-       let ops = filter (\(a,b,_,_,_) -> (a,b) == (op, e_t)) unop_table
+    do es <- tr_expr'' i e
+       let ops = filter (\(a,b,_,_,_) -> (a,b) == (op, typ es)) unop_table
        (r_t, op_ir, clusterable) <-
            case ops of
                [] -> abort $ "Error on unop, no suitable operator found: " ++
-                             show (op, e_t)
+                             show (op, typ es)
                [(_,_,c,d,e)] -> return (c, d, e)
                _ -> abort $ "Internal error, more than one unop match"
 
        if clusterable
        then tr_cluster_un r_t op_ir es
-       else do es@(e_p, _, e_ir) <- csave es
-               return (e_p, r_t, IR.UnOp op_ir e_ir)
+       else do es <- csave es
+               return $ eseman { prep = prep es,
+                                 typ = r_t,
+                                 expr = IR.UnOp op_ir (expr es) }
 
-clusterize s@(p, t, IR.Cluster _ _) =
+clusterize s | IR.Cluster _ _ <- expr s =
     do return s
 
 clusterize s =
-    do (p, t, IR.LV lv) <- csave s
-       let e' = IR.Cluster (IR.CArg 0) [(lv, False)]
-       return (p, t, e')
+    do ss <- csave s
+       let e' = IR.Cluster (IR.CArg 0) [(fromLV (expr ss), False)]
+       return $ ss { expr = e' }
 
 tr_cluster_bin t op ls rs =
-    do ls@(l_p, _, l_ir) <- clusterize ls
-       rs@(r_p, _, r_ir) <- clusterize rs
-       return (sseq l_p r_p, t, IR.c_binop op l_ir r_ir)
+    do ls <- clusterize ls
+       rs <- clusterize rs
+       return $ eseman { prep = prepFold [ls, rs],
+                         typ = t,
+                         expr = IR.c_binop op (expr ls) (expr rs) }
 
 tr_cluster_un t op es =
-    do es@(e_p, _, e_ir) <- clusterize es
-       return (e_p, t, IR.c_unop op e_ir)
+    do es <- clusterize es
+       return $ eseman { prep = prep es,
+                         typ = t,
+                         expr = IR.c_unop op (expr es) }
 
-save' :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
-save' (p, t, e) =
-    do t' <- tmap t
+save' :: ExprSeman -> TM ExprSeman
+save' s =
+    do t' <- tmap (typ s)
        r <- fresh t'
-       return (sseq p (IR.Assign r e), t, IR.LV r)
+       return $ s { prep = sseq (prep s) (IR.Assign r (expr s)),
+                    expr = IR.LV r }
 
-save :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
-save e@(p, t, IR.LV (IR.Access _ _)) =
-    do save' e
+save :: ExprSeman -> TM ExprSeman
+save s | IR.LV (IR.Access _ _) <- expr s =
+    do save' s
 
-save e@(p, t, IR.LV _) =
-    do return e
+save s | IR.LV _ <- expr s =
+    do return s
 
-save e =
-    do save' e
+save s =
+    do save' s
 
-csave :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
-csave (p, t, e) =
-    do if t == A.Bits
-       then save   (p, t, e)
-       else return (p, t, e)
+csave :: ExprSeman -> TM ExprSeman
+csave s =
+    do if typ s == A.Bits
+       then save   s
+       else return s
 
 tr_call i f args =
     do abortIf i "Can't call functions in global initializers"
@@ -443,7 +456,9 @@ tr_call i f args =
                                    _ -> abort $ f ++ ": is not a function"
 
        as <- mapM (tr_expr' i) args
-       let (args_prep, actual_t, args_ir) = unzip3 as
+       let args_prep = map prep as
+           actual_t  = map typ  as
+           args_ir   = map expr as
 
        abortIf (length actual_t /= length expected_t)
            "Wrong number of arguments on function call"
@@ -452,21 +467,23 @@ tr_call i f args =
        abortIf (not (all id ok))
            "Ill typed function argument on call"
 
-       return (sfold args_prep, ret, IR.Call (fromLV $ expr d) args_ir)
+       return $ eseman { prep = sfold (prep d : args_prep),
+                         typ = ret,
+                         expr = IR.Call (fromLV $ expr d) args_ir }
 
 tr_slice i a f t =
-    do (a_p, a_t, IR.LV a_ir) <- tr_expr' i a
-       (f_p, f_t, f_ir) <- tr_expr' i f
-       (t_p, t_t, t_ir) <- tr_expr' i t
-       case a_t of
+    do as <- tr_expr' i a
+       fs <- tr_expr' i f
+       ts <- tr_expr' i t
+       case typ as of
            A.Bits -> return ()
            x -> abort "Slices can only be used on bitseqs"
 
-       abortIf (not $ tmatch f_t A.Int)
+       abortIf (not $ tmatch (typ fs) A.Int)
            "Slice's 'from' has to be of type int"
-       abortIf (not $ tmatch t_t A.Int)
+       abortIf (not $ tmatch (typ ts) A.Int)
            "Slice's 'to' has to be of type int"
 
-       return (sfold [a_p, f_p, t_p],
-               A.Bits,
-               IR.Slice a_ir f_ir t_ir)
+       return $ eseman { prep = prepFold [as, fs, ts],
+                         typ = A.Bits,
+                         expr = IR.Slice (fromLV $ expr as) (expr fs) (expr ts) }
