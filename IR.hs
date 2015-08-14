@@ -36,17 +36,18 @@ data BinOp = Plus | Minus | Div | Prod | Eq | Mod | And | Or
            | Le | Lt | Gt | Ge
            | ModPlus -- Bits addition modulo size
            | BitEq
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data Mods = Static
   deriving (Eq, Show)
 
 data UnOp = Neg | Not | Bnot
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data LValue = LVar String
             | Temp Int
             | Builtin Builtin
+            | Access LValue Expr
   deriving (Eq, Show, Ord)
 
 data Builtin = Permute
@@ -64,19 +65,18 @@ data Expr = ConstInt   Int
           | LV         LValue
           | Arr        [Expr]
           | Slice      LValue Expr Expr
-          | Access     LValue Expr
           | ConstBits  [Int] Int
           | Copy       LValue
             -- The bool represents if the value should be freed
             -- this always comes as False from translation, and
             -- the Liveness analysis might add True's
           | Cluster    ClusterExpr [(LValue, Bool)]
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data ClusterExpr = CBinOp BinOp ClusterExpr ClusterExpr
                  | CUnOp  UnOp  ClusterExpr
                  | CArg   Int
-    deriving (Eq, Show)
+    deriving (Eq, Show, Ord)
 
 type Block = ([Decl], Stmt)
 

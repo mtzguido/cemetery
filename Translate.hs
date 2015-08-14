@@ -229,7 +229,7 @@ tr_expr'' i (A.Access a idx) =
 
        return (sseq a_p i_p,
                t,
-               IR.Access a_ir i_ir)
+               IR.LV $ IR.Access a_ir i_ir)
 
 tr_expr'' i (A.ConstFloat _) =
     do abort "Floats unsupported"

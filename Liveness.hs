@@ -23,20 +23,32 @@ data VarSt = Shadowed | Used | Unused
     deriving (Eq, Show)
 
 -- Is the variable lv read in this chunk, before being written?
+used_lv :: LValue -> LValue -> Bool
+used_lv lv (Access a i) =
+    used_lv lv a || used_e lv i
+used_lv lv l =
+    lv == l
+
 used_e :: LValue -> Expr -> Bool
 used_e lv (ConstInt _) = False
 used_e lv (ConstBool _) = False
 used_e lv (ConstBits _ _) = False
-used_e lv (LV lv') = lv == lv'
+used_e lv (LV lv') = used_lv lv lv'
 
-used_e lv (BinOp o l r) = used_e lv l || used_e lv r
-used_e lv (UnOp o e) = used_e lv e
-used_e lv (Call _ es) = any (used_e lv) es
-used_e lv (Slice b l h) = b == lv || any (used_e lv) [l,h]
-used_e lv (Access a i) = a == lv || used_e lv i
-used_e lv (Copy lv') = lv == lv'
-used_e lv (Arr _) = error "Local array, I.O.U."
-used_e lv (Cluster _ es) = any (== lv) (map fst es)
+used_e lv (BinOp o l r) =
+    used_e lv l || used_e lv r
+used_e lv (UnOp o e) =
+    used_e lv e
+used_e lv (Call _ es) =
+    any (used_e lv) es
+used_e lv (Slice b l h) =
+    used_lv lv b || any (used_e lv) [l,h]
+used_e lv (Copy lv') =
+    used_lv lv lv'
+used_e lv (Arr _) =
+    error "Local array, I.O.U."
+used_e lv (Cluster _ es) =
+    any (== lv) (map fst es)
 
 vst_seq Shadowed _ = Shadowed
 vst_seq Used _ = Used

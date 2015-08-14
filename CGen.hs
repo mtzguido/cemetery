@@ -214,11 +214,6 @@ g_expr (I.Arr es) =
     do es' <- mapM g_expr es
        return $ C.Arr es'
 
-g_expr (I.Access a i) =
-    do aa <- g_lvalue a
-       ii <- g_expr i
-       return $ C.Access (C.LV aa) ii
-
 g_expr (I.Slice a f t) =
     do aa <- g_lvalue a
        ff <- g_expr f
@@ -364,6 +359,11 @@ g_lvalue (I.LVar n) =
 
 g_lvalue (I.Temp i) =
     do return $ C.LVar ("t" ++ show i)
+
+g_lvalue (I.Access a i) =
+    do aa <- g_lvalue a
+       ii <- g_expr i
+       return $ C.Access (C.LV aa) ii
 
 builtin_name I.Permute = "__cmt_permute"
 builtin_name I.Length  = "__cmt_length"

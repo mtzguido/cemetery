@@ -31,6 +31,7 @@ data Funtype = Funtype { name :: String,
   deriving (Eq, Show)
 
 data LValue = LVar String
+            | Access Expr Expr
   deriving (Eq, Show)
 
 data Stmt = If Expr Block Block
@@ -50,7 +51,6 @@ data Expr = BinOp BinOp Expr Expr
           | LV LValue
           | ConstBool Bool
           | Arr [Expr]
-          | Access Expr Expr
           | ConstStr String
           | StructVal [(String, Expr)]
   deriving (Eq, Show)

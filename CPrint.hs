@@ -208,11 +208,6 @@ p_expr (Arr es) =
     do (p_es, _) <- liftM unzip $ mapM p_expr es
        return (brace $ commas p_es, 0)
 
-p_expr (Access a i) =
-    do (aa, _) <- p_expr a
-       (ii, _) <- p_expr i
-       return (aa ++ square ii, 0)
-
 p_expr (ConstStr s) =
     do return ("\"" ++ s ++ "\"", 0)
 
@@ -293,3 +288,8 @@ p_unop Address   = do return "&"
 
 p_lvalue (LVar s) =
     do return s
+
+p_lvalue (Access a i) =
+    do (aa, _) <- p_expr a
+       (ii, _) <- p_expr i
+       return $ aa ++ square ii

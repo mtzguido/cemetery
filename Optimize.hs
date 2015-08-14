@@ -126,17 +126,16 @@ const_fold e@(ConstInt _)     = do return e
 const_fold e@(ConstBool _)    = do return e
 const_fold e@(ConstBits _ _ ) = do return e
 const_fold e@(Copy _)         = do return e
-const_fold e@(LV _)           = do return e
 const_fold e@(Arr _)          = do error "local array on constant folding"
+
+const_fold (LV lv) =
+    do lv' <- const_fold_lv lv
+       return $ LV lv'
 
 const_fold (Slice b f t) =
     do f' <- const_fold f
        t' <- const_fold t
        return $ Slice b f' t'
-
-const_fold (Access a i) =
-    do i' <- const_fold i
-       return $ Access a i'
 
 const_fold (Call n args) =
     do args' <- mapM const_fold args
@@ -153,6 +152,14 @@ const_fold (UnOp op e) =
 
 const_fold (Cluster op es) =
     do return $ Cluster op es
+
+const_fold_lv (Access a i) =
+    do a' <- const_fold_lv a
+       i' <- const_fold i
+       return $ Access a' i'
+
+const_fold_lv e =
+    do return e
 
 fold_binop Plus  (ConstInt x) (ConstInt y) = ConstInt (x + y)
 fold_binop Minus (ConstInt x) (ConstInt y) = ConstInt (x - y)
