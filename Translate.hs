@@ -291,7 +291,8 @@ tr_ldecl (A.VarDecl n mods Nothing Nothing) =
 
 tr_ldecl (A.VarDecl n mods (Just t) Nothing) =
     do abortIf (elem A.Const mods) "Constants need an initializer"
-       tr_ldecl' n mods IR.Skip t (default_initializer t)
+       i <- default_initializer t
+       tr_ldecl' n mods IR.Skip t i
 
 tr_ldecl (A.VarDecl n mods (Just t) (Just e)) =
     do (p, e_t, e_ir) <- tr_expr e
