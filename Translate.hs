@@ -404,14 +404,21 @@ tr_cluster_un t op es =
     do es@(e_p, _, e_ir) <- clusterize es
        return (e_p, t, IR.c_unop op e_ir)
 
-save :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
-save e@(p, t, IR.LV _) =
-    do return e
-
-save (p, t, e) =
+save' :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
+save' (p, t, e) =
     do t' <- tmap t
        r <- fresh t'
        return (sseq p (IR.Assign r e), t, IR.LV r)
+
+save :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
+save e@(p, t, IR.LV (IR.Access _ _)) =
+    do save' e
+
+save e@(p, t, IR.LV _) =
+    do return e
+
+save e =
+    do save' e
 
 csave :: (IR.Stmt, A.Type, IR.Expr) -> TM (IR.Stmt, A.Type, IR.Expr)
 csave (p, t, e) =
