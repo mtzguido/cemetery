@@ -14,14 +14,23 @@ import qualified IR as I
 data Attr = RO
   deriving (Eq, Show)
 
-type EnvT = M.Map A.VarName EnvV
-data EnvV = EnvV { typ :: A.Type,
-                   ir_lv :: I.LValue,
-                   attrs :: [Attr]
-                 }
+data ExprSeman =
+    ExprSeman {
+        prep  :: I.Stmt,
+        typ   :: A.Type,
+        expr  :: I.Expr,
+        attrs :: [Attr]
+    }
   deriving (Show)
 
-envv = EnvV { typ = A.Invalid, ir_lv = I.LVar "wat", attrs = [] }
+type EnvT = M.Map A.VarName ExprSeman
+
+eseman = ExprSeman {
+             prep = I.Skip,
+             typ = A.Invalid,
+             expr = I.LV $ I.LVar "wat",
+             attrs = []
+         }
 
 -- State at each level inside the AST
 data LevelState =
@@ -46,12 +55,13 @@ data LevelState =
   deriving (Show)
 
 blank_level :: LevelState
-blank_level = LevelState { env = M.empty,
-                           ret_type = A.Invalid,
-                           decls = [],
-                           fresh_count = 0,
-                           depth = 0
-                         }
+blank_level = LevelState {
+                  env = M.empty,
+                  ret_type = A.Invalid,
+                  decls = [],
+                  fresh_count = 0,
+                  depth = 0
+              }
 
 -- The monad state is a stack of LevelStates so we can
 -- drop the names when moving out of a function.
@@ -110,13 +120,13 @@ addDecl :: I.Decl -> TM ()
 addDecl d = do l <- getLevel
                setLevel (l { decls = d : decls l })
 
-env_lookup :: String -> TM EnvV
+env_lookup :: String -> TM ExprSeman
 env_lookup s = do e <- getEnv
                   case M.lookup s e of
                     Nothing -> abort $ "undefined variable: " ++ s
                     Just i -> return i
 
-addToEnv :: String -> EnvV -> TM ()
+addToEnv :: String -> ExprSeman -> TM ()
 addToEnv n d = do e <- getEnv
                   let e' = M.insert n d e
                   setEnv e'

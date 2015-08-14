@@ -41,6 +41,9 @@ requestName s =
 requestSimilar s =
     do return s
 
+fromLV (IR.LV lv) = lv
+fromLV _ = error "internal error, fromLV on non-lv value!"
+
 -- Each Cemetery unit is a IR unit, at least for now,
 -- so just mapM the unit translation
 translate :: A.Prog -> TM IR.IR
@@ -53,14 +56,14 @@ translate prog = do -- Push a first level and add builtins to it
 
 fun_t args ret = A.Fun (map snd args) ret
 
-tr_arg (s,t) =
-    do s' <- requestSimilar s
+tr_arg (n, t) =
+    do n' <- requestSimilar n
        t' <- tmap t
 
-       let d = envv { typ = t, ir_lv = IR.LVar s', attrs = [RO] }
+       let s = eseman { typ = t, expr = IR.LV $ IR.LVar n', attrs = [RO] }
 
-       addToEnv s d
-       return (IR.Skip, s', t')
+       addToEnv n s
+       return (IR.Skip, n', t')
 
 translate1 :: A.Decl -> TM IR.Unit
 translate1 d@(A.VarDecl _ _ _ _) =
@@ -71,7 +74,9 @@ translate1 (A.FunDecl {A.name = name, A.ret = ret, A.mods = mods,
                        A.args = args, A.body = body}) =
     do ir_ret <- tmap ret
        requestName name
-       addToEnv name (envv { typ = fun_t args ret, ir_lv = IR.LVar name })
+
+       let s = eseman { typ = fun_t args ret, expr = IR.LV $ IR.LVar name }
+       addToEnv name s
 
        pushLevel
        args' <- mapM tr_arg args
@@ -97,13 +102,11 @@ tr_body b = do pushLevel
                return (reverse $ decls l, s)
 
 tr_assign d typ ir =
-    do let expr = case typ of
-                       A.Bits -> case ir of
-                                     IR.LV lv -> IR.Copy lv
-                                     _ -> ir
-                       _ -> ir
+    do let e = case (typ, ir) of
+                 (A.Bits, IR.LV lv) -> IR.Copy lv
+                 _                  -> ir
 
-       return $ IR.Assign (ir_lv d) expr
+       return $ IR.Assign (fromLV $ expr d) e
 
 tr_stmt :: A.Stmt -> TM IR.Stmt
 tr_stmt (A.Err s) =
@@ -164,7 +167,10 @@ tr_stmt (A.For v f t b) =
 
        let prep_f = IR.Assign f_save f_ir
        pushLevel
-       addToEnv v (envv {typ = A.Int, attrs = [RO], ir_lv = it})
+
+       let s = eseman {typ = A.Int, attrs = [RO], expr = IR.LV it}
+
+       addToEnv v s
        b' <- tr_body b
        popLevel
 
@@ -200,7 +206,7 @@ tr_expr'' i (A.UnOp op e) =
 
 tr_expr'' i (A.Var n) =
     do d <- env_lookup n
-       return (IR.Skip, typ d, IR.LV (ir_lv d))
+       return (prep d, typ d, expr d)
 
 tr_expr'' i (A.Call f args) =
     do tr_call i f args
@@ -275,7 +281,10 @@ tr_gdecl' n mods typ ir =
        abortIf (not (elem A.Const mods))
            "Global variables can only be constants"
 
-       addToEnv n (envv { typ = typ, ir_lv = IR.LVar n, attrs = [RO] })
+       let s = eseman { typ = typ, expr = IR.LV $ IR.LVar n,
+                        attrs = [RO] }
+
+       addToEnv n s
        ir_t <- tmap typ
 
        -- At this point, we'll need to simplify ir
@@ -314,7 +323,7 @@ tr_ldecl' n mods p typ ir =
 
        abortIf (elem A.Extern mods) "External on local scope?"
 
-       let d = envv { typ = typ, ir_lv = IR.LVar n', attrs = attrs }
+       let d = eseman { typ = typ, expr = IR.LV $ IR.LVar n', attrs = attrs }
        addToEnv n d
        ir_t <- tmap typ
 
@@ -443,7 +452,7 @@ tr_call i f args =
        abortIf (not (all id ok))
            "Ill typed function argument on call"
 
-       return (sfold args_prep, ret, IR.Call (ir_lv d) args_ir)
+       return (sfold args_prep, ret, IR.Call (fromLV $ expr d) args_ir)
 
 tr_slice i a f t =
     do (a_p, a_t, IR.LV a_ir) <- tr_expr' i a
