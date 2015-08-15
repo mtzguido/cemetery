@@ -33,6 +33,8 @@ tokens :-
   "}"			{ simple Unbrace }
   "["			{ simple Square }
   "]"			{ simple Unsquare }
+  "[["			{ simple Square2 }
+  "]]"			{ simple Unsquare2 }
   "<"			{ simple Langle }
   ">"			{ simple Rangle }
   "<="			{ simple Le }
@@ -210,6 +212,7 @@ data Sym =
 
   Paren | Unparen |
   Square | Unsquare |
+  Square2 | Unsquare2 |
   Brace | Unbrace | Break |
   Langle | Rangle | Le | Ge |
   LShift | RShift | LRot | RRot |

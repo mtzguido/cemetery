@@ -45,8 +45,8 @@ used_e lv (Slice b l h) =
     used_lv lv b || any (used_e lv) [l,h]
 used_e lv (Copy lv') =
     used_lv lv lv'
-used_e lv (Arr _) =
-    error "Local array, I.O.U."
+used_e lv (Arr es) =
+    any (used_e lv) es
 used_e lv (Cluster _ es) =
     any (== lv) (map fst es)
 

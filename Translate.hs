@@ -116,14 +116,14 @@ tr_stmt (A.Err s) =
 tr_stmt A.Skip =
     do return IR.Skip
 
-tr_stmt (A.Assign n e) =
-    do d <- env_lookup n
+tr_stmt (A.Assign v e) =
+    do vs <- tr_lv False v
        es <- tr_expr e
 
-       abortIf (elem RO (attrs d)) "Can't assign to const"
-       abortIf (not (tmatch (typ es) (typ d))) "Type mismatch in assignment"
+       abortIf (elem RO (attrs vs)) "Can't assign to const"
+       abortIf (not (tmatch (typ es) (typ vs))) "Type mismatch in assignment"
 
-       s' <- tr_assign d es
+       s' <- tr_assign vs es
        return $ sseq (prep es) s'
 
 tr_stmt (A.Return e) =
@@ -202,9 +202,8 @@ tr_expr'' i (A.BinOp op l r) =
 tr_expr'' i (A.UnOp op e) =
     do tr_unop i op e
 
-tr_expr'' i (A.Var n) =
-    do d <- env_lookup n
-       return d
+tr_expr'' i (A.LV lv) =
+    do tr_lv i lv
 
 tr_expr'' i (A.Call f args) =
     do tr_call i f args
@@ -226,20 +225,6 @@ tr_expr'' i (A.Arr es) =
 
 tr_expr'' i (A.Slice a f t) =
     do tr_slice i a f t
-
-tr_expr'' i (A.Access a idx) =
-    do as <- tr_expr'' i a
-       is <- tr_expr'' i idx
-       t <- case typ as of
-                A.ArrT e _ -> return e
-                _ -> abort "Accesses can only be used on arrays"
-
-       abortIf (not $ tmatch (typ is) A.Int)
-           "Access index has to be of type int"
-
-       return $ eseman { prep = prepFold [as, is],
-                         typ = t,
-                         expr = IR.LV $ IR.Access (fromLV $ expr as) (expr is) }
 
 tr_expr'' i (A.ConstFloat _) =
     do abort "Floats unsupported"
@@ -487,3 +472,20 @@ tr_slice i a f t =
        return $ eseman { prep = prepFold [as, fs, ts],
                          typ = A.Bits,
                          expr = IR.Slice (fromLV $ expr as) (expr fs) (expr ts) }
+
+tr_lv i (A.Var n) =
+    do env_lookup n
+
+tr_lv i (A.Access a j) =
+    do as <- tr_lv i a
+       js <- tr_expr'' i j
+       t <- case typ as of
+                A.ArrT e _ -> return e
+                _ -> abort "Accesses can only be used on arrays"
+
+       abortIf (not $ tmatch (typ js) A.Int)
+           "Access index has to be of type \"int\""
+
+       return $ eseman { prep = prepFold [as, js],
+                         typ = t,
+                         expr = IR.LV $ IR.Access (fromLV $ expr as) (expr js) }

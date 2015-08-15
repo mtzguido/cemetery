@@ -35,16 +35,15 @@ data Expr = ConstInt Int
           | BinOp BinOp Expr Expr
           | UnOp UnOp Expr
           | Call VarName [Expr]
-          | Var VarName
+          | LV LValue
           | ConstStr String
           | BinLit [Int] Int  -- bytes and length in *bits*
           | Arr [Expr]
           | Slice Expr Expr Expr -- Array, From, To
-          | Access Expr Expr -- Array, Pos
           deriving (Eq, Show)
 
 data Stmt = Skip
-          | Assign VarName Expr
+          | Assign LValue Expr
           | If Expr Stmt Stmt
           | Seq Stmt Stmt
           | Return Expr
@@ -52,6 +51,10 @@ data Stmt = Skip
           | For VarName Expr Expr Stmt
           | Err String
           deriving (Eq, Show)
+
+data LValue = Var String
+            | Access LValue Expr
+            deriving (Eq, Show)
 
 data Mods = Const | Extern | Static
     deriving (Eq, Show)

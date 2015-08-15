@@ -1,2 +1,2 @@
 fun f(x : bits) : bits
-	return x[x,2]
+	return x[[x,2]]

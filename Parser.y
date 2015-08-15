@@ -56,6 +56,7 @@ import qualified AST as A
 	RSHIFT		{ L.Tok L.RShift _ }
 	SLASH		{ L.Tok L.Slash _ }
 	SQUARE		{ L.Tok L.Square _ }
+	SQUARE2		{ L.Tok L.Square2 _ }
 	STATIC		{ L.Tok L.Static _ }
 	STRING		{ L.Tok (L.StringLit _) _ }
 	TILDE		{ L.Tok L.Tilde _ }
@@ -63,6 +64,7 @@ import qualified AST as A
 	UNBRACE		{ L.Tok L.Unbrace _ }
 	UNPAREN		{ L.Tok L.Unparen _ }
 	UNSQUARE	{ L.Tok L.Unsquare _ }
+	UNSQUARE2	{ L.Tok L.Unsquare2 _ }
 	VAR		{ L.Tok L.Var _ }
 
 	PLUSASSIGN	{ L.Tok L.PlusAssign _ }
@@ -84,6 +86,7 @@ import qualified AST as A
 %left ELSE
 %left NEG TILDE
 %left SQUARE
+%left SQUARE2
 %%
 
 Prog : EOF		{ [] }
@@ -92,11 +95,12 @@ Prog : EOF		{ [] }
      | BREAK Prog	{ $2 }
 
 id : ID { readIdent $1 }
-type : TYPE { readType $1 }
 intlit : INT { readInt $1 }
 floatlit : FLOAT { readFloat $1 }
 strlit : STRING { readStr $1 }
 boollit : BOOL { readBool $1 }
+type : TYPE { readType $1 }
+     | TYPE SQUARE intlit UNSQUARE { A.ArrT (readType $1) (Just $3) }
 
 fun : funmods FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {
@@ -126,13 +130,13 @@ stmt_group : BRACE stmts UNBRACE	{ $2 }
 vardecl : mods idents var_typ var_init BREAK
 				{ map (\n -> A.VarDecl n $1 $3 $4) $2 }
 
-stmt : id EQ expr BREAK		{ A.Assign $1 $3 }
+stmt : lv EQ expr BREAK		{ A.Assign $1 $3 }
      | RETURN expr BREAK	{ A.Return $2 }
      | BREAK			{ A.Skip }
      | vardecl			{ foldl1 A.Seq (map A.Decl $1) }
      | stmt_group		{ $1 }
      | if			{ $1 }
-     | id abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.Var $1) $3) }
+     | lv abbrev_op expr BREAK	{ A.Assign $1 (A.BinOp $2 (A.LV $1) $3) }
      | FOR id IN expr DOT2 expr
 	stmt_group		{ A.For $2 $4 $6 $7 }
      | ERROR strlit		{ A.Err $2 }
@@ -170,8 +174,8 @@ bytes : intlit bytes		{ (explode $1) ++ $2 }
 
 expr : intlit			{ A.ConstInt $1 }
      | floatlit			{ A.ConstFloat $1 }
-     | id			{ A.Var $1 }
      | binlit			{ $1 }
+     | lv			{ A.LV $1 }
      | expr PLUS	expr	{ A.BinOp A.Plus	$1 $3 }
      | expr DASH	expr	{ A.BinOp A.Minus	$1 $3 }
      | expr SLASH	expr	{ A.BinOp A.Div		$1 $3 }
@@ -201,10 +205,11 @@ expr : intlit			{ A.ConstInt $1 }
      | strlit			{ A.ConstStr $1 }
      | boollit			{ A.ConstBool $1 }
      | SQUARE exprs UNSQUARE	{ A.Arr $2 }
-     | expr SQUARE expr UNSQUARE
-				{ A.Access $1 $3 }
-     | expr SQUARE expr COMMA expr UNSQUARE
+     | expr SQUARE2 expr COMMA expr UNSQUARE2
 				{ A.Slice $1 $3 $5 }
+
+lv : id				{ A.Var $1 }
+   | lv SQUARE expr UNSQUARE	{ A.Access $1 $3 }
 
 exprs : {- empty -}			{ [] }
       | BRACE exprs UNBRACE exprs	{ $2 ++ $4 }

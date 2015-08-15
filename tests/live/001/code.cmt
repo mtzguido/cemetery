@@ -9,7 +9,7 @@ fun weird() : bits
 	b = b | b
 	b = ~b
 	b = b ||| b
-	b = b[5, 9]
+	b = b[[5, 9]]
 	b = b >>> toint(b)
 	return b
 

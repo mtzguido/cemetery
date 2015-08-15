@@ -169,14 +169,14 @@ static fun P(b : bits) : bits
 	return permute(b, p_map, 32)
 
 static fun S(b : bits) : bits
-	var f1 = b[ 0,  5]
-	var f2 = b[ 6, 11]
-	var f3 = b[12, 17]
-	var f4 = b[18, 23]
-	var f5 = b[24, 29]
-	var f6 = b[30, 35]
-	var f7 = b[36, 41]
-	var f8 = b[42, 47]
+	var f1 = b[[ 0,  5]]
+	var f2 = b[[ 6, 11]]
+	var f3 = b[[12, 17]]
+	var f4 = b[[18, 23]]
+	var f5 = b[[24, 29]]
+	var f6 = b[[30, 35]]
+	var f7 = b[[36, 41]]
+	var f8 = b[[42, 47]]
 
 	f1 = tobits(S1[toint(f1)], 4)
 	f2 = tobits(S2[toint(f2)], 4)
@@ -205,12 +205,12 @@ fun des(b0 k0 : bits) : bits
 	var b k : bits
 
 	b = IP(b0)
-	l = b[ 0, 31]
-	r = b[32, 63]
+	l = b[[ 0, 31]]
+	r = b[[32, 63]]
 
 	k = PC1(k0)
-	C = k[ 0, 27]
-	D = k[28, 55]
+	C = k[[ 0, 27]]
+	D = k[[28, 55]]
 
 	for i in 1..16
 		var T : bits
@@ -236,12 +236,12 @@ fun un_des(b0 k0 : bits) : bits
 	var b k : bits
 
 	b = IP(b0)
-	r = b[ 0, 31]
-	l = b[32, 63]
+	r = b[[ 0, 31]]
+	l = b[[32, 63]]
 
 	k = PC1(k0)
-	C = k[ 0, 27]
-	D = k[28, 55]
+	C = k[[ 0, 27]]
+	D = k[[28, 55]]
 
 	for i in 1..16
 		var T : bits
