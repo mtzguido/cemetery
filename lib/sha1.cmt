@@ -46,7 +46,7 @@ static fun pad(m : bits) : bits
 fun sha1(m0 : bits) : bits
 	var N : int
 	var a b c d e A B C D E T : bits
-	var W : bits
+	var W : bits[80]
 	var m : bits
 
 	m = pad(m0)
@@ -61,15 +61,13 @@ fun sha1(m0 : bits) : bits
 	for i in 1..N
 		var Mi = m[[(i - 1) * 512, i * 512 - 1]]
 
-		W = Mi
+		for t in 0..15
+			W[t] = Mi[[t * 32, t * 32 + 31]]
+
 		for t in 16..79
 			var T : bits
-			T = W[[(t - 3) * 32, (t - 3) * 32 + 31]]
-			T = T ^ W[[(t - 8) * 32, (t - 8) * 32 + 31]]
-			T = T ^ W[[(t - 14) * 32, (t - 14) * 32 + 31]]
-			T = T ^ W[[(t - 16) * 32, (t - 16) * 32 + 31]]
-
-			W = W ||| (T <<< 1)
+			T = W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16]
+			W[t] = T <<< 1
 
 		a = A
 		b = B
@@ -80,7 +78,7 @@ fun sha1(m0 : bits) : bits
 		for t in 0..79
 			-- here, addition should be interpreted as
 			-- modulo 32 bit.
-			T = (a <<< 5) + f(t, b, c, d) + e + K(t) + W[[t * 32, t * 32 + 31]]
+			T = (a <<< 5) + f(t, b, c, d) + e + K(t) + W[t]
 			e = d
 			d = c
 			c = b <<< 30
