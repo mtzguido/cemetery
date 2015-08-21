@@ -3,10 +3,10 @@
 all: sha1sum
 
 sha1sum: sha1.o sha1sum.o
-	gcc -pg $^ -o $@
+	$(CC) -pg $^ -o $@
 
 %.o: %.c
-	gcc -c -pg $< -o $@
+	$(CC) -c -pg $< -o $@
 
 sha1.c sha1.h: sha1.cmt
 	../cmt $<
