@@ -101,6 +101,7 @@ strlit : STRING { readStr $1 }
 boollit : BOOL { readBool $1 }
 type : TYPE { readType $1 }
      | TYPE SQUARE intlit UNSQUARE { A.ArrT (readType $1) (Just $3) }
+     | TYPE SQUARE        UNSQUARE { A.ArrT (readType $1)  Nothing  }
 
 fun : funmods FUN id PAREN args UNPAREN COLON type
       BRACE stmts UNBRACE	{ A.FunDecl {

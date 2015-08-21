@@ -1,0 +1,2 @@
+fun g(a : int[], i : int) : int
+	return a[i]
