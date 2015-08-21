@@ -91,7 +91,7 @@ data Stmt = Assign      LValue Expr
           | If          Expr Block Block -- Expr is true if non-zero
           | For         LValue Expr Expr Block
           | Error       String
-          | Free        LValue
+          | Free        [LValue]
   deriving (Eq, Show)
 
 sseq Skip r = r

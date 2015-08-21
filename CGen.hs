@@ -179,7 +179,11 @@ g_stmt (I.Error s) =
        let a = C.Call "abort" []
        return (C.Seq (C.Expr c) (C.Expr a))
 
-g_stmt (I.Free l) =
+g_stmt (I.Free lvs) =
+    do es <- mapM g_free_one lvs
+       return (sfold es)
+
+g_free_one l =
     do l' <- g_lvalue l
        return $ C.Expr $ C.Call "cmt_free" [C.LV l']
 
