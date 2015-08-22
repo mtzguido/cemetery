@@ -4,15 +4,23 @@ import IR
 import qualified Data.Set as S
 import Debug.Trace
 import Common
+import Control.Monad.Identity
 
 ---------------------------------------------------------------------
 -- Live variable analysis
 ---------------------------------------------------------------------
 
-liveness (d, s) =
-    let tracked = track_set d
-        s' = sfold $ liv tracked S.empty S.empty $ flatten s
-     in (d, s')
+type LM = Identity
+
+liveness (d, s) = runIdentity $ do_liv (d, s)
+
+do_liv (d, s) =
+    do let tracked = track_set d
+       s' <- liv tracked S.empty S.empty (flatten s)
+       return (d, sfold s')
+
+track_set :: [Decl] -> S.Set LValue
+track_set d = S.fromList $ locals $ filter tracked_decl d
 
 -- Does any of the declarations in ds hide lv?
 hidden lv ds =
@@ -112,9 +120,6 @@ locals ds = concatMap ff ds where
          ff (DeclLocal lv _) = [lv]
          ff _ = []
 
-track_set :: [Decl] -> S.Set LValue
-track_set d = S.fromList $ locals $ filter tracked_decl d
-
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
@@ -131,25 +136,44 @@ do_frees u ls lo s =
      in (ls S.\\ un, [free un])
 
 liv u ls lo ss =
-    let (ls', f) = do_frees u ls lo ss
-        ss' = liv' u ls' lo ss
-     in f ++ ss'
+    do let (ls', f) = do_frees u ls lo ss
+       ss' <- liv' u ls' lo ss
+       return (f ++ ss')
 
-liv' u ls lo [] = []
+liv' u ls lo [] =
+    do return []
+
+-- We need to do frees manually in these two cases since we don't care
+-- about keeping the values in "lo", like we usually do
+liv' u ls lo (s@(Return (LV lv)):ss) = return $ [free (S.delete lv ls), s]
+liv' u ls lo (s@(Error _):ss) =        return [free ls, s]
+liv' u ls lo (s@(Assign l _):ss) =
+    do if shadow_s l ss
+       then liv' u ls lo ss
+       else if S.member l u
+            then liv_assign u ls lo s ss
+            else do ss' <- liv' u ls lo ss
+                    return (s:ss')
+
+liv' u ls lo (s@(If c t e):ss) =
+    do t' <- liv_block u ls t
+       e' <- liv_block u ls e
+       ss' <- liv u ls lo ss
+       return ((If c t' e'):ss')
+
+liv' u ls lo (s@(For i l h b):ss) =
+    do b' <- liv_block u ls b
+       ss' <- liv u ls lo ss
+       return ((For i l h b'):ss')
+
 liv' u ls lo (s:ss) =
+    do ss' <- liv u ls lo ss
+       return (s:ss')
+
+liv_assign u ls lo s@(Assign l e) ss =
     case s of
-        -- We need to do frees manually here since we don't
-        -- care about keeping the values in "lo", like liv
-        -- does.
-        Return (IR.LV lv) ->
-            [free (S.delete lv ls)] ++ [s]
-
-        -- Same here
-        Error m ->
-            [free ls, s]
-
         Assign l e | S.member l ls ->
-            error "BUG: Assigning to live value"
+            error $ "BUG: Assigning to live value " ++ show (l, e, ls)
 
         Assign l e | shadow_s l ss ->
             liv u ls lo ss
@@ -161,36 +185,19 @@ liv' u ls lo (s:ss) =
                           && S.member lv u ->
             liv u (S.delete lv ls) lo ((Assign l (LV lv)):ss)
 
-        Assign l (Cluster _ _) | not (S.member l u) ->
-            error "liveness: cluster not tracked?"
-
         Assign l (Cluster ce as) ->
-            let un  = unneeded ls lo ss
-                un' = S.intersection un (S.fromList (map fst as))
-                ls' = ls S.\\ un'
-                as' = map (\(lv,_) -> (lv, S.member lv un')) as
-             in [Assign l (Cluster ce as')] ++
-                    liv u (S.insert l ls') lo ss
+            do let un  = unneeded ls lo ss
+                   un' = S.intersection un (S.fromList (map fst as))
+                   ls' = ls S.\\ un'
+                   as' = map (\(lv,_) -> (lv, S.member lv un')) as
+               ss' <- liv u (S.insert l ls') lo ss
+               return $ [Assign l (Cluster ce as')] ++ ss'
 
-        Assign l e | S.member l u ->
-            [s] ++ liv u (S.insert l ls) lo ss
-
-        If c t e ->
-            let t' = liv_block u ls t
-                e' = liv_block u ls e
-             in [If c t' e']
-                ++ liv u ls lo ss
-
-        For i l h b ->
-            let b' = liv_block u ls b
-             in [For i l h b']
-                ++ liv u ls lo ss
-
-        _ ->
-            let s' = liv u ls lo ss
-             in [s] ++ s'
+        Assign l e ->
+            do ss' <- liv u (S.insert l ls) lo ss
+               return $ [s] ++ ss'
 
 liv_block u ls (d, s) =
-    let u' = S.union (S.difference u (S.fromList $ locals d)) (track_set d)
-        s' = sfold $ liv u' ls ls $ flatten s
-     in (d, s')
+    do let u' = S.union (S.difference u (S.fromList $ locals d)) (track_set d)
+       s' <- liv u' ls ls (flatten s)
+       return (d, sfold s')
