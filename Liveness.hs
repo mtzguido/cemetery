@@ -59,18 +59,11 @@ set_univ u = do s <- get
 
 initState = LMState { live = S.empty, live_out = S.empty, univ = S.empty }
 
-liveness (d, s) =
-    let m = do_liv (d, s)
+liveness b =
+    let m = liv_block b
         i = runStateT m initState
-        (v, _) = runIdentity i
-     in v
-
-do_liv :: ([Decl], Stmt) -> LM ([Decl], Stmt)
-do_liv (d, s) =
-    do let tracked = track_set d
-       set_univ tracked
-       s' <- liv (flatten s)
-       return (d, sfold s')
+        (b', _) = runIdentity i
+     in b'
 
 track_set :: [Decl] -> S.Set LValue
 track_set d = S.fromList $ locals $ filter tracked_decl d
