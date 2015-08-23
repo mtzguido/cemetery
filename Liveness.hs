@@ -35,11 +35,18 @@ add_live     = mod_live     S.insert
 add_live_out :: LValue -> LM ()
 add_live_out = mod_live_out S.insert
 
+add_univ :: LValue -> LM ()
+add_univ = mod_univ S.insert
+
 del_live :: LValue -> LM ()
 del_live     = mod_live     S.delete
 
 del_live_out :: LValue -> LM ()
 del_live_out = mod_live_out S.delete
+
+del_univ :: LValue -> LM ()
+del_univ = mod_univ S.delete
+
 
 getS :: (LMState -> a) -> LM a
 getS f = do s <- get
@@ -64,9 +71,6 @@ liveness b =
         i = runStateT m initState
         (b', _) = runIdentity i
      in b'
-
-track_set :: [Decl] -> S.Set LValue
-track_set d = S.fromList $ locals $ filter tracked_decl d
 
 -- Does any of the declarations in ds hide lv?
 hidden lv ds =
@@ -158,13 +162,6 @@ varst_b lv (ds, s) =
 used_s lv s   = varst lv s == Used
 unused_s lv s = varst lv s == Unused
 shadow_s lv s = varst lv s == Shadowed
-
-tracked_decl (DeclLocal _ Bits) = True
-tracked_decl _ = False
-
-locals ds = concatMap ff ds where
-         ff (DeclLocal lv _) = [lv]
-         ff _ = []
 
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
@@ -259,14 +256,25 @@ liv_assign s@(Assign l e) ss =
                ss' <- liv ss
                return $ [s] ++ ss'
 
-liv_block (d, s) =
-    do u <- getS univ
+
+tracked_type Bits = True
+--tracked_type (ArrT Bits _) = True
+tracked_type _ = False
+
+add_decl (DeclLocal lv t) =
+    do del_univ lv
+       when (tracked_type t) $ do add_univ lv
+
+add_decl (DeclGlobal _ _ _) =
+    do return ()
+
+liv_block (ds, s) =
+    do u  <- getS univ
        ls <- getS live
        lo <- getS live_out
 
-       let u' = S.union (S.difference u (S.fromList $ locals d)) (track_set d)
+       mapM add_decl ds
 
-       set_univ u'
        set_live ls
        set_live_out ls
 
@@ -276,4 +284,4 @@ liv_block (d, s) =
        set_live ls
        set_live_out lo
 
-       return (d, sfold s')
+       return (ds, sfold s')
