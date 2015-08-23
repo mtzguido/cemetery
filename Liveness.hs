@@ -1,11 +1,14 @@
 module Liveness where
 
-import IR
 import qualified Data.Set as S
+import Data.List
+import qualified Data.Map.Strict as M
 import Debug.Trace
-import Common
 import Control.Monad.Identity
 import Control.Monad.State
+
+import Common
+import IR
 
 ---------------------------------------------------------------------
 -- Live variable analysis
@@ -13,40 +16,46 @@ import Control.Monad.State
 
 data LMState = LMState {
     live :: S.Set LValue,
+    kind :: M.Map LValue Type,
     live_out :: S.Set LValue,
     univ :: S.Set LValue
  }
 
 type LM = StateT LMState Identity
 
-mod_live f v =
+mod_live f =
     do s <- get
-       put (s { live = f v (live s) })
-mod_live_out f v =
+       put (s { live = f (live s) })
+mod_kind f =
     do s <- get
-       put (s { live_out = f v (live_out s) })
-mod_univ f v =
+       put (s { kind = f (kind s) })
+mod_live_out f =
     do s <- get
-       put (s { univ = f v (univ s) })
+       put (s { live_out = f (live_out s) })
+mod_univ f =
+    do s <- get
+       put (s { univ = f (univ s) })
 
 add_live :: LValue -> LM ()
-add_live     = mod_live     S.insert
+add_live = mod_live.(S.insert)
 
 add_live_out :: LValue -> LM ()
-add_live_out = mod_live_out S.insert
+add_live_out = mod_live_out.(S.insert)
 
-add_univ :: LValue -> LM ()
-add_univ = mod_univ S.insert
+add_univ :: LValue -> Type -> LM ()
+add_univ lv t = do mod_univ (S.insert lv)
+                   mod_kind (M.insert lv t)
 
 del_live :: LValue -> LM ()
-del_live     = mod_live     S.delete
+del_live     = mod_live.(S.delete)
 
 del_live_out :: LValue -> LM ()
-del_live_out = mod_live_out S.delete
+del_live_out = mod_live_out.(S.delete)
 
 del_univ :: LValue -> LM ()
-del_univ = mod_univ S.delete
-
+del_univ lv = do mod_univ (S.delete lv)
+                 s <- get
+                 put (s { kind = M.delete lv (kind s) })
 
 getS :: (LMState -> a) -> LM a
 getS f = do s <- get
@@ -56,6 +65,10 @@ set_live :: S.Set LValue -> LM ()
 set_live u = do s <- get
                 put ( s { live = u })
 
+set_kind :: M.Map LValue Type -> LM ()
+set_kind u = do s <- get
+                put ( s { kind = u })
+
 set_live_out :: S.Set LValue -> LM ()
 set_live_out u = do s <- get
                     put ( s { live_out = u })
@@ -64,7 +77,18 @@ set_univ :: S.Set LValue -> LM ()
 set_univ u = do s <- get
                 put ( s { univ = u })
 
-initState = LMState { live = S.empty, live_out = S.empty, univ = S.empty }
+type_of :: LValue -> LM Type
+type_of lv = do k <- getS kind
+                case M.lookup lv k of
+                    Nothing -> error "wat"
+                    Just t -> return t
+
+initState = LMState {
+    live = S.empty,
+    kind = M.empty,
+    live_out = S.empty,
+    univ = S.empty
+ }
 
 liveness b =
     let m = liv_block b
@@ -166,7 +190,11 @@ shadow_s lv s = varst lv s == Shadowed
 flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
-free set = Free (S.toList set)
+free_one l =
+    do return (Free [l])
+
+free set =
+    mapM free_one (S.toList set)
 
 unneeded ls lo ss =
     let used     = S.filter (flip used_s   ss) ls
@@ -179,7 +207,7 @@ do_frees s =
        lo <- getS live_out
        let un = unneeded ls lo s
        mapM del_live (S.toList un)
-       return [free un]
+       free un
 
 liv ss =
     do f <- do_frees ss
@@ -193,11 +221,13 @@ liv' [] =
 -- about keeping the values in "lo", like we usually do
 liv' (s@(Return (LV lv)):ss) =
     do ls <- getS live
-       return $ [free (S.delete lv ls), s]
+       f <- free (S.delete lv ls)
+       return $ f ++ [s]
 
 liv' (s@(Error _):ss) =
     do ls <- getS live
-       return [free ls, s]
+       f <- free ls
+       return $ f ++ [s]
 
 liv' (s@(Assign l _):ss) =
     do u <- getS univ
@@ -263,13 +293,14 @@ tracked_type _ = False
 
 add_decl (DeclLocal lv t) =
     do del_univ lv
-       when (tracked_type t) $ do add_univ lv
+       when (tracked_type t) $ do add_univ lv t
 
 add_decl (DeclGlobal _ _ _) =
     do return ()
 
 liv_block (ds, s) =
     do u  <- getS univ
+       k  <- getS kind
        ls <- getS live
        lo <- getS live_out
 
@@ -283,5 +314,6 @@ liv_block (ds, s) =
        set_univ u
        set_live ls
        set_live_out lo
+       set_kind k
 
        return (ds, sfold s')
