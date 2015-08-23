@@ -92,6 +92,7 @@ data Stmt = Assign      LValue Expr
           | For         LValue Expr Expr Block
           | Error       String
           | Free        [LValue]
+          | FreeArr     [LValue]
   deriving (Eq, Show)
 
 sseq Skip r = r

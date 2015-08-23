@@ -183,6 +183,9 @@ g_stmt (I.Free lvs) =
     do es <- mapM g_free_one lvs
        return (sfold es)
 
+g_stmt (I.FreeArr lvs) =
+    do return (C.Comment "free_arr")
+
 g_free_one l =
     do l' <- g_lvalue l
        return $ C.Expr $ C.Call "cmt_free" [C.LV l']

@@ -80,7 +80,7 @@ set_univ u = do s <- get
 type_of :: LValue -> LM Type
 type_of lv = do k <- getS kind
                 case M.lookup lv k of
-                    Nothing -> error "wat"
+                    Nothing -> trace ("wat: " ++ show (lv, k)) (return Bits)
                     Just t -> return t
 
 initState = LMState {
@@ -191,7 +191,11 @@ flatten (Seq l r) = flatten l ++ flatten r
 flatten s = [s]
 
 free_one l =
-    do return (Free [l])
+    do t <- type_of l
+       let f = case t of
+                   Bits -> Free
+                   ArrT Bits _ -> FreeArr
+       return (f [l])
 
 free set =
     mapM free_one (S.toList set)
