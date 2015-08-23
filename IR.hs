@@ -18,7 +18,7 @@ type IR = [Unit]
 
 data Type = Int | Bool | ArrT Type (Maybe Int)
           | Bits
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data Unit = FunDef Funtype Block
           | Decl Decl
