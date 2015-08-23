@@ -37,7 +37,8 @@ mod_univ f =
        put (s { univ = f (univ s) })
 
 add_live :: LValue -> LM ()
-add_live = mod_live.(S.insert)
+add_live (Access _ _) = do return ()
+add_live l = mod_live (S.insert l)
 
 add_live_out :: LValue -> LM ()
 add_live_out = mod_live_out.(S.insert)
@@ -193,9 +194,9 @@ flatten s = [s]
 free_one l =
     do t <- type_of l
        let f = case t of
-                   Bits -> Free
-                   ArrT Bits _ -> FreeArr
-       return (f [l])
+                   Bits -> Free [l]
+                   ArrT Bits (Just i) -> FreeArr [l] i
+       return f
 
 free set =
     mapM free_one (S.toList set)
@@ -233,14 +234,23 @@ liv' (s@(Error _):ss) =
        f <- free ls
        return $ f ++ [s]
 
+liv' (s@(Assign l _):ss) | shadow_s l ss =
+    liv ss
+
+liv' (s@(Assign (Access a i) _):ss) =
+    do ls <- getS live
+       if S.member a ls
+       then do ss' <- liv_assign s ss
+               let f = Free [Access a i]
+               return (f:ss')
+       else liv_assign s ss
+
 liv' (s@(Assign l _):ss) =
     do u <- getS univ
-       if shadow_s l ss
-       then liv ss
-       else if S.member l u
-            then liv_assign s ss
-            else do ss' <- liv ss
-                    return (s:ss')
+       if S.member l u
+       then liv_assign s ss
+       else do ss' <- liv ss
+               return (s:ss')
 
 liv' (s@(If c t e):ss) =
     do t' <- liv_block t
@@ -265,16 +275,13 @@ liv_assign s@(Assign l e) ss =
         Assign l e | S.member l ls ->
             error $ "BUG: Assigning to live value " ++ show (l, e, ls)
 
-        Assign l e | shadow_s l ss ->
-            liv ss
-
         -- Avoid copies of temporaries that will be freed on
         -- the next step
         Assign l (Copy lv) | not (used_s lv ss)
                           && (not (S.member lv lo) || shadow_s lv ss)
                           && S.member lv u ->
             do del_live lv
-               liv ((Assign l (LV lv)):ss)
+               liv_assign (Assign l (LV lv)) ss
 
         Assign l (Cluster ce as) ->
             do let un  = unneeded ls lo ss
@@ -285,14 +292,23 @@ liv_assign s@(Assign l e) ss =
                ss' <- liv ss
                return $ [Assign l (Cluster ce as')] ++ ss'
 
-        Assign l e ->
+        -- If the expression is an access (forcefully to a bits[])
+        -- then don't add l as a live value, since we don't need to
+        -- free it afterwards
+        Assign l (LV e) | is_access e ->
+            do ss' <- liv ss
+               return $ [s] ++ ss'
+
+        Assign l _ ->
             do add_live l
                ss' <- liv ss
                return $ [s] ++ ss'
 
+is_access (Access _ _) = True
+is_access _ = False
 
 tracked_type Bits = True
---tracked_type (ArrT Bits _) = True
+tracked_type (ArrT Bits _) = True
 tracked_type _ = False
 
 add_decl (DeclLocal lv t) =

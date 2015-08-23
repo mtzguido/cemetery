@@ -501,6 +501,13 @@ static cmt_bits_t __cmt_resize_zero(cmt_bits_t b, int len)
 	return b;
 }
 
+static void __cmt_free_bitarr(cmt_bits_t *a, int len)
+{
+	int i;
+	for (i = 0; i < len; i++)
+		cmt_free(a[i]);
+}
+
 #undef W
 #undef WB
 #undef bit
