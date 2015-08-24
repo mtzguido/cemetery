@@ -398,6 +398,19 @@ cmt_bits_t __cmt_init(struct cmt_init *init, int length)
 	return ret;
 }
 
+static inline word_t add_carry(word_t *c, word_t l, word_t r)
+{
+	word_t t = l + r;
+	word_t sc = *c;
+	word_t o = 0;
+
+	if (t < l || t + sc < t)
+		o = 1;
+
+	*c = o;
+	return t + sc;
+}
+
 cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
@@ -405,13 +418,9 @@ cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 	int i;
 
 	for (i = 0; i < ret->size; i++) {
-		cc = c;
-		c = c + get_word(l, i) + get_word(r, i);
+		cc = add_carry(&c, get_word(l,i), get_word(r, i));
 
-		set_word(ret, i, c);
-
-		if (c < cc)
-			c = 1;
+		set_word(ret, i, cc);
 	}
 
 	__cmt_fixup(ret);
