@@ -18,6 +18,7 @@ import IR as I
 import Lexer
 import Optimize
 import Parser
+import PMonad
 import Prologue
 import TMonad
 import Translate
@@ -152,7 +153,11 @@ work = do (opts, filename) <- ask
           dbgLn $ concat $ map ((\s -> s ++ "\n").show) toks
           breakIf StopLexer
 
-          let ast = cmtParse toks
+          let m = runPMonad $ cmtParse toks
+          ast <- case m of
+                     Left e ->  throwError e
+                     Right a -> return a
+
           when (ast == []) $ throwError (CmtErr "File is empty")
 
           dbg "AST: "

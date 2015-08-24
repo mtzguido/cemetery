@@ -2,6 +2,7 @@ module Common where
 
 import Data.List (elemIndex)
 import Control.Monad.Error
+import Lexer
 import Debug.Trace
 
 -- Works similarly to the Unix 'tr' command
@@ -14,9 +15,14 @@ tr from to seq = map repl1 seq where
 traceM :: (Monad m) => String -> m ()
 traceM s = trace s (return ())
 
--- Single stub error, should be expanded later on
-data CmtError = CmtErr String
-  deriving Show
+data CmtError = CmtErr String  -- generic error
+              | ParseErr Token -- tokens, line, char
+
+instance Show CmtError where
+  show (CmtErr s) = "generic error: " ++ s
+  show (ParseErr (Tok s (AlexPn _ l c))) =
+      "parse error near \"" ++ show s ++ "\", on line " ++ show l ++
+          " char " ++ show c
 
 shuf l r = concat $ map (\(a,b) -> [a,b]) $ zip l r
 

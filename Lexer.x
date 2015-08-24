@@ -1,5 +1,5 @@
 {
-module Lexer (Token(..), Sym(..), alexMonadScan, runAlex, alexEOF) where
+module Lexer (Token(..), Sym(..), alexMonadScan, runAlex, alexEOF, AlexPosn(..)) where
 
 import qualified AST
 import Debug.Trace

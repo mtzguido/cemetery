@@ -9,7 +9,7 @@ endif
 
 obj-y          := AST.o Builtins.o Cemetery.o CGen.o CLang.o \
 		  Common.o CPrint.o Type.o IR.o Optimize.o \
-		  TMonad.o Translate.o Liveness.o
+		  TMonad.o Translate.o Liveness.o PMonad.o
 
 automods       := Lexer.hs Parser.hs Prologue.hs
 obj-y          += $(patsubst %.hs,%.o,$(automods))

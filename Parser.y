@@ -4,12 +4,17 @@ module Parser where
 import qualified Data.ByteString as B
 import qualified Lexer as L
 import qualified AST as A
+import PMonad
+import Common
+import Control.Monad.Error
 
 }
 
+%monad { PMonad }
+
 %name cmtParse
 %tokentype { L.Token }
-%error { \s -> error $ "Parse error near token: " ++ show (head s) }
+%error { \s -> throwError $ ParseErr (head s) }
 
 %token
 	AMP		{ L.Tok L.Amp _ }
