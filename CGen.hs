@@ -132,6 +132,9 @@ g_decl (I.DeclGlobal n t e) =
        e_c <- g_expr e
        return $ C.VarDecl n tt (Just e_c) []
 
+zero_bits (I.ConstBits [] 0) = True
+zero_bits _ = False
+
 g_stmt :: I.Stmt -> GM C.Stmt
 g_stmt (I.Seq l r) =
     do ll <- g_stmt l
@@ -143,6 +146,11 @@ g_stmt I.Skip =
 
 -- Special handling for array assignments, since C doesn't
 -- provide an array assignment
+g_stmt (I.Assign lv (I.Arr es)) | all zero_bits es =
+    do lv' <- g_lvalue lv
+       let n = length es
+       return $ (c_call "__cmt_init_bitarr" [C.LV lv', C.ConstInt n])
+
 g_stmt (I.Assign lv (I.Arr es)) =
     do let a i = I.Assign (I.Access lv (I.ConstInt i)) (es !! i)
        ss <- mapM (g_stmt.a) [0..length es - 1]
