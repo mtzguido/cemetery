@@ -1,15 +1,11 @@
 - Make "error" something sane and catcheable
 
-- Define precisely what arrays mean, and if they can be composed of more
-  complex types or not.
-
 - Keep in mind the difference between static and dynamic variables.
   This is especially important for arrays, since the can be statically
   initialized on some places and not in others.
 
-- Consider add a permutation type.
+- Consider adding a permutation type.
 
-- Coallesce operations made of ~, &, |, ^ and + into a single function,
-  to improve speed. This shouldn't be super hard.
+- In-place simple operations like "A = A <<< 1"
 
 - Handle small buffers more efficiently by keeping them in words.
