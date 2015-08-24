@@ -323,7 +323,7 @@ tr_ldecl' n mods es =
 binop_table :: [(A.BinOp, A.Type, A.Type, A.Type, IR.BinOp, Bool)]
 binop_table = [
     (A.Plus,    A.Int,  A.Int,    A.Int,  IR.Plus,    False),
-    (A.Plus,    A.Bits, A.Bits,   A.Bits, IR.ModPlus, False),
+    (A.Plus,    A.Bits, A.Bits,   A.Bits, IR.ModPlus, True ),
     (A.Minus,   A.Int,  A.Int,    A.Int,  IR.Minus,   False),
     (A.Div,     A.Int,  A.Int,    A.Int,  IR.Div,     False),
     (A.Prod,    A.Int,  A.Int,    A.Int,  IR.Prod,    False),

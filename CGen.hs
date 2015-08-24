@@ -12,6 +12,7 @@ import Control.Monad.Identity
 
 bitsType_str = C.Custom "struct cmt_init"
 bitsType = C.Custom "cmt_bits_t"
+wordType = C.Custom "word_t"
 
 -- Generate source file and header
 cgen :: I.IR -> (C.Prog, C.Prog)
@@ -277,9 +278,14 @@ make_cluster e fs n =
        let maxcall = C.Call "__cmt_maxv" (lengths ++ [C.ConstInt (-1)])
        let words = map (\v -> C.Call "get_word" [C.LV $ C.LVar v,
                                                  C.LV $ C.LVar "i"]) arg_names
-       let res = make_cluster_expr words e
+       let (nt, p, res) = make_cluster_expr 0 words e
 
-       let ast = cluster_ast maxcall fs res n
+       let ff i = [C.VarDecl ("_mpt" ++ show i) wordType (Just (C.ConstInt 0)) [],
+                   C.VarDecl ("_mpc" ++ show i) wordType Nothing []]
+
+       let ds = concatMap ff [1..nt]
+
+       let ast = cluster_ast maxcall fs res n p ds
 
        let ft = C.Funtype { C.name = "__cmt_cluster_impl_" ++ show idx,
                             C.args = formal, C.mods = [C.Static],
@@ -287,37 +293,53 @@ make_cluster e fs n =
 
        return $ C.FunDef ft ast
 
-make_cluster_expr words (I.CArg i) = words !! i
-make_cluster_expr words (I.CBinOp op l r) =
-    let l' = make_cluster_expr words l
-        r' = make_cluster_expr words r
-        op' = clustered_binop op
-     in C.BinOp op' l' r'
+c_assign l e = C.Expr $ C.BinOp C.Assign (C.LV l) e
+c_call f a = C.Expr $ C.Call f a
 
-make_cluster_expr words (I.CUnOp op e) =
-    let e' = make_cluster_expr words e
+make_cluster_expr n words (I.CArg i) = (n, C.Skip, words !! i)
+make_cluster_expr n words (I.CBinOp I.ModPlus l r) =
+    let (nl, pl, l') = make_cluster_expr n words l
+        (nr, pr, r') = make_cluster_expr nl words r
+        nn = nr + 1
+        c  = C.LVar $ "_mpt" ++ show nn
+        cc = C.LVar $ "_mpc" ++ show nn
+        p' = c_assign cc (C.Call "add_carry" [C.UnOp C.Address (C.LV c),
+                                             l', r'])
+        p  = sfold [pl, pr, p']
+     in (nr + 1, p, C.LV cc)
+
+make_cluster_expr n words (I.CBinOp op l r) =
+    let (nl, pl, l') = make_cluster_expr n words l
+        (nr, pr, r') = make_cluster_expr nl words r
+        op' = clustered_binop op
+     in (nr, C.Seq pl pr, C.BinOp op' l' r')
+
+make_cluster_expr n words (I.CUnOp op e) =
+    let (ne, pe, e') = make_cluster_expr n words e
         op' = clustered_unop op
-     in C.UnOp op' e'
+     in (ne, pe, C.UnOp op' e')
 
 do_frees fs n =
     let idxs = filter (fs!!) [0..n-1]
         b i = C.LV (C.LVar ("a" ++ show i))
      in map (\i -> C.Expr $ C.Call "cmt_free" [b i]) idxs
 
-cluster_ast maxcall fs res n =
+cluster_ast maxcall fs res n p ds =
     let i    = C.LV (C.LVar "i")
         ret  = C.LV (C.LVar "ret")
         size = C.LV (C.LVar "size")
         ret_init = C.Call "__cmt_alloc" [maxcall]
+        body = sfold [p, c_call "set_word" [ret, i, res]]
      in
     ([C.VarDecl "ret" bitsType (Just ret_init) [],
-      C.VarDecl "i"   C.Int    Nothing         []],
+      C.VarDecl "i"   C.Int    Nothing         []] ++
+      ds,
      sfold $ [C.For (C.BinOp C.Assign i (C.ConstInt 0))
                     (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
                     (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
-                    ([], C.Expr $ C.Call "set_word" [ret, i, res])] ++
+                    ([], body)] ++
              do_frees fs n ++
-             [C.Return ret]
+             [c_call "__cmt_fixup" [ret], C.Return ret]
     )
 
 clustered_binop I.Band = C.Band
