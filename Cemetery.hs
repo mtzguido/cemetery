@@ -133,6 +133,22 @@ cmtReadFile fname =
        ls <- mapM (check_include (dirname fname)) (lines t)
        return (unlines ls)
 
+print_parse_err text ((Tok Break (AlexPn _ _ _)):ts) =
+    print_parse_err text ts
+
+print_parse_err text ((Tok s (AlexPn _ l c)):ts) =
+    do liftIO (putStrLn $ "Parse error near line " ++ show l)
+       let ls = lines text
+       liftIO (putStrLn $ "source> " ++ (ls !! (l-1)))
+       liftIO (putStrLn $ "source> " ++ (replicate (c-1) ' ') ++ "^")
+       return ()
+
+print_parse_err text [EOF] =
+    do liftIO (putStrLn $ "Parse error: unexpected end of file")
+       let ls = lines text
+       liftIO (putStrLn $ "source> " ++ (last ls))
+       return ()
+
 work :: App ()
 work = do (opts, filename) <- ask
           stem <- base filename
@@ -155,6 +171,8 @@ work = do (opts, filename) <- ask
 
           let m = runPMonad $ cmtParse toks
           ast <- case m of
+                     Left e@(ParseErr t) -> do print_parse_err source t
+                                               throwError e
                      Left e ->  throwError e
                      Right a -> return a
 
