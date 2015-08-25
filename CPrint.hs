@@ -50,7 +50,8 @@ p_unit (FunDecl ft) =
        line $ p ++ ";"
 
 p_unit (FunDef ft b) =
-    do p <- p_fun_proto ft
+    do line ""
+       p <- p_fun_proto ft
        line p
        line "{"
        indent $ p_block b
@@ -66,6 +67,9 @@ summarize (l:r:ds) =
         && mods' == []
             then (l:s):ss
             else [l]:s:ss
+
+p_block ([], stmt) =
+    do p_stmt stmt
 
 p_block (decls, stmt) =
     do mapM p_sum_decl (summarize decls)
