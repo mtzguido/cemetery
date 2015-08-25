@@ -130,7 +130,7 @@ p_typ Bool = do return "bool"
 p_typ UChar = do return "unsigned char"
 p_typ (Custom s) = do return s
 
-data Assoc = L | R
+data Assoc = L | R | N
   deriving (Show, Eq)
 
 b_prec Member = (1, L)
@@ -150,9 +150,9 @@ b_prec Ge    = (6, L)
 b_prec Eq    = (7, L)
 b_prec Neq   = (7, L)
 
-b_prec Band  = (8, L)
-b_prec Xor   = (9, L)
-b_prec Bor   = (10, L)
+b_prec Band  = (8, N)
+b_prec Xor   = (8, N)
+b_prec Bor   = (8, N)
 
 b_prec And   = (11, L)
 b_prec Or    = (12, L)
