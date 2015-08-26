@@ -1,12 +1,14 @@
 .PHONY: clean all re bench
+CFLAGS=-pg
+LFLAGS=-pg
 
 all: sha1sum
 
 sha1sum: sha1.o sha1sum.o
-	$(CC) -pg $^ -o $@
+	$(CC) $(LFLAGS) $^ -o $@
 
 %.o: %.c
-	$(CC) -c -pg $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 sha1.c sha1.h: sha1.cmt
 	../cmt $<
