@@ -28,6 +28,11 @@ static inline void __cmt_error(char *s)
 	abort();
 }
 
+void cmt_free(cmt_bits_t b)
+{
+	free(b);
+}
+
 #define __cmt_assert(c)						\
 	do {							\
 		if (!(c))					\
@@ -363,6 +368,25 @@ static cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 	return ret;
 }
 
+static cmt_bits_t __cmt_inplace_rotl(cmt_bits_t b, int s)
+{
+	if (b->length <= WB) {
+		word_t p, q, w;
+
+		w = b->data[0];
+		p = (w & mask_l(b->length - s)) << s;
+		q =  w >> (b->length - s);
+
+		b->data[0] = p | q;
+
+		return b;
+	} else {
+		cmt_bits_t ret = __cmt_rotl(b, s);
+		cmt_free(b);
+		return ret;
+	}
+}
+
 static cmt_bits_t __cmt_rotr(cmt_bits_t b, int s)
 {
 	return __cmt_rotl(b, b->length - s);
@@ -446,11 +470,6 @@ void cmt_copy(char *dest, cmt_bits_t b)
 
 	for (i = 0; i < l; i++)
 		dest[i] = f[l - 1 - i];
-}
-
-void cmt_free(cmt_bits_t b)
-{
-	free(b);
 }
 
 static cmt_bits_t __cmt_resize(cmt_bits_t b, int len)

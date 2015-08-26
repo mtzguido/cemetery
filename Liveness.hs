@@ -299,6 +299,10 @@ liv_assign s@(Assign l e) ss =
             do ss' <- liv ss
                return $ [s] ++ ss'
 
+        Assign l (BinOp LRot (LV b) s) | S.member b un ->
+            do del_live b
+               liv_assign (Assign l (IPLRot b s)) ss
+
         Assign l _ ->
             do add_live l
                ss' <- liv ss
