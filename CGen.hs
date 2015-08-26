@@ -6,6 +6,7 @@ import Data.Monoid
 import qualified IR as I
 import qualified CLang as C
 import Common
+import qualified Data.Map as M
 
 import Control.Monad.State
 import Control.Monad.Writer
@@ -31,11 +32,13 @@ cgen ir = let (units, ()) = runGM (g_ir ir)
 -- In 'extra' we keep those functions that are generated
 -- despite not being an IR unit, like the implementations
 -- for clusters.
-data CGenState = CGenState { globals :: [C.Decl],
-                             extra :: [C.Unit],
-                             buflit_counter :: Int,
-                             cluster_counter :: Int
-                           }
+data CGenState =
+    CGenState { globals :: [C.Decl],
+                extra :: [C.Unit],
+                buflit_counter :: Int,
+                cluster_counter :: Int,
+                clusters_generated :: M.Map (I.ClusterExpr, [Bool]) String
+              }
 
 header_unit (C.Decl d) = []
 header_unit (C.FunDef ft _) = if elem C.Static (C.mods ft)
@@ -43,11 +46,13 @@ header_unit (C.FunDef ft _) = if elem C.Static (C.mods ft)
                               else [C.FunDecl ft]
 -- Cemetery shouldn't generate any FunDecls on the source file
 
-initState = CGenState { globals = [],
-                        extra = [],
-                        buflit_counter = 0,
-                        cluster_counter = 0
-                      }
+initState =
+    CGenState { globals = [],
+                extra = [],
+                buflit_counter = 0,
+                cluster_counter = 0,
+                clusters_generated = M.empty
+              }
 
 type GM = StateT CGenState (
            WriterT [C.Unit] (
@@ -61,6 +66,10 @@ add_gdecl d =
 add_extra f =
     do s <- get
        put (s { extra = extra s ++ [f]})
+
+add_cluster k v =
+    do s <- get
+       put (s { clusters_generated = M.insert k v (clusters_generated s)})
 
 get_cluster_idx =
     do s <- get
@@ -278,9 +287,14 @@ g_expr (I.Cluster e as) =
        return $ C.Call n (map C.LV as')
 
 reg_cluster e fs n =
-    do c@(C.FunDef ft _) <- make_cluster e fs n
-       add_extra c
-       return (C.name ft)
+    do s <- get
+       let m = clusters_generated s
+       case M.lookup (e,fs) m of
+           Just f -> return f
+           Nothing -> do c@(C.FunDef ft _) <- make_cluster e fs n
+                         add_extra c
+                         add_cluster (e,fs) (C.name ft)
+                         return (C.name ft)
 
 make_cluster e fs n =
     do idx <- get_cluster_idx
