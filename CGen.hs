@@ -487,6 +487,6 @@ g_lvalue (I.Access a i) =
        return $ C.Access (C.LV aa) ii
 
 builtin_name I.Permute = "__cmt_permute"
-builtin_name I.Length  = "__cmt_length"
+builtin_name I.Length  = "cmt_length"
 builtin_name I.ToInt   = "__cmt_toint"
 builtin_name I.ToBits  = "__cmt_tobits"

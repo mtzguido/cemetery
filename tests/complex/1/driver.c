@@ -9,7 +9,7 @@ int main() {
 	cmt_buf_t k = cmt_mkbuf(key, strlen(key));
 	cmt_buf_t c = repkeyxor(p, k);
 
-	for (i = 0; i < __cmt_length(c); i++)
+	for (i = 0; i < cmt_length(c); i++)
 		printf("%02x", c->data[i]);
 	printf("\n");
 

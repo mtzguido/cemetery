@@ -39,29 +39,11 @@ static inline int max(int a, int b)
 	return a > b ? a : b;
 }
 
-int cmt_length(cmt_bits_t b) {
+inline int cmt_length(cmt_bits_t b) {
 	return b->length;
 }
 
-static inline int __cmt_maxv(int v, ...)
-{
-	int t;
-	va_list l;
-	va_start(l, v);
-
-	for (;;) {
-		t = va_arg(l, int);
-		if (t == -1)
-			break;
-
-		if (t > v)
-			v = t;
-	}
-
-	return v;
-}
-
-static int __cmt_mod(int a, int b)
+static inline int __cmt_mod(int a, int b)
 {
 	__cmt_assert(b > 0);
 
@@ -72,7 +54,7 @@ static int __cmt_mod(int a, int b)
 	return (a % b) + (a < 0 ? b : 0);
 }
 
-cmt_bits_t __cmt_alloc(int length)
+static cmt_bits_t __cmt_alloc(int length)
 {
 	cmt_bits_t ret;
 	int size;
@@ -90,7 +72,7 @@ cmt_bits_t __cmt_alloc(int length)
 	return ret;
 }
 
-void __cmt_fixup(cmt_bits_t b)
+static void __cmt_fixup(cmt_bits_t b)
 {
 	word_t m;
 
@@ -101,7 +83,7 @@ void __cmt_fixup(cmt_bits_t b)
 	}
 }
 
-bool get_bit(cmt_bits_t b, int o)
+static inline bool get_bit(cmt_bits_t b, int o)
 {
 	if (o > b->length)
 		return false;
@@ -109,7 +91,7 @@ bool get_bit(cmt_bits_t b, int o)
 	return b->data[o / WB] & bit(o % WB);
 }
 
-void set_bit(cmt_bits_t b, int o)
+static inline void set_bit(cmt_bits_t b, int o)
 {
 	if (o > b->length)
 		__cmt_error("wat");
@@ -117,7 +99,7 @@ void set_bit(cmt_bits_t b, int o)
 	b->data[o / WB] |= bit(o % WB);
 }
 
-word_t get_word(cmt_bits_t b, int wi)
+static inline word_t get_word(cmt_bits_t b, int wi)
 {
 	if (wi < 0)
 		__cmt_error("fuck 1");
@@ -133,7 +115,7 @@ word_t get_word(cmt_bits_t b, int wi)
 	return b->data[wi];
 }
 
-void set_word(cmt_bits_t b, int wi, word_t w)
+static inline void set_word(cmt_bits_t b, int wi, word_t w)
 {
 	__cmt_assert(wi >= 0);
 	__cmt_assert(wi < (b->length + WB - 1)/ WB);
@@ -141,7 +123,7 @@ void set_word(cmt_bits_t b, int wi, word_t w)
 	b->data[wi] = w;
 }
 
-cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
+static cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -152,7 +134,7 @@ cmt_bits_t __cmt_band(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
+static cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -163,7 +145,7 @@ cmt_bits_t __cmt_bor(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
+static cmt_bits_t __cmt_xor(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	int i;
@@ -263,7 +245,7 @@ static void __cmt_bitcopy(cmt_bits_t to, int offset,
 			   start_bit + len - rskip, rskip);
 }
 
-cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
+static cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(l->length + r->length);
 
@@ -273,7 +255,7 @@ cmt_bits_t __cmt_bconcat(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
+static cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 {
 	int tob;
 	cmt_bits_t ret = __cmt_alloc(to - from + 1);
@@ -294,7 +276,7 @@ cmt_bits_t __cmt_slice(cmt_bits_t l, int from, int to)
 	return ret;
 }
 
-cmt_bits_t __cmt_bnot(cmt_bits_t e)
+static cmt_bits_t __cmt_bnot(cmt_bits_t e)
 {
 	cmt_bits_t ret = __cmt_alloc(e->length);
 	int i;
@@ -308,7 +290,7 @@ cmt_bits_t __cmt_bnot(cmt_bits_t e)
 	return ret;
 }
 
-cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[], int len)
+static cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[], int len)
 {
 	cmt_bits_t ret = __cmt_alloc(len);
 	int i;
@@ -321,7 +303,7 @@ cmt_bits_t __cmt_permute(cmt_bits_t e, int perm[], int len)
 	return ret;
 }
 
-cmt_bits_t __cmt_tobits(int x, int len)
+static cmt_bits_t __cmt_tobits(int x, int len)
 {
 	cmt_bits_t ret = __cmt_alloc(len);
 
@@ -330,12 +312,12 @@ cmt_bits_t __cmt_tobits(int x, int len)
 	return ret;
 }
 
-int __cmt_toint(cmt_bits_t b)
+static inline int __cmt_toint(cmt_bits_t b)
 {
 	return b->data[0];
 }
 
-cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
+static cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 {
 	__cmt_assert(s >= 0);
 
@@ -345,7 +327,7 @@ cmt_bits_t __cmt_shiftl(cmt_bits_t b, int s)
 	return ret;
 }
 
-cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
+static cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 {
 	__cmt_assert(s >= 0);
 
@@ -358,7 +340,7 @@ cmt_bits_t __cmt_shiftr(cmt_bits_t b, int s)
 	return ret;
 }
 
-cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
+static cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 {
 	cmt_bits_t ret = __cmt_alloc(b->length);
 	s = __cmt_mod(s, b->length);
@@ -381,17 +363,12 @@ cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 	return ret;
 }
 
-cmt_bits_t __cmt_rotr(cmt_bits_t b, int s)
+static cmt_bits_t __cmt_rotr(cmt_bits_t b, int s)
 {
 	return __cmt_rotl(b, b->length - s);
 }
 
-int __cmt_length(cmt_bits_t b)
-{
-	return b->length;
-}
-
-cmt_bits_t __cmt_init(struct cmt_init *init, int length)
+static cmt_bits_t __cmt_init(struct cmt_init *init, int length)
 {
 	cmt_bits_t ret = __cmt_alloc(length);
 	memcpy(ret->data, init->data, init->length);
@@ -406,7 +383,7 @@ cmt_bits_t __cmt_init(struct cmt_init *init, int length)
 	t + sc;					\
 })
 
-cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
+static cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
 	cmt_bits_t ret = __cmt_alloc(max(l->length, r->length));
 	word_t c = 0, cc;
@@ -423,7 +400,7 @@ cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 	return ret;
 }
 
-bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
+static bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
 {
 	if (l->length != r->length)
 		return false;
@@ -432,12 +409,12 @@ bool __cmt_eq(cmt_bits_t l, cmt_bits_t r)
 	return !memcmp(l->data, r->data, l->size);
 }
 
-cmt_bits_t __cmt_zero(int l)
+static inline cmt_bits_t __cmt_zero(int l)
 {
 	return __cmt_alloc(l);
 }
 
-cmt_bits_t __cmt_copy(cmt_bits_t b)
+static cmt_bits_t __cmt_copy(cmt_bits_t b)
 {
 	cmt_bits_t ret = __cmt_alloc(b->length);
 	__cmt_bitcopy(ret, 0, b, 0, b->length);
