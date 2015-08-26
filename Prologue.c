@@ -398,18 +398,13 @@ cmt_bits_t __cmt_init(struct cmt_init *init, int length)
 	return ret;
 }
 
-static inline word_t add_carry(word_t *c, word_t l, word_t r)
-{
-	word_t t = l + r;
-	word_t sc = *c;
-	word_t o = 0;
-
-	if (t < l || t + sc < t)
-		o = 1;
-
-	*c = o;
-	return t + sc;
-}
+#define add_carry(c, l, r) ({			\
+	const word_t sc = c, sl = l, sr = r;	\
+	const word_t t = sl + sr;		\
+	if (t < l || t + sc < t)		\
+		c = 1;				\
+	t + sc;					\
+})
 
 cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 {
@@ -418,7 +413,7 @@ cmt_bits_t __cmt_modplus(cmt_bits_t l, cmt_bits_t r)
 	int i;
 
 	for (i = 0; i < ret->size; i++) {
-		cc = add_carry(&c, get_word(l,i), get_word(r, i));
+		cc = add_carry(c, get_word(l,i), get_word(r, i));
 
 		set_word(ret, i, cc);
 	}

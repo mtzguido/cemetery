@@ -312,8 +312,8 @@ make_cluster_expr n words (I.CBinOp I.ModPlus l r) =
         nn = nr + 1
         c  = C.LVar $ "_mpt" ++ show nn
         cc = C.LV $ C.LVar $ "_mpc" ++ show nn
-        p' = c_assign cc (C.Call "add_carry" [C.UnOp C.Address (C.LV c),
-                                             l', r'])
+        -- add_carry is actually a macro, but who cares
+        p' = c_assign cc (C.Call "add_carry" [C.LV c, l', r'])
         p  = sfold [pl, pr, p']
      in (nr + 1, p, cc)
 
