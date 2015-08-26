@@ -271,21 +271,21 @@ liv_assign s@(Assign l e) ss =
     do ls <- getS live
        lo <- getS live_out
        u <- getS univ
+
+       let un = unneeded ls lo ss
+
        case s of
         Assign l e | S.member l ls ->
             error $ "BUG: Assigning to live value " ++ show (l, e, ls)
 
         -- Avoid copies of temporaries that will be freed on
         -- the next step
-        Assign l (Copy lv) | not (used_s lv ss)
-                          && (not (S.member lv lo) || shadow_s lv ss)
-                          && S.member lv u ->
+        Assign l (Copy lv) | S.member lv un ->
             do del_live lv
                liv_assign (Assign l (LV lv)) ss
 
         Assign l (Cluster ce as) ->
-            do let un  = unneeded ls lo ss
-                   un' = S.intersection un (S.fromList (map fst as))
+            do let un' = S.intersection un (S.fromList (map fst as))
                    as' = map (\(lv,_) -> (lv, S.member lv un')) as
                mapM del_live (S.toList un')
                add_live l
