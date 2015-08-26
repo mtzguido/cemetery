@@ -54,7 +54,6 @@ data Builtin = Permute
              | Length
              | ToInt
              | ToBits
-             | Zero
   deriving (Eq, Show, Ord)
 
 data Expr = ConstInt   Int

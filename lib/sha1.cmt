@@ -21,7 +21,7 @@ static fun pad(m : bits) : bits
 		error "negative k?"
 
 	-- append a single 1 bit, and 'k' 0 bits
-	r = m ||| < 1 :: 1 > ||| zero(k) ||| tobits(l, 64)
+	r = m ||| <1 :: 1> ||| <0 :: k> ||| tobits(l, 64)
 
 	-- length(m) should always be a multiple of 512 bit
 	if !(length(r) % 512 == 0)

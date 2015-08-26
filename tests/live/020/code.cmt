@@ -8,7 +8,7 @@ fun left() : bits
 	for i in 0..9
 		s += i
 
-	return zero(s)
+	return <0 :: s>
 
 fun right() : bits
 	return <0 :: 45>

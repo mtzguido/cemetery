@@ -14,6 +14,5 @@ builtins = [
                      expr = b I.Permute }),
  ("length",      e { typ = Fun [Bits] Int,        expr = b I.Length }),
  ("toint",       e { typ = Fun [Bits] Int,        expr = b I.ToInt }),
- ("tobits",      e { typ = Fun [Int, Int] Bits,   expr = b I.ToBits }),
- ("zero",        e { typ = Fun [Int] Bits,        expr = b I.Zero })
+ ("tobits",      e { typ = Fun [Int, Int] Bits,   expr = b I.ToBits })
  ]
