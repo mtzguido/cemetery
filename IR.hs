@@ -65,7 +65,7 @@ data Expr = ConstInt   Int
           | LV         LValue
           | Arr        [Expr]
           | Slice      LValue Expr Expr
-          | ConstBits  [Int] Int
+          | ConstBits  [Int] Expr
           | Copy       LValue
             -- The bool represents if the value should be freed
             -- this always comes as False from translation, and

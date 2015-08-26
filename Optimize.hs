@@ -124,8 +124,11 @@ expr_opt f (Free _) =
 ---------------------------------------------------------------------
 const_fold e@(ConstInt _)     = do return e
 const_fold e@(ConstBool _)    = do return e
-const_fold e@(ConstBits _ _ ) = do return e
 const_fold e@(Copy _)         = do return e
+
+const_fold e@(ConstBits b l) =
+    do l' <- const_fold l
+       return $ ConstBits b l'
 
 const_fold e@(Arr as) =
     do as' <- mapM const_fold as

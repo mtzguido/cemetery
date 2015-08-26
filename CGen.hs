@@ -134,7 +134,7 @@ g_decl (I.DeclGlobal n t e) =
        e_c <- g_expr e
        return $ C.VarDecl n tt (Just e_c) []
 
-zero_bits (I.ConstBits [] 0) = True
+zero_bits (I.ConstBits [] (I.ConstInt 0)) = True
 zero_bits _ = False
 
 g_stmt :: I.Stmt -> GM C.Stmt
@@ -247,12 +247,14 @@ g_expr (I.Slice a f t) =
        return $ C.Call "__cmt_slice" [C.LV aa, ff, tt]
 
 g_expr (I.ConstBits b l) | all (==0) b =
-    do return $ C.Call "__cmt_zero" [C.ConstInt l]
+    do l' <- g_expr l
+       return $ C.Call "__cmt_zero" [l']
 
 g_expr (I.ConstBits b l) =
     do name <- g_const_bits b l
+       l' <- g_expr l
        let p = C.UnOp C.Address (C.LV (C.LVar name))
-       return $ C.Call "__cmt_init" [p, C.ConstInt l]
+       return $ C.Call "__cmt_init" [p, l']
 
 -- "Copy" is implemented as a function call.
 g_expr (I.Copy lv) =

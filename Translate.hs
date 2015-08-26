@@ -232,9 +232,12 @@ tr_expr'' i (A.ConstFloat _) =
 tr_expr'' i (A.ConstStr _) =
     do abort "Strings unsupported"
 
-tr_expr'' i (A.BinLit b s) =
+tr_expr'' i (A.BinLit b l) =
     do abortIf i "Binary literals not supported as global initiliazers"
-       return $ eseman { typ = A.Bits, expr = IR.ConstBits b s }
+       ls <- tr_expr'' i l
+       return $ eseman { prep = prep ls,
+                         typ = A.Bits,
+                         expr = IR.ConstBits b (expr ls) }
 
 tmap :: A.Type -> TM IR.Type
 tmap A.Int  = do return IR.Int

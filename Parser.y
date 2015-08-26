@@ -171,9 +171,9 @@ var_typ : {- empty -}		{ Nothing }
 
 decl : vardecl			{ $1 }
 
-binlit : LANGLE bytes COLON2 intlit RANGLE
+binlit : LANGLE bytes COLON2 expr RANGLE
 				{ A.BinLit $2 $4 }
-       | LANGLE RANGLE		{ A.BinLit [] 0 }
+       | LANGLE RANGLE		{ A.BinLit [] (A.ConstInt 0) }
 
 bytes : intlit bytes		{ (explode $1) ++ $2 }
       | {- empty -}		{ [] }

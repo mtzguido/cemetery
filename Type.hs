@@ -17,7 +17,7 @@ default_initializer Bool =
     do return $ IR.ConstBool False
 
 default_initializer Bits =
-    do return $ IR.ConstBits [] 0
+    do return $ IR.ConstBits [] (IR.ConstInt 0)
 
 default_initializer (ArrT t Nothing) =
     do abort "no length and no init"

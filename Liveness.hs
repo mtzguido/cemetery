@@ -115,7 +115,7 @@ used_lv lv l =
 used_e :: LValue -> Expr -> Bool
 used_e lv (ConstInt _) = False
 used_e lv (ConstBool _) = False
-used_e lv (ConstBits _ _) = False
+used_e lv (ConstBits _ e) = used_e lv e
 used_e lv (LV lv') = used_lv lv lv'
 
 used_e lv (BinOp o l r) =
