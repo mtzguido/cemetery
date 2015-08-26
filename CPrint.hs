@@ -163,6 +163,7 @@ u_prec NegateNum = (2, R)
 u_prec Not       = (2, R)
 u_prec Bnot      = (2, R)
 u_prec Address   = (2, R)
+u_prec Deref     = (2, R)
 
 p_expr (BinOp op l r) =
     do oo <- p_binop op
@@ -292,6 +293,7 @@ p_unop NegateNum = do return "-"
 p_unop Not       = do return "!"
 p_unop Bnot      = do return "~"
 p_unop Address   = do return "&"
+p_unop Deref     = do return "*"
 
 p_lvalue (LVar s) =
     do return s

@@ -63,7 +63,7 @@ data BinOp = Plus | Minus | Div | Prod
            | Assign
   deriving (Eq, Show)
 
-data UnOp = NegateNum | Not | Bnot | Address
+data UnOp = NegateNum | Not | Bnot | Address | Deref
   deriving (Eq, Show)
 
 data Type = Int
@@ -71,6 +71,7 @@ data Type = Int
           | ArrT Type (Maybe Int)
           | Custom String
           | UChar
+          | PtrTo Type
   deriving (Eq, Show)
 
 sseq Skip s = s
