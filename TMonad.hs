@@ -140,19 +140,13 @@ fresh typ =
 
 -- Translator Monad definition
 type TM =
-  ErrorT CmtError (
-   StateT TransState (
+  StateT TransState (
+   ErrorT CmtError (
     Identity
   ))
 
-runTranslate :: TM a -> (TransState, Either CmtError a)
-runTranslate m = let a = runErrorT m
-                     b = runStateT a initState
-                     (c, s) = runIdentity b
-                  in case c of
-                       Left e -> (s, Left e)
-                       Right a' -> (s, Right a')
-
+runTranslate :: TM a -> Either CmtError (a, TransState)
+runTranslate m = runIdentity $ runErrorT $ runStateT m initState
 
 abort     s = throwError $ CmtErr s
 abortIf b s = when b (abort s)

@@ -21,7 +21,7 @@ import Common
 import Control.Monad
 import Data.Maybe
 
-semanticT :: A.Prog -> (TransState, Either CmtError IR.IR)
+semanticT :: A.Prog -> Either CmtError (IR.IR, TransState)
 semanticT = runTranslate.translate
 
 -- IR Helpers

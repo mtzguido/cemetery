@@ -184,26 +184,26 @@ work = do (opts, filename) <- ask
 
           breakIf StopParse
 
-          let (st, ir) = runTranslate (translate ast)
+          let r = runTranslate (translate ast)
+          (ir, st) <- case r of
+                          Left e -> throwError e
+                          Right x -> return x
 
           dbgLn $ "Translation final state: " ++ show st
           dbgLn ""
 
-          case ir of
-            Left e -> do throwError e
-            Right t -> do dbgLn "IR Tree: "
-                          mapM showIRUnit t
-
-          let Right ir' = ir
+          dbgLn "IR Tree: "
+          mapM showIRUnit ir
+          dbgLn ""
 
           breakIf StopTranslate
 
           should_opt <- liftM not (haveOpt NoOptimize)
           oir <- if should_opt
-                 then case runOM (optimize ir') of
-                        (Left e, _) -> throwError e
-                        (Right x,_) -> return x
-                 else return ir'
+                 then case runOM (optimize ir) of
+                        Left e -> throwError e
+                        Right (x,_) -> return x
+                 else return ir
 
           dbgLn "Optimized IR: "
           mapM showIRUnit oir

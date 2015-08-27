@@ -27,12 +27,12 @@ data OMState =
 
 init_state = OMState { counter = 0 }
 
-type OM = ErrorT CmtError (
-           StateT OMState (
+type OM = StateT OMState (
+           ErrorT CmtError (
             Identity
           ))
 
-runOM m = runIdentity $ runStateT (runErrorT m) init_state
+runOM m = runIdentity $ runErrorT $ runStateT m init_state
 
 optimize :: IR -> OM IR
 optimize p = mapM o_unit p
