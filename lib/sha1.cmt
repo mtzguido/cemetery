@@ -1,16 +1,14 @@
 static fun f(t : int, x y z : bits) : bits
-	if t < 0
-		error "negative t"
+	if t < 0 || t >= 80
+		error "t: out of range"
 	else if t < 20
 		return (x & y) ^ (~x & z)
 	else if t < 40
 		return x ^ y ^ z
 	else if t < 60
 		return (x & y) ^ (x & z) ^ (y & z)
-	else if t < 80
-		return x ^ y ^ z
 	else
-		error "t is bigger than 80"
+		return x ^ y ^ z
 
 static fun pad(m : bits) : bits
 	var l = length(m)
