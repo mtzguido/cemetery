@@ -1,0 +1,16 @@
+fun left() : bits
+	var a = <0::1>
+	var b = <0::1>
+	var c = <0::1>
+	var d = <0::1>
+	var e = <0::1>
+
+	if (c == c)
+		a = b
+	else
+		a = c
+
+	return a
+
+fun right() : bits
+	return <0::1>

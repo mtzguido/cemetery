@@ -92,7 +92,7 @@ initState = LMState {
  }
 
 liveness b =
-    let m = liv_block b
+    let m = liv_block b S.empty
         i = runStateT m initState
         (b', _) = runIdentity i
      in b'
@@ -201,13 +201,19 @@ free_one l =
 free set =
     mapM free_one (S.toList set)
 
+needed ss =
+    do lo <- getS live_out
+       u <- getS univ
+       let used     = S.filter (flip used_s   ss) u
+           shadowed = S.filter (flip shadow_s ss) u
+           needed   = (S.union lo used) S.\\ shadowed
+
+       return needed
+
 unneeded ss =
     do ls <- getS live
-       lo <- getS live_out
-       let used     = S.filter (flip used_s   ss) ls
-           shadowed = S.filter (flip shadow_s ss) ls
-           needed   = (S.union lo used) S.\\ shadowed
-       return $ ls S.\\ needed
+       nn <- needed ss
+       return $ ls S.\\ nn
 
 do_frees s =
     do un <- unneeded s
@@ -253,13 +259,19 @@ liv' (s@(Assign l _):ss) =
                return (s:ss')
 
 liv' (s@(If c t e):ss) =
-    do t' <- liv_block t
-       e' <- liv_block e
+    do ls <- getS live
+       nn <- needed ss
+
+       t' <- liv_block t nn
+       e' <- liv_block e nn
+
+       set_live nn
        ss' <- liv ss
        return ((If c t' e'):ss')
 
 liv' (s@(For i l h b):ss) =
-    do b' <- liv_block b
+    do ls <- getS live
+       b' <- liv_block b ls
        ss' <- liv ss
        return ((For i l h b'):ss')
 
@@ -320,7 +332,7 @@ add_decl (DeclLocal lv t) =
 add_decl (DeclGlobal _ _ _) =
     do return ()
 
-liv_block (ds, s) =
+liv_block (ds, s) lo' =
     do u  <- getS univ
        k  <- getS kind
        ls <- getS live
@@ -329,7 +341,7 @@ liv_block (ds, s) =
        mapM add_decl ds
 
        set_live ls
-       set_live_out ls
+       set_live_out lo'
 
        s' <- liv (flatten s)
 
