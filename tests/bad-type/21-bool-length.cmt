@@ -1,0 +1,2 @@
+fun f(b : bool) : bits
+	return <0 :: b>

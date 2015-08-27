@@ -235,6 +235,7 @@ tr_expr'' i (A.ConstStr _) =
 tr_expr'' i (A.BinLit b l) =
     do abortIf i "Binary literals not supported as global initiliazers"
        ls <- tr_expr'' i l
+       abortIf (typ ls /= A.Int) "Binlit length has to be of type int"
        return $ eseman { prep = prep ls,
                          typ = A.Bits,
                          expr = IR.ConstBits b (expr ls) }
