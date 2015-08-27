@@ -201,16 +201,16 @@ free_one l =
 free set =
     mapM free_one (S.toList set)
 
-unneeded ls lo ss =
-    let used     = S.filter (flip used_s   ss) ls
-        shadowed = S.filter (flip shadow_s ss) ls
-        needed   = (S.union lo used) S.\\ shadowed
-     in ls S.\\ needed
-
-do_frees s =
+unneeded ss =
     do ls <- getS live
        lo <- getS live_out
-       let un = unneeded ls lo s
+       let used     = S.filter (flip used_s   ss) ls
+           shadowed = S.filter (flip shadow_s ss) ls
+           needed   = (S.union lo used) S.\\ shadowed
+       return $ ls S.\\ needed
+
+do_frees s =
+    do un <- unneeded s
        mapM del_live (S.toList un)
        free un
 
@@ -269,10 +269,8 @@ liv' (s:ss) =
 
 liv_assign s@(Assign l e) ss =
     do ls <- getS live
-       lo <- getS live_out
-       u <- getS univ
 
-       let un = unneeded ls lo ss
+       un <- unneeded ss
 
        case s of
         Assign l e | S.member l ls ->
