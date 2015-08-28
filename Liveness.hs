@@ -281,12 +281,16 @@ liv' (s:ss) =
 
 liv_assign s@(Assign l e) ss =
     do ls <- getS live
-
        un <- unneeded ss
+       nn <- needed ss
+       u  <- getS univ
 
        case s of
         Assign l e | S.member l ls ->
             error $ "BUG: Assigning to live value " ++ show (l, e, ls)
+
+        Assign l _ | not (S.member l nn) && S.member l u ->
+            liv ss
 
         -- Avoid copies of temporaries that will be freed on
         -- the next step
