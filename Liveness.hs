@@ -81,7 +81,7 @@ set_univ u = do s <- get
 type_of :: LValue -> LM Type
 type_of lv = do k <- getS kind
                 case M.lookup lv k of
-                    Nothing -> trace ("wat: " ++ show (lv, k)) (return Bits)
+                    Nothing -> error "internal liveness error"
                     Just t -> return t
 
 initState = LMState {
