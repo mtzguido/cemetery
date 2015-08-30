@@ -460,7 +460,7 @@ cmt_bits_t cmt_mkbuf(const char *d, int bitlen)
 	return ret;
 }
 
-void cmt_copy(char *dest, cmt_bits_t b)
+void cmt_frombuf(char *dest, cmt_bits_t b)
 {
 	char *f = (char*)b->data;
 	int i;

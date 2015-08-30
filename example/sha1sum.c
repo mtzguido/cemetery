@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 
 	b = cmt_mkbuf(buf, 8 * size);
 	h = sha1(b);
-	cmt_copy(hash, h);
+	cmt_frombuf(hash, h);
 
 	for (i = 0; i < 20; i++)
 		printf("%02x", hash[i]);
