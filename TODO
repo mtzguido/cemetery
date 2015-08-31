@@ -6,6 +6,4 @@
 
 - Consider adding a permutation type.
 
-- In-place simple operations like "A = A <<< 1"
-
 - Handle small buffers more efficiently by keeping them in words.
