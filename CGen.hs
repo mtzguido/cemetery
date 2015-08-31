@@ -17,6 +17,9 @@ bitsType = C.Custom "cmt_bits_t"
 bitsType_ptr = C.Custom "cmt_bits_t*"
 wordType = C.Custom "word_t"
 
+c_assign l e = C.Expr $ C.BinOp C.Assign l e
+c_call f a = C.Expr $ C.Call f a
+
 -- Generate source file and header
 cgen :: I.IR -> (C.Prog, C.Prog)
 cgen ir = let (units, ()) = runGM (g_ir ir)
@@ -301,142 +304,6 @@ reg_cluster e fs n =
                          add_cluster (e,fs) (C.name ft)
                          return (C.name ft)
 
-make_cluster e fs n =
-    do idx <- get_cluster_idx
-       let arg_names = map (\i -> "a" ++ show i) [0..n-1]
-       let formal = zip arg_names (repeat bitsType)
-       let lengths = map (\v -> C.Call "cmt_length" [C.LV $ C.LVar v]) arg_names
-       let words = map (\v -> C.Call "get_word" [C.LV $ C.LVar v,
-                                                 C.LV $ C.LVar "i"]) arg_names
-       let (nt, p, res) = make_cluster_expr 0 words e
-
-       let ff i = [C.VarDecl ("_mpt" ++ show i) wordType (Just (C.ConstInt 0)) [],
-                   C.VarDecl ("_mpc" ++ show i) wordType Nothing []]
-
-       let ds = concatMap ff [1..nt]
-
-       let ast = cluster_ast (map (C.LV . C.LVar) arg_names) fs res n p ds
-
-       let ft = C.Funtype { C.name = "__cmt_cluster_impl_" ++ show idx,
-                            C.args = formal, C.mods = [C.Static],
-                            C.ret = bitsType }
-
-       return $ C.FunDef ft ast
-
-c_assign l e = C.Expr $ C.BinOp C.Assign l e
-c_call f a = C.Expr $ C.Call f a
-
-make_cluster_expr n words (I.CArg i) = (n, C.Skip, words !! i)
-make_cluster_expr n words (I.CBinOp I.ModPlus l r) =
-    let (nl, pl, l') = make_cluster_expr n words l
-        (nr, pr, r') = make_cluster_expr nl words r
-        nn = nr + 1
-        c  = C.LVar $ "_mpt" ++ show nn
-        cc = C.LV $ C.LVar $ "_mpc" ++ show nn
-        -- add_carry is actually a macro, but who cares
-        p' = c_assign cc (C.Call "add_carry" [C.LV c, l', r'])
-        p  = sfold [pl, pr, p']
-     in (nr + 1, p, cc)
-
-make_cluster_expr n words (I.CBinOp op l r) =
-    let (nl, pl, l') = make_cluster_expr n words l
-        (nr, pr, r') = make_cluster_expr nl words r
-        op' = clustered_binop op
-     in (nr, C.Seq pl pr, C.BinOp op' l' r')
-
-make_cluster_expr n words (I.CUnOp op e) =
-    let (ne, pe, e') = make_cluster_expr n words e
-        op' = clustered_unop op
-     in (ne, pe, C.UnOp op' e')
-
-do_frees fs n =
-    let idxs = filter (fs!!) [0..n-1]
-        b i = C.LV (C.LVar ("a" ++ show i))
-     in map (\i -> C.Expr $ C.Call "cmt_free" [b i]) idxs
-
-do_frees_cond ret fs n =
-    let idxs = filter (fs!!) [0..n-1]
-        b i = C.LV (C.LVar ("a" ++ show i))
-     in map (\i -> C.If (C.BinOp C.Neq (b i) ret)
-                        ([], C.Expr $ C.Call "cmt_free" [b i])
-                        ([], C.Skip))
-            idxs
-
-cluster_ast args fs res n p ds | all not fs =
-    let i    = C.LV (C.LVar "i")
-        ret  = C.LV (C.LVar "ret")
-        size = C.LV (C.LVar "size")
-        body = sfold [p, c_call "set_word" [ret, i, res]]
-        l    = C.LV (C.LVar "l")
-        prep_one i = ast_proc (args!!i) (fs!!i) l ret ret --crap
-        prep = sfold $ map prep_one [0..n-1]
-        set_ret = c_assign ret (C.Call "__cmt_alloc" [l])
-     in
-    ([C.VarDecl "ret" bitsType Nothing [],
-      C.VarDecl "i"   C.Int    Nothing [],
-      C.VarDecl "l"   C.Int    (Just (C.ConstInt 0)) []] ++
-      ds,
-     sfold $ [prep,
-              set_ret,
-              C.For (C.BinOp C.Assign i (C.ConstInt 0))
-                    (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
-                    (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
-                    ([], body)] ++
-             do_frees fs n ++
-             [c_call "__cmt_fixup" [ret], C.Return ret]
-    )
-
-cluster_ast args fs res n p ds =
-    let i    = C.LV (C.LVar "i")
-        ret  = C.LV (C.LVar "ret")
-        size = C.LV (C.LVar "size")
-        length = C.LV (C.LVar "length")
-        l    = C.LV (C.LVar "l")
-        u    = C.LV (C.LVar "u")
-        first = fromJust $ elemIndex True fs
-        l_init = C.BinOp C.Member (args !! first) length
-        prep_one i = ast_proc (args!!i) (fs!!i) l ret u
-        prep = sfold $ map prep_one ([0..n-1] \\ [first]) -- skip the one used for init
-        body = sfold [p, c_call "set_word" [ret, i, res]]
-        set_ret_1 = c_assign ret (C.Call "__cmt_resize_zero" [ret, l])
-        set_ret_2 = c_assign (C.UnOp C.Deref u) ret
-     in
-    ([C.VarDecl "ret" bitsType (Just (args !! first)) [],
-      C.VarDecl "l"   C.Int    (Just l_init) [],
-      C.VarDecl "u"   bitsType_ptr (Just (C.UnOp C.Address (args !! first))) [],
-      C.VarDecl "i"   C.Int    Nothing         []] ++
-      ds,
-     sfold $ [prep,
-              set_ret_1,
-              set_ret_2,
-              C.For (C.BinOp C.Assign i (C.ConstInt 0))
-                    (C.BinOp C.Lt     i (C.BinOp C.Member ret size))
-                    (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
-                    ([], body)] ++
-             do_frees_cond ret fs n ++
-             [c_call "__cmt_fixup" [ret], C.Return ret]
-    )
-
-ast_proc arg free l ret u =
-    let length = C.LV (C.LVar "length")
-        upd_l   = C.If (C.BinOp C.Gt (C.BinOp C.Member arg length) l)
-                       ([], c_assign l (C.BinOp C.Member arg length))
-                       ([], C.Skip)
-
-        upd_ret = C.If (C.BinOp C.Gt (C.BinOp C.Member arg length)
-                                     (C.BinOp C.Member ret length))
-                       ([], C.Seq (c_assign ret arg) (c_assign u (C.UnOp C.Address arg)))
-                       ([], C.Skip)
-     in case free of
-            True -> sseq upd_l upd_ret
-            False -> upd_l
-
-clustered_binop I.Band = C.Band
-clustered_binop I.Bor  = C.Bor
-clustered_binop I.Xor  = C.Xor
-
-clustered_unop  I.Bnot = C.Bnot
-
 g_const_bits b l =
     do c <- fresh_buflit_counter
        let name = "__cmt_buf_literal_" ++ show c
@@ -502,3 +369,143 @@ inplace_fun I.RRot   = "__cmt_inplace_rotr"
 g_inplaceop op b s =
     do let f = inplace_fun op
        return $ C.Call f [C.LV b, s]
+
+make_cluster e fs n =
+    do idx <- get_cluster_idx
+       let arg_name i = "a" ++ show i
+       let formals = zip (map arg_name [0..n-1]) (repeat bitsType)
+
+       let arg a = C.LV (C.LVar (arg_name a))
+       let length a = C.Call "cmt_length" [arg a]
+       let word a i = C.Call "get_word" [arg a, i]
+
+       let (ntemp, p, expr) = make_cluster_expr 0 (\i -> word i (C.LV (C.LVar "i"))) e
+
+       let temp_decl i = [C.VarDecl ("_mpt" ++ show i) wordType (Just (C.ConstInt 0)) [],
+                          C.VarDecl ("_mpc" ++ show i) wordType Nothing []]
+
+       let temp_decls = concatMap temp_decl [1..ntemp]
+
+       let ast = cluster_ast arg fs expr n p temp_decls
+
+       let ft = C.Funtype { C.name = "__cmt_cluster_impl_" ++ show idx,
+                            C.args = formals, C.mods = [C.Static],
+                            C.ret = bitsType }
+
+       return $ C.FunDef ft ast
+
+make_cluster_expr n word (I.CArg i) =
+    (n, C.Skip, word i)
+
+make_cluster_expr n word (I.CBinOp I.ModPlus l r) =
+    let (nl, pl, l') = make_cluster_expr n  word l
+        (nr, pr, r') = make_cluster_expr nl word r
+        nn = nr + 1
+        c  = C.LV $ C.LVar $ "_mpt" ++ show nn
+        cc = C.LV $ C.LVar $ "_mpc" ++ show nn
+
+        -- add_carry is actually a macro, but who cares
+        p' = c_assign cc (C.Call "add_carry" [c, l', r'])
+        p  = sfold [pl, pr, p']
+     in (nr + 1, p, cc)
+
+make_cluster_expr n word (I.CBinOp op l r) =
+    let (nl, pl, l') = make_cluster_expr n  word l
+        (nr, pr, r') = make_cluster_expr nl word r
+        op' = clustered_binop op
+     in (nr, C.Seq pl pr, C.BinOp op' l' r')
+
+make_cluster_expr n word (I.CUnOp op e) =
+    let (ne, pe, e') = make_cluster_expr n word e
+        op' = clustered_unop op
+     in (ne, pe, C.UnOp op' e')
+
+do_frees fs n =
+    let idxs = filter (fs!!) [0..n-1]
+        b i = C.LV (C.LVar ("a" ++ show i))
+     in map (\i -> c_call "cmt_free" [b i]) idxs
+
+do_free_cond ret arg =
+    C.If (C.BinOp C.Neq arg ret)
+         ([], C.Expr $ C.Call "cmt_free" [arg])
+         ([], C.Skip)
+
+var n = C.LV (C.LVar n)
+
+-- for (i = lo; i < hi; i++) { body }
+c_for i lo hi body =
+    C.For (C.BinOp C.Assign i lo)
+          (C.BinOp C.Lt i hi)
+          (C.BinOp C.Assign i (C.BinOp C.Plus i (C.ConstInt 1)))
+          body
+
+cluster_skel decls prep body post =
+    ([C.VarDecl "ret" bitsType Nothing [],
+      C.VarDecl "i"   C.Int    Nothing [],
+      C.VarDecl "l"   C.Int    Nothing []] ++
+     decls,
+     sfold [prep,
+            c_for (var "i") (C.ConstInt 0)
+                  (C.BinOp C.Member (var "ret") (var "size")) body,
+            post,
+            c_call "__cmt_fixup" [var "ret"],
+            C.Return (var "ret")]
+    )
+
+cluster_ast args fs res n p ds | all not fs =
+    let ret  = var "ret"
+        l    = var "l"
+        body = sfold [p, c_call "set_word" [ret, var "i", res]]
+        prep_one i = expand_len (args i) l
+        prep' = sfold $ map prep_one [0..n-1]
+        set_ret = c_assign ret (C.Call "__cmt_alloc" [l])
+        prep = sfold [c_assign l (C.ConstInt 0), prep', set_ret]
+     in cluster_skel ds prep ([], body) (sfold $ do_frees fs n)
+
+cluster_ast args fs res n p ds =
+    let ret    = var "ret"
+        l      = var "l"
+        u      = var "u"
+        length = var "length"
+        first_idx = fromJust $ elemIndex True fs
+        first = args first_idx
+        l_init = C.BinOp C.Member first length
+        prep_one a = sseq (expand_u a ret u)
+                          (expand_len a l)
+
+        free_args = map args (elemIndices True fs)
+
+        prep' = sfold $ map prep_one (free_args \\ [first]) -- skip the one used for init
+
+        body = sfold [p, c_call "set_word" [ret, var "i", res]]
+        set_ret_1 = c_assign ret (C.Call "__cmt_resize_zero" [ret, l])
+        set_ret_2 = c_assign (C.UnOp C.Deref u) ret
+        u_decl = C.VarDecl "u" bitsType_ptr (Just (C.UnOp C.Address first)) []
+        frees = map (do_free_cond ret) free_args
+
+        prep = sfold [c_assign ret first,
+                      c_assign l l_init,
+                      prep',
+                      set_ret_1,
+                      set_ret_2]
+     in cluster_skel (u_decl:ds) prep ([],body) (sfold frees)
+
+expand_len arg l =
+    let length = var "length"
+     in C.If (C.BinOp C.Gt (C.BinOp C.Member arg length) l)
+             ([], c_assign l (C.BinOp C.Member arg length))
+             ([], C.Skip)
+
+expand_u arg ret u =
+    let length = var "length"
+     in C.If (C.BinOp C.Gt (C.BinOp C.Member arg length)
+                           (C.BinOp C.Member ret length))
+             ([], C.Seq (c_assign ret arg)
+                        (c_assign u (C.UnOp C.Address arg)))
+             ([], C.Skip)
+
+clustered_binop I.Band = C.Band
+clustered_binop I.Bor  = C.Bor
+clustered_binop I.Xor  = C.Xor
+
+clustered_unop  I.Bnot = C.Bnot
