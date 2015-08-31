@@ -383,6 +383,11 @@ static cmt_bits_t __cmt_inplace_rotl(cmt_bits_t b, int s)
 
 		return b;
 	} else {
+		/*
+		 * Just call the usual function and free
+		 * the original result. We'll implement this
+		 * properly later
+		 */
 		cmt_bits_t ret = __cmt_rotl(b, s);
 		cmt_free(b);
 		return ret;
