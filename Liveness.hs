@@ -313,9 +313,10 @@ liv_assign s@(Assign l e) ss =
             do ss' <- liv ss
                return $ [s] ++ ss'
 
-        Assign l (BinOp LRot (LV b) s) | S.member b un ->
+        Assign l (BinOp op (LV b) s) | S.member b un &&
+                                       in_placeable op ->
             do del_live b
-               liv_assign (Assign l (IPLRot b s)) ss
+               liv_assign (Assign l (IPOp op b s)) ss
 
         Assign l _ ->
             do add_live l
@@ -355,3 +356,5 @@ liv_block (ds, s) lo' =
        set_kind k
 
        return (ds, sfold s')
+
+in_placeable o = elem o [LRot, RRot]

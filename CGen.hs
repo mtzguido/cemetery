@@ -223,10 +223,10 @@ g_expr (I.BinOp op l r) =
        rr <- g_expr r
        g_binop op ll rr
 
-g_expr (I.IPLRot b s) =
+g_expr (I.IPOp op b s) =
     do bb <- g_lvalue b
        ss <- g_expr s
-       return $ C.Call "__cmt_inplace_rotl" [C.LV bb, ss]
+       g_inplaceop op bb ss
 
 -- Special case for inequalities
 g_expr (I.UnOp I.Not (I.BinOp I.Eq l r)) =
@@ -495,3 +495,10 @@ builtin_name I.Permute = "__cmt_permute"
 builtin_name I.Length  = "cmt_length"
 builtin_name I.ToInt   = "__cmt_toint"
 builtin_name I.ToBits  = "__cmt_tobits"
+
+inplace_fun I.LRot   = "__cmt_inplace_rotl"
+inplace_fun I.RRot   = "__cmt_inplace_rotr"
+
+g_inplaceop op b s =
+    do let f = inplace_fun op
+       return $ C.Call f [C.LV b, s]

@@ -70,7 +70,7 @@ data Expr = ConstInt   Int
             -- This always comes as False from translation, and
             -- the Liveness analysis might add True's
           | Cluster    ClusterExpr [(LValue, Bool)]
-          | IPLRot     LValue Expr
+          | IPOp       BinOp LValue Expr
   deriving (Eq, Show, Ord)
 
 data ClusterExpr = CBinOp BinOp ClusterExpr ClusterExpr

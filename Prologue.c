@@ -370,6 +370,8 @@ static cmt_bits_t __cmt_rotl(cmt_bits_t b, int s)
 
 static cmt_bits_t __cmt_inplace_rotl(cmt_bits_t b, int s)
 {
+	s = __cmt_mod(s, b->length);
+
 	if (b->length <= WB) {
 		word_t p, q, w;
 
@@ -385,6 +387,11 @@ static cmt_bits_t __cmt_inplace_rotl(cmt_bits_t b, int s)
 		cmt_free(b);
 		return ret;
 	}
+}
+
+static cmt_bits_t __cmt_inplace_rotr(cmt_bits_t b, int s)
+{
+	return __cmt_inplace_rotl(b, b->length - s);
 }
 
 static cmt_bits_t __cmt_rotr(cmt_bits_t b, int s)
