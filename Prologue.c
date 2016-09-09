@@ -44,7 +44,7 @@ static inline int max(int a, int b)
 	return a > b ? a : b;
 }
 
-inline int cmt_length(cmt_bits_t b) {
+int cmt_length(cmt_bits_t b) {
 	return b->length;
 }
 
