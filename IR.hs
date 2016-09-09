@@ -99,7 +99,9 @@ sseq Skip r = r
 sseq l Skip = l
 sseq l r = Seq l r
 
+sfold :: [Stmt] -> Stmt
 sfold = foldl sseq Skip
+
 
 c_binop op (Cluster le la) (Cluster re ra) =
     let ea = la ++ ra

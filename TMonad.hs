@@ -1,7 +1,7 @@
 module TMonad where
 
 import Common
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State
 import qualified Data.Map.Strict as M
@@ -141,12 +141,13 @@ fresh typ =
 -- Translator Monad definition
 type TM =
   StateT TransState (
-   ErrorT CmtError (
+   ExceptT CmtError (
     Identity
   ))
 
 runTranslate :: TM a -> Either CmtError (a, TransState)
-runTranslate m = runIdentity $ runErrorT $ runStateT m initState
+runTranslate m = runIdentity $ runExceptT $ runStateT m initState
 
+abort :: String -> TM a
 abort     s = throwError $ CmtErr s
 abortIf b s = when b (abort s)

@@ -23,15 +23,22 @@ data LMState = LMState {
 
 type LM = StateT LMState Identity
 
+mod_live :: (S.Set LValue -> S.Set LValue) -> LM ()
 mod_live f =
     do s <- get
        put (s { live = f (live s) })
+
+mod_kind :: (M.Map LValue Type -> M.Map LValue Type) -> LM ()
 mod_kind f =
     do s <- get
        put (s { kind = f (kind s) })
+
+mod_live_out :: (S.Set LValue -> S.Set LValue) -> LM ()
 mod_live_out f =
     do s <- get
        put (s { live_out = f (live_out s) })
+
+mod_univ :: (S.Set LValue -> S.Set LValue) -> LM ()
 mod_univ f =
     do s <- get
        put (s { univ = f (univ s) })

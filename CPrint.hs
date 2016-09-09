@@ -14,6 +14,7 @@ cprint prologue p = let m' = runWriterT (p_prog prologue p)
                         (r, lines) = runIdentity m'
                      in concat (intersperse "\n" lines)
 
+line :: String -> PM ()
 line s = tell [s]
 
 indent :: PM a -> PM a

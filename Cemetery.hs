@@ -2,7 +2,7 @@ module Main where
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.Either
 import Data.List
 import System.Console.GetOpt as Opt
@@ -34,11 +34,11 @@ data Opts = StopLexer
 
 -- Monadic type for the program logic
 type App = ReaderT ([Opts], String) (
-            ErrorT CmtError (
+            ExceptT CmtError (
              IO
            ))
 
-runApp m r = runErrorT (runReaderT m r)
+runApp m r = runExceptT (runReaderT m r)
 
 options = [
  Option ['n'] ["no-output"]         (NoArg NoOutput)        "don't output to files",
@@ -75,25 +75,31 @@ main =
                         exitFailure
            Right _ -> do liftIO exitSuccess
 
+haveOpt :: Opts -> App Bool
 haveOpt f =
     do (opts, _) <- ask
        return $ elem f opts
 
+ifNotOpt :: Opts -> App () -> App ()
 ifNotOpt f m =
     do (opts, _) <- ask
        when (not $ elem f opts) m
 
+ifOpt :: Opts -> App () -> App ()
 ifOpt f m =
     do (opts, _) <- ask
        when (elem f opts) m
 
+breakIf :: Opts -> App ()
 breakIf f =
     ifOpt f (liftIO exitSuccess)
 
+dbg :: String -> App ()
 dbg s =
     do (v, _) <- ask
        when (elem Verbose v) $ liftIO (putStr s)
 
+dbgLn :: String -> App ()
 dbgLn s =
     do (v, _) <- ask
        when (elem Verbose v) $ liftIO (putStrLn s)
@@ -118,6 +124,7 @@ showIRUnit ir =
 
 inc_regex = mkRegex "^include ([^ ]*) *$"
 
+check_include :: String -> String -> App String
 check_include b s =
     do case matchRegex inc_regex s of
            Nothing -> return s

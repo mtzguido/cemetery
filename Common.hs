@@ -1,7 +1,7 @@
 module Common where
 
 import Data.List (elemIndex)
-import Control.Monad.Error
+import Control.Monad.Except
 import Lexer
 import Debug.Trace
 
@@ -23,5 +23,3 @@ instance Show CmtError where
   show (ParseErr _) = "parse error"
 
 shuf l r = concat $ map (\(a,b) -> [a,b]) $ zip l r
-
-instance Error CmtError where

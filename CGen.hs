@@ -62,14 +62,17 @@ type GM = StateT CGenState (
             Identity
            ))
 
+add_gdecl :: C.Decl -> GM ()
 add_gdecl d =
     do s <- get
        put (s { globals = globals s ++ [d]})
 
+add_extra :: C.Unit -> GM ()
 add_extra f =
     do s <- get
        put (s { extra = extra s ++ [f]})
 
+add_cluster :: (I.ClusterExpr, [Bool]) -> String -> GM ()
 add_cluster k v =
     do s <- get
        put (s { clusters_generated = M.insert k v (clusters_generated s)})

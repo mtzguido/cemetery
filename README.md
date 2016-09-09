@@ -10,26 +10,39 @@ algorithm is a very simple one.
 Cemetery tries to be a solution to that problem by allowing you to write
 the algorithms in a clear language, which can then be compiled to C code.
 
-Example (not actually Cemetery-generated):
+Example:
 
 Cemetery source:
 
-	fun coll (x : int) : int
-		if x == 1
-			return 1
-		else if even(x)
-			return coll(x/2)
-		else
-			return coll(3*x +1)
+	static fun pad(m : bits) : bits
+		var l = length(m)
+		var k = (447 - l) % 512
+		var r : bits
+
+		r = m ||| <1 :: 1> ||| <0 :: k> ||| tobits(l, 64)
+
+		return r
 
 Output C code:
 
-	int coll(int x)
+	static cmt_bits_t pad(cmt_bits_t m)
 	{
-		if (x == 1)
-			return 1;
-		else if (__cmt_even(x))
-			return coll(x / 2);
-		else
-			return coll(3 * x + 1);
+		int l, k;
+		cmt_bits_t r, t0, t1, t2, t3, t4, t5;
+
+		l = cmt_length(m);
+		k = __cmt_mod(447 - l, 512);
+		t0 = __cmt_init(&__cmt_buf_literal_0, 1);
+		t1 = __cmt_bconcat(m, t0);
+		cmt_free(t0);
+		t2 = __cmt_zero(k);
+		t3 = __cmt_bconcat(t1, t2);
+		cmt_free(t1);
+		cmt_free(t2);
+		t4 = __cmt_tobits(l, 64);
+		t5 = __cmt_bconcat(t3, t4);
+		cmt_free(t3);
+		cmt_free(t4);
+		r = t5;
+		return r;
 	}

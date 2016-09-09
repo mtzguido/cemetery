@@ -20,7 +20,7 @@ $(TARGET): $(obj-y)
 
 .deps.mk: $(automods) *.hs
 	$(Q)$(SAY) "  DEPS"
-	$(Q)ghc -M $(SOURCE) -dep-makefile .deps.mk
+	$(Q)ghc -M $(SOURCE) -dep-makefile .deps.mk -dep-suffix ""
 
 prepare: $(automods)
 

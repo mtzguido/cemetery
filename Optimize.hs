@@ -12,7 +12,7 @@ module Optimize where
 
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Identity
 
 import Common
@@ -28,15 +28,16 @@ data OMState =
 init_state = OMState { counter = 0 }
 
 type OM = StateT OMState (
-           ErrorT CmtError (
+           ExceptT CmtError (
             Identity
           ))
 
-runOM m = runIdentity $ runErrorT $ runStateT m init_state
+runOM m = runIdentity $ runExceptT $ runStateT m init_state
 
 optimize :: IR -> OM IR
 optimize p = mapM o_unit p
 
+o_unit :: Unit -> OM Unit
 o_unit (FunDef ft b) =
     do let (_, s) = b
        c <- check_return_paths s
