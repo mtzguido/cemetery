@@ -14,7 +14,7 @@ import Control.Monad.Error
 
 %name cmtParse
 %tokentype { L.Token }
-%error { \s -> throwError $ ParseErr s }
+%error { (\s -> throwError $ ParseErr s) }
 
 %token
 	AMP		{ L.Tok L.Amp _ }
